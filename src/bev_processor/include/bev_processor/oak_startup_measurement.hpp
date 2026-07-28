@@ -18,12 +18,12 @@ struct OakStartupMeasurementConfig
   double imu_rate_hz{100.0};
   int imu_queue_size{50};
   double warmup_sec{1.0};
-  double ir_dot_projector_intensity{0.5};
+  double ir_dot_projector_intensity{1.0};
 
-  int roi_width{320};
-  int roi_height{160};
+  int roi_width{228};
+  int roi_height{114};
   int point_sample_step{2};
-  int minimum_valid_points{2500};
+  int minimum_valid_points{1270};
   double minimum_depth_m{0.30};
   double maximum_depth_m{3.00};
   double minimum_height_m{0.10};
@@ -31,7 +31,7 @@ struct OakStartupMeasurementConfig
 
   int plane_ransac_iterations{200};
   double plane_inlier_threshold_m{0.008};
-  int plane_minimum_inliers{1800};
+  int plane_minimum_inliers{914};
   double plane_minimum_inlier_ratio{0.70};
   double plane_maximum_residual_mad_m{0.005};
   double plane_maximum_imu_difference_deg{15.0};

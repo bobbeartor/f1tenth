@@ -385,11 +385,11 @@ private:
     declare_parameter<int>("measurement_imu_queue_size", 50);
     declare_parameter<double>("measurement_warmup_sec", 1.0);
     declare_parameter<double>(
-      "measurement_ir_dot_projector_intensity", 0.5);
-    declare_parameter<int>("measurement_roi_width", 320);
-    declare_parameter<int>("measurement_roi_height", 160);
+      "measurement_ir_dot_projector_intensity", 1.0);
+    declare_parameter<int>("measurement_roi_width", 228);
+    declare_parameter<int>("measurement_roi_height", 114);
     declare_parameter<int>("measurement_point_sample_step", 2);
-    declare_parameter<int>("measurement_minimum_valid_points", 2500);
+    declare_parameter<int>("measurement_minimum_valid_points", 1270);
     declare_parameter<double>("measurement_minimum_depth_m", 0.30);
     declare_parameter<double>("measurement_maximum_depth_m", 3.00);
     declare_parameter<double>("measurement_minimum_height_m", 0.10);
@@ -397,7 +397,7 @@ private:
     declare_parameter<int>("measurement_plane_ransac_iterations", 200);
     declare_parameter<double>(
       "measurement_plane_inlier_threshold_m", 0.008);
-    declare_parameter<int>("measurement_plane_minimum_inliers", 1800);
+    declare_parameter<int>("measurement_plane_minimum_inliers", 914);
     declare_parameter<double>(
       "measurement_plane_minimum_inlier_ratio", 0.70);
     declare_parameter<double>(

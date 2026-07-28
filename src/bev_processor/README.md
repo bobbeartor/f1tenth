@@ -16,13 +16,14 @@ IMU 자세 추정과 BEV LUT 반영은 모두 100 Hz로 실행한다. 새 IMU �
 없거나 각도 변화가 임계값보다 작으면 LUT를 다시 만들지 않는다.
 
 센서 시작 직후의 과도값을 버리기 위해 1초간 워밍업하고, 100 Hz IMU
-200개 샘플과 중앙 320x160 stereo ROI를 사용한다. 2픽셀 간격으로 만든
+200개 샘플과 중앙 228x114 stereo ROI를 사용한다. 이전 320x160 ROI의
+각 변을 5/7로 줄인 크기다. 2픽셀 간격으로 만든
 3D 점들 중 노면 평면 inlier만 사용하고, 안정된 평면 30프레임의 높이와
 평균 법선을 구한다. IMU와 Depth가 통계적 허용 범위 안에서 일치하면
 법선을 분산 역가중으로 융합한다. 충돌하면 신뢰도가 설정값 이상 우세한
 센서만 선택하고, 우세한 센서가 없으면 재측정한다.
 
-자동 측정 중에는 Pro-series OAK의 IR dot projector를 기본 세기 0.5로
+자동 측정 중에는 Pro-series OAK의 IR dot projector를 최대 세기 1.0으로
 켜서 무늬가 적은 노면의 stereo 대응점을 보강한다. 세기는
 `measurement_ir_dot_projector_intensity`로 설정하며, 활성화에 실패하면
 passive stereo로 조용히 진행하지 않고 측정을 중단한다.
