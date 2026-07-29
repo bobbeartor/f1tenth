@@ -1,4 +1,5 @@
 #include "camera_driver/camera_driver_node.hpp"
+#include "camera_driver/imu_image_stabilizer.hpp"
 
 #include <algorithm>
 #include <array>
@@ -123,6 +124,10 @@ public:
     last_status_at_(started_at_)
   {
     read_parameters();
+    if (imu_stabilization_enabled_) {
+      imu_stabilizer_ =
+        std::make_unique<ImuImageStabilizer>(imu_stabilizer_config_);
+    }
 
     if (!enabled_) {
       RCLCPP_WARN(node_.get_logger(), "Camera is disabled by parameter.");
@@ -159,7 +164,7 @@ public:
       status_timer_ = node_.create_wall_timer(
         status_period, std::bind(&Impl::report_status, this));
       capture_thread_ = std::thread(&Impl::capture_loop, this);
-      if (imu_bridge_enabled_) {
+      if (imu_stream_enabled_) {
         imu_thread_ = std::thread(&Impl::imu_loop, this);
       }
       if (publish_enabled_) {
@@ -226,6 +231,32 @@ private:
       "imu_frame_id", "camera_optical_frame");
     imu_rate_hz_ = node_.declare_parameter<double>("imu_rate_hz", 100.0);
     imu_queue_size_ = node_.declare_parameter<int>("imu_queue_size", 20);
+    imu_stabilization_enabled_ =
+      node_.declare_parameter<bool>("imu_stabilization_enabled", false);
+    const int imu_stabilization_warmup_samples =
+      node_.declare_parameter<int>(
+      "imu_stabilization_warmup_samples", 200);
+    require_positive(
+      imu_stabilization_warmup_samples,
+      "imu_stabilization_warmup_samples");
+    imu_stabilizer_config_.warmup_samples =
+      static_cast<std::size_t>(imu_stabilization_warmup_samples);
+    imu_stabilizer_config_.acceleration_correction_time_constant_sec =
+      node_.declare_parameter<double>(
+      "imu_stabilization_acceleration_time_constant_sec", 1.5);
+    imu_stabilizer_config_.acceleration_correction_gate_deg =
+      node_.declare_parameter<double>(
+      "imu_stabilization_acceleration_gate_deg", 8.0);
+    imu_stabilizer_config_.trajectory_smoothing_time_constant_sec =
+      node_.declare_parameter<double>(
+      "imu_stabilization_smoothing_time_constant_sec", 0.25);
+    imu_stabilizer_config_.maximum_correction_deg =
+      node_.declare_parameter<double>(
+      "imu_stabilization_maximum_correction_deg", 4.0);
+    imu_stabilization_roll_gain_ =
+      node_.declare_parameter<double>("imu_stabilization_roll_gain", 1.0);
+    imu_stabilization_pitch_gain_ =
+      node_.declare_parameter<double>("imu_stabilization_pitch_gain", 1.0);
     publish_enabled_ =
       node_.declare_parameter<bool>("publish_enabled", false);
     publish_fps_ =
@@ -255,14 +286,28 @@ private:
     require_positive(queue_size_, "queue_size");
     require_positive(startup_timeout_sec_, "startup_timeout_sec");
     require_positive(status_log_interval_sec_, "status_log_interval_sec");
-    if (imu_bridge_enabled_) {
+    imu_stream_enabled_ =
+      imu_bridge_enabled_ || imu_stabilization_enabled_;
+    if (imu_stream_enabled_) {
       require_positive(imu_rate_hz_, "imu_rate_hz");
       require_positive(imu_queue_size_, "imu_queue_size");
-      if (imu_topic_.empty() || imu_frame_id_.empty()) {
+      if (
+        imu_bridge_enabled_ &&
+        (imu_topic_.empty() || imu_frame_id_.empty()))
+      {
         throw std::invalid_argument(
                 "imu_topic and imu_frame_id must not be empty when "
                 "the internal IMU bridge is enabled");
       }
+    }
+    if (
+      !std::isfinite(imu_stabilization_roll_gain_) ||
+      !std::isfinite(imu_stabilization_pitch_gain_) ||
+      std::abs(imu_stabilization_roll_gain_) > 2.0 ||
+      std::abs(imu_stabilization_pitch_gain_) > 2.0)
+    {
+      throw std::invalid_argument(
+              "IMU stabilization gains must be finite and within [-2, 2]");
     }
     if (publish_enabled_) {
       require_positive(publish_fps_, "publish_fps");
@@ -314,7 +359,7 @@ private:
     output_queue_ = output->createOutputQueue(
       static_cast<unsigned int>(queue_size_), queue_blocking_);
 
-    if (imu_bridge_enabled_) {
+    if (imu_stream_enabled_) {
       try {
         const auto imu_name = device->getConnectedIMU();
         if (imu_name.empty()) {
@@ -354,10 +399,13 @@ private:
         imu_name_ = imu_name;
       } catch (const std::exception & exception) {
         imu_bridge_enabled_ = false;
+        imu_stabilization_enabled_ = false;
+        imu_stream_enabled_ = false;
+        imu_stabilizer_.reset();
         imu_queue_.reset();
         RCLCPP_ERROR(
           node_.get_logger(),
-          "OAK IMU bridge disabled; BEV will keep its parameter fallback: %s",
+          "OAK IMU stream and image stabilization disabled: %s",
           exception.what());
       }
     }
@@ -372,20 +420,23 @@ private:
     RCLCPP_INFO(
       node_.get_logger(),
       "Options: undistort=%s, publish=%s, preview=%s, "
-      "preview_grid=%s/%dpx, queue=%d/%s",
+      "preview_grid=%s/%dpx, imu_stabilization=%s, queue=%d/%s",
       undistort_enabled_ ? "on" : "off",
       publish_enabled_ ? "on" : "off",
       preview_enabled_ ? "on" : "off",
       preview_grid_enabled_ ? "on" : "off",
       preview_grid_spacing_px_,
+      imu_stabilization_enabled_ ? "on" : "off",
       queue_size_,
       queue_blocking_ ? "blocking" : "non-blocking");
-    if (imu_bridge_enabled_) {
+    if (imu_stream_enabled_) {
       RCLCPP_INFO(
         node_.get_logger(),
-        "IMU: %s raw accelerometer+gyroscope @ %.1f Hz -> %s, "
-        "factory IMU-to-%s rotation applied",
-        imu_name_.c_str(), imu_rate_hz_, imu_topic_.c_str(),
+        "IMU: %s raw accelerometer+gyroscope @ %.1f Hz, ROS_bridge=%s, "
+        "stabilization=%s, factory IMU-to-%s rotation applied",
+        imu_name_.c_str(), imu_rate_hz_,
+        imu_bridge_enabled_ ? imu_topic_.c_str() : "off",
+        imu_stabilization_enabled_ ? "on" : "off",
         camera_socket_name_.c_str());
     }
   }
@@ -508,8 +559,49 @@ private:
     }
   }
 
-  static void copy_nv12_to_message(
+  static double timestampSeconds(
+    const std::chrono::steady_clock::time_point & timestamp)
+  {
+    return std::chrono::duration<double>(
+      timestamp.time_since_epoch()).count();
+  }
+
+  std::optional<cv::Matx33d> stabilizationHomography(
     dai::ImgFrame & packet,
+    const std::chrono::steady_clock::time_point & sensor_timestamp)
+  {
+    if (!imu_stabilization_enabled_ || !imu_stabilizer_) {
+      return std::nullopt;
+    }
+    auto correction = imu_stabilizer_->correctionAt(
+      timestampSeconds(sensor_timestamp));
+    if (!correction) {
+      stabilization_missed_total_.fetch_add(1U);
+      return std::nullopt;
+    }
+
+    const auto & transformation = packet.getTransformation();
+    if (!transformation.isValid()) {
+      stabilization_missed_total_.fetch_add(1U);
+      RCLCPP_WARN_THROTTLE(
+        node_.get_logger(), *node_.get_clock(), 5000,
+        "IMU stabilization skipped because frame intrinsics are unavailable.");
+      return std::nullopt;
+    }
+    const auto camera_matrix = transformation.getIntrinsicMatrix();
+    correction->roll_deg *= imu_stabilization_roll_gain_;
+    correction->pitch_deg *= imu_stabilization_pitch_gain_;
+    return makeImageStabilizationHomography(
+      static_cast<double>(camera_matrix[0][0]),
+      static_cast<double>(camera_matrix[1][1]),
+      static_cast<double>(camera_matrix[0][2]),
+      static_cast<double>(camera_matrix[1][2]),
+      *correction);
+  }
+
+  void copy_nv12_to_message(
+    dai::ImgFrame & packet,
+    const std::chrono::steady_clock::time_point & sensor_timestamp,
     sensor_msgs::msg::Image & message)
   {
     const auto & nv12 = packet.getData();
@@ -524,9 +616,69 @@ private:
               "DepthAI returned an undersized NV12 frame");
     }
 
-    message.step = stride;
-    message.data.resize(expected_bytes);
-    std::memcpy(message.data.data(), nv12.data(), expected_bytes);
+    const auto homography = stabilizationHomography(
+      packet, sensor_timestamp);
+    if (!homography) {
+      message.step = stride;
+      message.data.resize(expected_bytes);
+      std::memcpy(message.data.data(), nv12.data(), expected_bytes);
+      return;
+    }
+
+    const int frame_width = static_cast<int>(packet.getWidth());
+    const int frame_height = static_cast<int>(packet.getHeight());
+    cv::Mat input_y(
+      frame_height,
+      frame_width,
+      CV_8UC1,
+      const_cast<std::uint8_t *>(nv12.data()),
+      stride);
+    cv::Mat input_uv(
+      frame_height / 2,
+      frame_width / 2,
+      CV_8UC2,
+      const_cast<std::uint8_t *>(
+        nv12.data() + stride * static_cast<std::size_t>(frame_height)),
+      stride);
+    cv::Mat output_y(frame_height, frame_width, CV_8UC1);
+    cv::Mat output_uv(frame_height / 2, frame_width / 2, CV_8UC2);
+    cv::warpPerspective(
+      input_y,
+      output_y,
+      cv::Mat(*homography),
+      output_y.size(),
+      cv::INTER_LINEAR,
+      cv::BORDER_CONSTANT,
+      cv::Scalar(0));
+
+    const cv::Matx33d half_scale(
+      0.5, 0.0, 0.0,
+      0.0, 0.5, 0.0,
+      0.0, 0.0, 1.0);
+    const cv::Matx33d double_scale(
+      2.0, 0.0, 0.0,
+      0.0, 2.0, 0.0,
+      0.0, 0.0, 1.0);
+    const cv::Matx33d uv_homography =
+      half_scale * (*homography) * double_scale;
+    cv::warpPerspective(
+      input_uv,
+      output_uv,
+      cv::Mat(uv_homography),
+      output_uv.size(),
+      cv::INTER_LINEAR,
+      cv::BORDER_CONSTANT,
+      cv::Scalar(128, 128));
+
+    message.step = static_cast<std::uint32_t>(frame_width);
+    const std::size_t y_bytes =
+      static_cast<std::size_t>(frame_width) *
+      static_cast<std::size_t>(frame_height);
+    const std::size_t uv_bytes = y_bytes / 2U;
+    message.data.resize(y_bytes + uv_bytes);
+    std::memcpy(message.data.data(), output_y.data, y_bytes);
+    std::memcpy(message.data.data() + y_bytes, output_uv.data, uv_bytes);
+    stabilized_frames_total_.fetch_add(1U);
   }
 
   void imu_loop()
@@ -567,6 +719,24 @@ private:
             }
           }
 
+          if (imu_stabilization_enabled_ && imu_stabilizer_) {
+            imu_stabilizer_->update(
+              cv::Vec3d(
+                acceleration_camera[0],
+                acceleration_camera[1],
+                acceleration_camera[2]),
+              cv::Vec3d(
+                angular_velocity_camera[0],
+                angular_velocity_camera[1],
+                angular_velocity_camera[2]),
+              timestampSeconds(raw.getTimestamp()));
+          }
+          imu_processed_total_.fetch_add(1U, std::memory_order_relaxed);
+          imu_processed_interval_.fetch_add(1U, std::memory_order_relaxed);
+
+          if (!imu_bridge_enabled_ || !imu_publisher_) {
+            continue;
+          }
           auto message = std::make_unique<sensor_msgs::msg::Imu>();
           message->header.stamp = ros_timestamp_for(raw.getTimestamp());
           message->header.frame_id = imu_frame_id_;
@@ -645,7 +815,10 @@ private:
           message->width = snapshot->packet->getWidth();
           message->encoding = "nv12";
           message->is_bigendian = false;
-          copy_nv12_to_message(*snapshot->packet, *message);
+          copy_nv12_to_message(
+            *snapshot->packet,
+            snapshot->sensor_timestamp,
+            *message);
 
           publisher_->publish(std::move(message));
           published_generation = snapshot->generation;
@@ -772,6 +945,21 @@ private:
             throw std::runtime_error(
                     "DepthAI could not convert the NV12 preview to BGR");
           }
+          const auto homography = stabilizationHomography(
+            *snapshot->packet, snapshot->sensor_timestamp);
+          if (homography) {
+            cv::Mat stabilized;
+            cv::warpPerspective(
+              preview_frame,
+              stabilized,
+              cv::Mat(*homography),
+              preview_frame.size(),
+              cv::INTER_LINEAR,
+              cv::BORDER_CONSTANT,
+              cv::Scalar(0, 0, 0));
+            preview_frame = std::move(stabilized);
+            stabilized_frames_total_.fetch_add(1U);
+          }
           if (preview_grid_enabled_) {
             draw_preview_grid(preview_frame);
           }
@@ -829,13 +1017,23 @@ private:
     const auto dropped_count = device_drops_interval_.exchange(0);
     const auto capture_hz = static_cast<double>(capture_count) / elapsed;
     const auto preview_hz = static_cast<double>(preview_count) / elapsed;
-    if (imu_bridge_enabled_) {
-      const auto imu_count = imu_published_interval_.exchange(0);
+    if (imu_stream_enabled_) {
+      const auto imu_count = imu_processed_interval_.exchange(0);
       const auto imu_hz = static_cast<double>(imu_count) / elapsed;
+      const char * stabilization_state = "off";
+      if (imu_stabilization_enabled_) {
+        stabilization_state =
+          imu_stabilizer_ && imu_stabilizer_->initialized() ?
+          "ready" : "warmup";
+      }
       RCLCPP_INFO(
         node_.get_logger(),
-        "FPS: capture=%.1f/%.1f, preview=%.1f, IMU=%.1f, dropped=%lu",
+        "FPS: capture=%.1f/%.1f, preview=%.1f, IMU=%.1f, "
+        "stabilizer=%s (warps=%lu, misses=%lu), dropped=%lu",
         capture_hz, sensor_fps_, preview_hz, imu_hz,
+        stabilization_state,
+        static_cast<unsigned long>(stabilized_frames_total_.load()),
+        static_cast<unsigned long>(stabilization_missed_total_.load()),
         static_cast<unsigned long>(dropped_count));
     } else {
       RCLCPP_INFO(
@@ -923,10 +1121,15 @@ private:
   std::string frame_id_;
   std::string image_topic_;
   bool imu_bridge_enabled_{false};
+  bool imu_stream_enabled_{false};
   std::string imu_topic_;
   std::string imu_frame_id_;
   double imu_rate_hz_{100.0};
   int imu_queue_size_{20};
+  bool imu_stabilization_enabled_{false};
+  ImuImageStabilizerConfig imu_stabilizer_config_{};
+  double imu_stabilization_roll_gain_{1.0};
+  double imu_stabilization_pitch_gain_{1.0};
   bool publish_enabled_{false};
   double publish_fps_{143.0};
   bool preview_enabled_{false};
@@ -944,6 +1147,7 @@ private:
   std::unique_ptr<dai::Pipeline> pipeline_;
   std::shared_ptr<dai::MessageQueue> output_queue_;
   std::shared_ptr<dai::MessageQueue> imu_queue_;
+  std::unique_ptr<ImuImageStabilizer> imu_stabilizer_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_publisher_;
   rclcpp::TimerBase::SharedPtr status_timer_;
@@ -983,7 +1187,11 @@ private:
   std::atomic<std::uint64_t> invalid_frames_total_{0};
   std::atomic<std::uint64_t> imu_published_total_{0};
   std::atomic<std::uint64_t> imu_published_interval_{0};
+  std::atomic<std::uint64_t> imu_processed_total_{0};
+  std::atomic<std::uint64_t> imu_processed_interval_{0};
   std::atomic<std::uint64_t> imu_errors_total_{0};
+  std::atomic<std::uint64_t> stabilized_frames_total_{0};
+  std::atomic<std::uint64_t> stabilization_missed_total_{0};
 
   std::chrono::steady_clock::time_point started_at_;
   std::chrono::steady_clock::time_point last_status_at_;

@@ -28,6 +28,19 @@ if(NOT depthai_FOUND)
 endif()
 find_package(Threads REQUIRED)
 
+add_library(camera_imu_stabilizer STATIC
+  src/imu_image_stabilizer.cpp
+)
+set_target_properties(
+  camera_imu_stabilizer PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(camera_imu_stabilizer
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+    ${OpenCV_INCLUDE_DIRS}
+)
+target_link_libraries(camera_imu_stabilizer PUBLIC ${OpenCV_LIBS})
+
 add_library(camera_driver_component SHARED
   src/camera_driver_node.cpp
 )
@@ -45,6 +58,7 @@ ament_target_dependencies(camera_driver_component
   sensor_msgs
 )
 target_link_libraries(camera_driver_component
+  camera_imu_stabilizer
   depthai::core
   ${OpenCV_LIBS}
   Threads::Threads
@@ -65,6 +79,16 @@ target_link_libraries(camera_driver_node
   camera_driver_component
 )
 
+if(BUILD_TESTING)
+  enable_testing()
+  add_executable(
+    imu_image_stabilizer_test test/imu_image_stabilizer_test.cpp)
+  target_link_libraries(
+    imu_image_stabilizer_test camera_imu_stabilizer ${OpenCV_LIBS})
+  add_test(
+    NAME imu_image_stabilizer_test COMMAND imu_image_stabilizer_test)
+endif()
+
 install(
   DIRECTORY include/
   DESTINATION include
@@ -76,7 +100,10 @@ install(
   PATTERN "*.pyc" EXCLUDE
 )
 install(
-  TARGETS camera_driver_component camera_driver_node
+  TARGETS
+    camera_imu_stabilizer
+    camera_driver_component
+    camera_driver_node
   EXPORT export_camera_driver
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -84,6 +111,6 @@ install(
 )
 
 ament_export_targets(export_camera_driver HAS_LIBRARY_TARGET)
-ament_export_dependencies(rclcpp rclcpp_components sensor_msgs)
+ament_export_dependencies(OpenCV rclcpp rclcpp_components sensor_msgs)
 
 ament_package()

@@ -31,13 +31,26 @@ camera_driver:
     imu_rate_hz: 400.0
     imu_queue_size: 80
 
+    # Optional host-side IMU video stabilization. It estimates high-frequency
+    # roll/pitch shake at the image timestamp and warps preview/published NV12.
+    # Keep this false when bev_processor realtime attitude LUT correction is on
+    # to avoid applying the same camera rotation twice.
+    imu_stabilization_enabled: false
+    imu_stabilization_warmup_samples: 200
+    imu_stabilization_acceleration_time_constant_sec: 1.5
+    imu_stabilization_acceleration_gate_deg: 8.0
+    imu_stabilization_smoothing_time_constant_sec: 0.25
+    imu_stabilization_maximum_correction_deg: 4.0
+    # Change a gain to -1.0 only if a hardware-axis validation shows inversion.
+    imu_stabilization_roll_gain: 1.0
+    imu_stabilization_pitch_gain: 1.0
+
     # Disabled by default while measuring direct camera performance.
     publish_enabled: false
     publish_fps: 143.0
 
     # Standalone preview converts NV12 to BGR on the CPU. The combined
-    # The combined auto/manual BEV launches disable it and preview only the
-    # small GPU BEV.
+    # auto/manual BEV launches disable it and preview only the small GPU BEV.
     preview_enabled: false
     preview_fps: 143.0
     preview_window_name: "OAK rectified image"

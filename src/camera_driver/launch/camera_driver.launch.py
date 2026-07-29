@@ -13,6 +13,9 @@ def generate_launch_description():
     params_file = LaunchConfiguration("params_file")
     preview_enabled = LaunchConfiguration("preview_enabled")
     preview_grid_enabled = LaunchConfiguration("preview_grid_enabled")
+    imu_stabilization_enabled = LaunchConfiguration(
+        "imu_stabilization_enabled"
+    )
     publish_enabled = LaunchConfiguration("publish_enabled")
 
     return LaunchDescription(
@@ -31,6 +34,11 @@ def generate_launch_description():
                 "preview_grid_enabled",
                 default_value="true",
                 description="Draw a light-gray 20-pixel grid on the preview.",
+            ),
+            DeclareLaunchArgument(
+                "imu_stabilization_enabled",
+                default_value="false",
+                description="Stabilize preview/published NV12 with OAK IMU.",
             ),
             DeclareLaunchArgument(
                 "publish_enabled",
@@ -53,9 +61,12 @@ def generate_launch_description():
                             {
                                 "preview_enabled": preview_enabled,
                                 "preview_grid_enabled": preview_grid_enabled,
+                                "imu_stabilization_enabled": (
+                                    imu_stabilization_enabled
+                                ),
                                 "publish_enabled": publish_enabled,
-                                # A standalone camera/undistortion preview
-                                # never starts the OAK IMU stream.
+                                # Standalone launch does not publish IMU;
+                                # stabilization can still use it internally.
                                 "imu_bridge_enabled": False,
                             },
                         ],
