@@ -44,7 +44,7 @@ NV12 메시지는 `encoding="nv12"`, `height=720`, `step=Y/UV plane stride`를
 왜곡 보정은 `Camera::requestOutput(..., enableUndistortion=true)`로 요청한다.
 따라서 호스트에서 `cv::remap()`을 수행하지 않는다.
 
-IMU 브리지를 켜면 raw accelerometer와 raw gyroscope를 같은 100 Hz로
+IMU 브리지를 켜면 raw accelerometer와 raw gyroscope를 같은 400 Hz로
 요청하고, factory IMU-to-camera 회전행렬을 두 벡터에 모두 적용해
 `sensor_msgs/Imu`로 발행한다. orientation 자체는 채우지 않으며,
 `bev_processor_auto`가 두 벡터를 융합해 roll/pitch 변화량을 추정한다.
@@ -220,7 +220,7 @@ ros2 topic info /camera/image_rect --verbose
 | `publish_enabled` | `false` | ROS 이미지 발행 |
 | `publish_fps` | `143.0` | ROS 발행 최대 FPS |
 | `imu_bridge_enabled` | `false` | 가속도+자이로 ROS 발행 |
-| `imu_rate_hz` | `100.0` | IMU 요청/발행 rate |
+| `imu_rate_hz` | `400.0` | raw accel+gyro 동기 요청/발행 rate |
 | `imu_topic` | `/camera/imu` | `sensor_msgs/Imu` 출력 |
 | `preview_enabled` | `false` | OpenCV 직접 프리뷰 |
 | `preview_fps` | `143.0` | 프리뷰 갱신 최대 FPS |

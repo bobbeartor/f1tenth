@@ -27,8 +27,9 @@ camera_driver:
     imu_bridge_enabled: false
     imu_topic: "/camera/imu"
     imu_frame_id: "camera_optical_frame"
-    imu_rate_hz: 100.0
-    imu_queue_size: 20
+    # Raw accelerometer+gyroscope synchronized output maximum.
+    imu_rate_hz: 400.0
+    imu_queue_size: 80
 
     # Disabled by default while measuring direct camera performance.
     publish_enabled: false

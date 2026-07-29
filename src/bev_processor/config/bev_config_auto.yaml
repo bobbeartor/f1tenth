@@ -48,16 +48,16 @@ bev_processor_auto:
     # Must be odd. At 0.01 m/pixel, 3 closes gaps up to roughly 3 cm.
     grayscale_closing_kernel_size: 3
 
-    # Height remains fixed at the startup stereo-plane measurement. OAK
-    # accelerometer+gyroscope changes update roll/pitch at the same 100 Hz as
-    # the IMU stream; yaw remains fixed.
+    # Height remains fixed at the startup stereo-plane measurement. OAK raw
+    # accelerometer+gyroscope samples are received and fused at 400 Hz.
+    # Roll/pitch changes update the BEV LUT at up to 120 Hz; yaw remains fixed.
     #
     # Current tuning assumes stationary, stable testing. Retune the
     # acceleration gate/time constant with driving logs before acceleration,
     # braking, and cornering tests.
     realtime_attitude_enabled: true
     realtime_imu_topic: "/camera/imu"
-    realtime_attitude_update_hz: 100.0
+    realtime_attitude_update_hz: 120.0
     realtime_imu_minimum_acceleration_mps2: 7.5
     realtime_imu_maximum_acceleration_mps2: 12.0
     realtime_imu_acceleration_correction_time_constant_sec: 1.5
@@ -76,9 +76,9 @@ bev_processor_auto:
     measurement_stereo_width: 640
     measurement_stereo_height: 400
     measurement_depth_queue_size: 2
-    measurement_imu_rate_hz: 100.0
+    measurement_imu_rate_hz: 400.0
     # Discard initial sensor transients, then average two seconds of IMU data.
-    measurement_imu_queue_size: 50
+    measurement_imu_queue_size: 200
     measurement_warmup_sec: 1.0
     # Pro-series IR dot projector adds texture to low-detail road surfaces.
     # Range is 0.0-1.0; 0.0 disables it. Use full intensity during the
@@ -121,7 +121,8 @@ bev_processor_auto:
     measurement_fusion_maximum_agreement_gate_deg: 8.0
     measurement_fusion_minimum_dominance_ratio: 4.0
 
-    measurement_imu_sample_count: 200
+    # Preserve the previous two-second averaging interval at 400 Hz.
+    measurement_imu_sample_count: 800
     measurement_imu_max_direction_rms_deg: 0.25
     measurement_imu_accel_min_mps2: 7.50
     measurement_imu_accel_max_mps2: 12.00
