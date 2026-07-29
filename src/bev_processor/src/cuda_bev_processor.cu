@@ -3,6 +3,7 @@
 #include <cuda_runtime.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
@@ -31,7 +32,21 @@ __device__ float clampFloat(
   return fminf(maximum, fmaxf(minimum, value));
 }
 
-__device__ float samplePlane(
+__device__ float cubicWeight(const float distance)
+{
+  const float value = fabsf(distance);
+  if (value <= 1.0F) {
+    return
+      (1.5F * value - 2.5F) * value * value + 1.0F;
+  }
+  if (value < 2.0F) {
+    return
+      ((-0.5F * value + 2.5F) * value - 4.0F) * value + 2.0F;
+  }
+  return 0.0F;
+}
+
+__device__ float samplePlaneBicubic(
   const std::uint8_t * plane,
   const int stride,
   const int width,
@@ -41,62 +56,47 @@ __device__ float samplePlane(
 {
   const float clamped_x = clampFloat(x, 0.0F, width - 1.0F);
   const float clamped_y = clampFloat(y, 0.0F, height - 1.0F);
-  const int x0 = static_cast<int>(floorf(clamped_x));
-  const int y0 = static_cast<int>(floorf(clamped_y));
-  const int x1 = x0 + 1 < width ? x0 + 1 : width - 1;
-  const int y1 = y0 + 1 < height ? y0 + 1 : height - 1;
-  const float dx = clamped_x - x0;
-  const float dy = clamped_y - y0;
+  const int base_x = static_cast<int>(floorf(clamped_x));
+  const int base_y = static_cast<int>(floorf(clamped_y));
+  float weighted_sum = 0.0F;
+  float total_weight = 0.0F;
 
-  const float top =
-    plane[y0 * stride + x0] * (1.0F - dx) +
-    plane[y0 * stride + x1] * dx;
-  const float bottom =
-    plane[y1 * stride + x0] * (1.0F - dx) +
-    plane[y1 * stride + x1] * dx;
-  return top * (1.0F - dy) + bottom * dy;
+#pragma unroll
+  for (int offset_y = -1; offset_y <= 2; ++offset_y) {
+    const int sample_y = max(0, min(height - 1, base_y + offset_y));
+    const float weight_y = cubicWeight(
+      clamped_y - static_cast<float>(base_y + offset_y));
+#pragma unroll
+    for (int offset_x = -1; offset_x <= 2; ++offset_x) {
+      const int sample_x = max(0, min(width - 1, base_x + offset_x));
+      const float weight_x = cubicWeight(
+        clamped_x - static_cast<float>(base_x + offset_x));
+      const float weight = weight_x * weight_y;
+      weighted_sum +=
+        static_cast<float>(plane[sample_y * stride + sample_x]) * weight;
+      total_weight += weight;
+    }
+  }
+
+  if (fabsf(total_weight) <= 1.0e-6F) {
+    return static_cast<float>(plane[base_y * stride + base_x]);
+  }
+  return clampFloat(weighted_sum / total_weight, 0.0F, 255.0F);
 }
 
-__device__ float sampleChroma(
-  const std::uint8_t * uv_plane,
-  const int stride,
-  const int width,
-  const int height,
-  const float source_x,
-  const float source_y,
-  const int channel)
-{
-  const int chroma_width = width / 2;
-  const int chroma_height = height / 2;
-  const float x = clampFloat(
-    source_x * 0.5F, 0.0F, chroma_width - 1.0F);
-  const float y = clampFloat(
-    source_y * 0.5F, 0.0F, chroma_height - 1.0F);
-  const int x0 = static_cast<int>(floorf(x));
-  const int y0 = static_cast<int>(floorf(y));
-  const int x1 = x0 + 1 < chroma_width ? x0 + 1 : chroma_width - 1;
-  const int y1 = y0 + 1 < chroma_height ? y0 + 1 : chroma_height - 1;
-  const float dx = x - x0;
-  const float dy = y - y0;
-
-  const float top =
-    uv_plane[y0 * stride + x0 * 2 + channel] * (1.0F - dx) +
-    uv_plane[y0 * stride + x1 * 2 + channel] * dx;
-  const float bottom =
-    uv_plane[y1 * stride + x0 * 2 + channel] * (1.0F - dx) +
-    uv_plane[y1 * stride + x1 * 2 + channel] * dx;
-  return top * (1.0F - dy) + bottom * dy;
-}
-
-__global__ void nv12ToBevKernel(
-  const std::uint8_t * nv12,
+__global__ void yPlaneToBinaryBevKernel(
+  const std::uint8_t * y_plane,
   const int input_width,
   const int input_height,
   const float * map_x,
   const float * map_y,
   const int output_width,
   const int output_height,
-  std::uint8_t * output_bgr)
+  const float contrast_gain,
+  const float contrast_center,
+  const float brightness_offset,
+  const int binary_threshold,
+  std::uint8_t * output_mask)
 {
   const int output_x = blockIdx.x * blockDim.x + threadIdx.x;
   const int output_y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -107,58 +107,95 @@ __global__ void nv12ToBevKernel(
   const int output_index = output_y * output_width + output_x;
   const float source_x = map_x[output_index];
   const float source_y = map_y[output_index];
-  std::uint8_t * destination = output_bgr + output_index * 3;
   if (
     source_x < 0.0F || source_y < 0.0F ||
-    source_x >= input_width - 1.0F ||
-    source_y >= input_height - 1.0F)
+    source_x >= input_width ||
+    source_y >= input_height)
   {
-    destination[0] = 0U;
-    destination[1] = 0U;
-    destination[2] = 0U;
+    output_mask[output_index] = 0U;
     return;
   }
 
-  const std::uint8_t * y_plane = nv12;
-  const std::uint8_t * uv_plane =
-    nv12 + input_width * input_height;
-  const float y = samplePlane(
+  const float luminance = samplePlaneBicubic(
     y_plane,
     input_width,
     input_width,
     input_height,
     source_x,
     source_y);
-  const float u = sampleChroma(
-    uv_plane,
-    input_width,
-    input_width,
-    input_height,
-    source_x,
-    source_y,
-    0);
-  const float v = sampleChroma(
-    uv_plane,
-    input_width,
-    input_width,
-    input_height,
-    source_x,
-    source_y,
-    1);
+  const float contrasted = clampFloat(
+    (luminance - contrast_center) * contrast_gain +
+    contrast_center + brightness_offset,
+    0.0F,
+    255.0F);
+  output_mask[output_index] =
+    contrasted >= static_cast<float>(binary_threshold) ? 255U : 0U;
+}
 
-  const float c = fmaxf(0.0F, y - 16.0F);
-  const float d = u - 128.0F;
-  const float e = v - 128.0F;
-  const float red = 1.164F * c + 1.596F * e;
-  const float green = 1.164F * c - 0.392F * d - 0.813F * e;
-  const float blue = 1.164F * c + 2.017F * d;
+__global__ void dilateBinaryKernel(
+  const std::uint8_t * input,
+  const int width,
+  const int height,
+  const int radius,
+  std::uint8_t * output)
+{
+  const int x = blockIdx.x * blockDim.x + threadIdx.x;
+  const int y = blockIdx.y * blockDim.y + threadIdx.y;
+  if (x >= width || y >= height) {
+    return;
+  }
 
-  destination[0] = static_cast<std::uint8_t>(
-    clampFloat(blue, 0.0F, 255.0F));
-  destination[1] = static_cast<std::uint8_t>(
-    clampFloat(green, 0.0F, 255.0F));
-  destination[2] = static_cast<std::uint8_t>(
-    clampFloat(red, 0.0F, 255.0F));
+  std::uint8_t maximum = 0U;
+  for (int offset_y = -radius; offset_y <= radius; ++offset_y) {
+    const int sample_y = y + offset_y;
+    if (sample_y < 0 || sample_y >= height) {
+      continue;
+    }
+    for (int offset_x = -radius; offset_x <= radius; ++offset_x) {
+      const int sample_x = x + offset_x;
+      if (sample_x < 0 || sample_x >= width) {
+        continue;
+      }
+      const std::uint8_t value = input[sample_y * width + sample_x];
+      if (value > maximum) {
+        maximum = value;
+      }
+    }
+  }
+  output[y * width + x] = maximum;
+}
+
+__global__ void erodeBinaryKernel(
+  const std::uint8_t * input,
+  const int width,
+  const int height,
+  const int radius,
+  std::uint8_t * output)
+{
+  const int x = blockIdx.x * blockDim.x + threadIdx.x;
+  const int y = blockIdx.y * blockDim.y + threadIdx.y;
+  if (x >= width || y >= height) {
+    return;
+  }
+
+  std::uint8_t minimum = 255U;
+  for (int offset_y = -radius; offset_y <= radius; ++offset_y) {
+    const int sample_y = y + offset_y;
+    if (sample_y < 0 || sample_y >= height) {
+      continue;
+    }
+    for (int offset_x = -radius; offset_x <= radius; ++offset_x) {
+      const int sample_x = x + offset_x;
+      if (sample_x < 0 || sample_x >= width) {
+        continue;
+      }
+      const std::uint8_t value = input[sample_y * width + sample_x];
+      if (value < minimum) {
+        minimum = value;
+      }
+    }
+  }
+  output[y * width + x] = minimum;
 }
 
 }  // namespace
@@ -170,11 +207,13 @@ public:
     const int input_width,
     const int input_height,
     const cv::Mat & map_x,
-    const cv::Mat & map_y)
+    const cv::Mat & map_y,
+    const CudaBevImageConfig & image_config)
   : input_width_(input_width),
     input_height_(input_height),
     output_width_(map_x.cols),
-    output_height_(map_x.rows)
+    output_height_(map_x.rows),
+    image_config_(image_config)
   {
     if (
       input_width_ <= 0 || input_height_ <= 0 ||
@@ -192,6 +231,24 @@ public:
       throw std::invalid_argument(
               "CUDA BEV maps must be equal-sized CV_32FC1 matrices");
     }
+    if (
+      !std::isfinite(image_config_.contrast_gain) ||
+      image_config_.contrast_gain <= 0.0F ||
+      !std::isfinite(image_config_.contrast_center) ||
+      image_config_.contrast_center < 0.0F ||
+      image_config_.contrast_center > 255.0F ||
+      !std::isfinite(image_config_.brightness_offset) ||
+      image_config_.brightness_offset < -255.0F ||
+      image_config_.brightness_offset > 255.0F ||
+      image_config_.binary_threshold < 0 ||
+      image_config_.binary_threshold > 255 ||
+      image_config_.closing_kernel_size <= 0 ||
+      image_config_.closing_kernel_size > 15 ||
+      image_config_.closing_kernel_size % 2 == 0)
+    {
+      throw std::invalid_argument(
+              "invalid grayscale contrast, threshold, or closing parameter");
+    }
 
     try {
       int device = 0;
@@ -206,21 +263,21 @@ public:
         cudaStreamCreateWithFlags(&stream_, cudaStreamNonBlocking),
         "cudaStreamCreateWithFlags");
 
-      const std::size_t nv12_bytes =
+      const std::size_t y_plane_bytes =
         static_cast<std::size_t>(input_width_) *
-        static_cast<std::size_t>(input_height_) * 3U / 2U;
+        static_cast<std::size_t>(input_height_);
       const std::size_t map_bytes =
         static_cast<std::size_t>(output_width_) *
         static_cast<std::size_t>(output_height_) * sizeof(float);
       const std::size_t output_bytes =
         static_cast<std::size_t>(output_width_) *
-        static_cast<std::size_t>(output_height_) * 3U;
+        static_cast<std::size_t>(output_height_);
 
       checkCuda(
         cudaMalloc(
-          reinterpret_cast<void **>(&device_nv12_),
-          nv12_bytes),
-        "cudaMalloc NV12");
+          reinterpret_cast<void **>(&device_y_plane_),
+          y_plane_bytes),
+        "cudaMalloc NV12 Y plane");
       checkCuda(
         cudaMalloc(
           reinterpret_cast<void **>(&device_map_x_),
@@ -231,6 +288,16 @@ public:
           reinterpret_cast<void **>(&device_map_y_),
           map_bytes),
         "cudaMalloc map_y");
+      checkCuda(
+        cudaMalloc(
+          reinterpret_cast<void **>(&device_threshold_mask_),
+          output_bytes),
+        "cudaMalloc threshold mask");
+      checkCuda(
+        cudaMalloc(
+          reinterpret_cast<void **>(&device_dilated_mask_),
+          output_bytes),
+        "cudaMalloc dilated mask");
       checkCuda(
         cudaMalloc(
           reinterpret_cast<void **>(&device_output_),
@@ -288,35 +355,70 @@ public:
     std::lock_guard<std::mutex> lock(stream_mutex_);
     checkCuda(
       cudaMemcpy2DAsync(
-        device_nv12_,
+        device_y_plane_,
         static_cast<std::size_t>(input_width_),
         nv12,
         input_stride,
         static_cast<std::size_t>(input_width_),
-        input_rows,
+        static_cast<std::size_t>(input_height_),
         cudaMemcpyHostToDevice,
         stream_),
-      "upload NV12 frame");
+      "upload NV12 Y plane");
 
     const dim3 block(16U, 16U);
     const dim3 grid(
       static_cast<unsigned int>((output_width_ + 15) / 16),
       static_cast<unsigned int>((output_height_ + 15) / 16));
-    nv12ToBevKernel<<<grid, block, 0, stream_>>>(
-      device_nv12_,
+    yPlaneToBinaryBevKernel<<<grid, block, 0, stream_>>>(
+      device_y_plane_,
       input_width_,
       input_height_,
       device_map_x_,
       device_map_y_,
       output_width_,
       output_height_,
-      device_output_);
-    checkCuda(cudaGetLastError(), "launch NV12-to-BEV kernel");
+      image_config_.contrast_gain,
+      image_config_.contrast_center,
+      image_config_.brightness_offset,
+      image_config_.binary_threshold,
+      device_threshold_mask_);
+    checkCuda(
+      cudaGetLastError(), "launch bicubic grayscale BEV kernel");
 
-    cv::Mat output(output_height_, output_width_, CV_8UC3);
+    if (image_config_.closing_kernel_size > 1) {
+      const int radius = image_config_.closing_kernel_size / 2;
+      dilateBinaryKernel<<<grid, block, 0, stream_>>>(
+        device_threshold_mask_,
+        output_width_,
+        output_height_,
+        radius,
+        device_dilated_mask_);
+      checkCuda(cudaGetLastError(), "launch binary dilation kernel");
+      erodeBinaryKernel<<<grid, block, 0, stream_>>>(
+        device_dilated_mask_,
+        output_width_,
+        output_height_,
+        radius,
+        device_output_);
+      checkCuda(cudaGetLastError(), "launch binary erosion kernel");
+    } else {
+      const std::size_t output_bytes =
+        static_cast<std::size_t>(output_width_) *
+        static_cast<std::size_t>(output_height_);
+      checkCuda(
+        cudaMemcpyAsync(
+          device_output_,
+          device_threshold_mask_,
+          output_bytes,
+          cudaMemcpyDeviceToDevice,
+          stream_),
+        "copy threshold mask");
+    }
+
+    cv::Mat output(output_height_, output_width_, CV_8UC1);
     const std::size_t output_bytes =
       static_cast<std::size_t>(output_width_) *
-      static_cast<std::size_t>(output_height_) * 3U;
+      static_cast<std::size_t>(output_height_);
     checkCuda(
       cudaMemcpyAsync(
         output.data,
@@ -383,6 +485,14 @@ private:
       cudaFree(device_output_);
       device_output_ = nullptr;
     }
+    if (device_dilated_mask_ != nullptr) {
+      cudaFree(device_dilated_mask_);
+      device_dilated_mask_ = nullptr;
+    }
+    if (device_threshold_mask_ != nullptr) {
+      cudaFree(device_threshold_mask_);
+      device_threshold_mask_ = nullptr;
+    }
     if (device_map_y_ != nullptr) {
       cudaFree(device_map_y_);
       device_map_y_ = nullptr;
@@ -391,9 +501,9 @@ private:
       cudaFree(device_map_x_);
       device_map_x_ = nullptr;
     }
-    if (device_nv12_ != nullptr) {
-      cudaFree(device_nv12_);
-      device_nv12_ = nullptr;
+    if (device_y_plane_ != nullptr) {
+      cudaFree(device_y_plane_);
+      device_y_plane_ = nullptr;
     }
     if (stream_ != nullptr) {
       cudaStreamDestroy(stream_);
@@ -405,11 +515,14 @@ private:
   int input_height_;
   int output_width_;
   int output_height_;
+  CudaBevImageConfig image_config_;
   std::string device_name_;
   cudaStream_t stream_{nullptr};
-  std::uint8_t * device_nv12_{nullptr};
+  std::uint8_t * device_y_plane_{nullptr};
   float * device_map_x_{nullptr};
   float * device_map_y_{nullptr};
+  std::uint8_t * device_threshold_mask_{nullptr};
+  std::uint8_t * device_dilated_mask_{nullptr};
   std::uint8_t * device_output_{nullptr};
   std::mutex stream_mutex_;
 };
@@ -418,9 +531,10 @@ CudaBevProcessor::CudaBevProcessor(
   const int input_width,
   const int input_height,
   const cv::Mat & map_x,
-  const cv::Mat & map_y)
+  const cv::Mat & map_y,
+  const CudaBevImageConfig & image_config)
 : impl_(std::make_unique<Impl>(
-    input_width, input_height, map_x, map_y))
+    input_width, input_height, map_x, map_y, image_config))
 {
 }
 

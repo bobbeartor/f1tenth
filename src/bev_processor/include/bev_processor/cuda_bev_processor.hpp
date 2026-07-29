@@ -11,6 +11,15 @@
 namespace bev_processor
 {
 
+struct CudaBevImageConfig
+{
+  float contrast_gain{1.8F};
+  float contrast_center{128.0F};
+  float brightness_offset{0.0F};
+  int binary_threshold{170};
+  int closing_kernel_size{3};
+};
+
 class CudaBevProcessor
 {
 public:
@@ -18,7 +27,8 @@ public:
     int input_width,
     int input_height,
     const cv::Mat & map_x,
-    const cv::Mat & map_y);
+    const cv::Mat & map_y,
+    const CudaBevImageConfig & image_config);
   ~CudaBevProcessor();
 
   CudaBevProcessor(const CudaBevProcessor &) = delete;

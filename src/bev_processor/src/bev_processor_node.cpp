@@ -59,12 +59,12 @@ bool graphicalDisplayAvailable()
 #endif
 }
 
-std::unique_ptr<sensor_msgs::msg::Image> makeBgr8Message(
+std::unique_ptr<sensor_msgs::msg::Image> makeMono8Message(
   const BevFrame & frame,
   const std::string & frame_id)
 {
-  if (frame.image.type() != CV_8UC3) {
-    throw std::invalid_argument("BEV output must be a BGR8 image");
+  if (frame.image.type() != CV_8UC1) {
+    throw std::invalid_argument("BEV output must be a MONO8 image");
   }
 
   auto message = std::make_unique<sensor_msgs::msg::Image>();
@@ -72,9 +72,9 @@ std::unique_ptr<sensor_msgs::msg::Image> makeBgr8Message(
   message->header.frame_id = frame_id;
   message->height = static_cast<std::uint32_t>(frame.image.rows);
   message->width = static_cast<std::uint32_t>(frame.image.cols);
-  message->encoding = sensor_msgs::image_encodings::BGR8;
+  message->encoding = sensor_msgs::image_encodings::MONO8;
   message->is_bigendian = false;
-  message->step = static_cast<std::uint32_t>(frame.image.cols * 3);
+  message->step = static_cast<std::uint32_t>(frame.image.cols);
   message->data.resize(
     static_cast<std::size_t>(message->step) *
     static_cast<std::size_t>(message->height));
@@ -260,7 +260,8 @@ public:
       "range X=[%.2f, %.2f]m Y=[%.2f, %.2f]m, %.3fm/px, "
       "camera=(x=%.3f, y=%.3f, z=%.3fm, "
       "roll=%.2f, pitch_down=%.2f, yaw=%.2fdeg), "
-      "valid_lut=%.2f%%, GPU=%s, processing=NV12-to-BEV/latest-only, "
+      "valid_lut=%.2f%%, GPU=%s, "
+      "processing=NV12-Y/bicubic/contrast/threshold/closing, "
       "ROS=%s (max=%.1fHz, 0=unlimited), preview=%s (max=%.1fHz)",
       processor_mode_.c_str(),
       input_topic_.c_str(),
@@ -287,6 +288,16 @@ public:
       publish_max_fps_,
       preview_enabled_ ? "on" : "off",
       preview_max_fps_);
+    RCLCPP_INFO(
+      get_logger(),
+      "Grayscale BEV: contrast=%.2fx around %.1f, brightness=%+.1f, "
+      "threshold=%d, closing=%dx%d, output_encoding=mono8",
+      image_config_.contrast_gain,
+      image_config_.contrast_center,
+      image_config_.brightness_offset,
+      image_config_.binary_threshold,
+      image_config_.closing_kernel_size,
+      image_config_.closing_kernel_size);
     RCLCPP_INFO(
       get_logger(),
       "Startup extrinsics mode=%s, source=%s: "
@@ -357,6 +368,12 @@ private:
     declare_parameter<double>("camera_roll_deg", 0.0);
     declare_parameter<double>("camera_downward_pitch_deg", 14.0);
     declare_parameter<double>("camera_yaw_deg", 0.0);
+
+    declare_parameter<double>("grayscale_contrast_gain", 1.8);
+    declare_parameter<double>("grayscale_contrast_center", 128.0);
+    declare_parameter<double>("grayscale_brightness_offset", 0.0);
+    declare_parameter<int>("grayscale_binary_threshold", 170);
+    declare_parameter<int>("grayscale_closing_kernel_size", 3);
 
     declare_parameter<bool>("realtime_attitude_enabled", false);
     declare_parameter<std::string>("realtime_imu_topic", "/camera/imu");
@@ -481,6 +498,17 @@ private:
       degToRad(configured_roll_deg_),
       degToRad(configured_pitch_down_deg_),
       degToRad(camera_yaw_deg_));
+
+    image_config_.contrast_gain = static_cast<float>(
+      get_parameter("grayscale_contrast_gain").as_double());
+    image_config_.contrast_center = static_cast<float>(
+      get_parameter("grayscale_contrast_center").as_double());
+    image_config_.brightness_offset = static_cast<float>(
+      get_parameter("grayscale_brightness_offset").as_double());
+    image_config_.binary_threshold = static_cast<int>(
+      get_parameter("grayscale_binary_threshold").as_int());
+    image_config_.closing_kernel_size = static_cast<int>(
+      get_parameter("grayscale_closing_kernel_size").as_int());
 
     realtime_attitude_enabled_ =
       get_parameter("realtime_attitude_enabled").as_bool();
@@ -660,6 +688,24 @@ private:
     {
       throw std::invalid_argument("invalid camera pose or BEV bounds");
     }
+    if (
+      !std::isfinite(image_config_.contrast_gain) ||
+      image_config_.contrast_gain <= 0.0F ||
+      !std::isfinite(image_config_.contrast_center) ||
+      image_config_.contrast_center < 0.0F ||
+      image_config_.contrast_center > 255.0F ||
+      !std::isfinite(image_config_.brightness_offset) ||
+      image_config_.brightness_offset < -255.0F ||
+      image_config_.brightness_offset > 255.0F ||
+      image_config_.binary_threshold < 0 ||
+      image_config_.binary_threshold > 255 ||
+      image_config_.closing_kernel_size <= 0 ||
+      image_config_.closing_kernel_size > 15 ||
+      image_config_.closing_kernel_size % 2 == 0)
+    {
+      throw std::invalid_argument(
+              "invalid grayscale contrast, threshold, or closing parameter");
+    }
     const int expected_width = static_cast<int>(std::llround(
         (bev_config_.y_max_m - bev_config_.y_min_m) /
         bev_config_.meter_per_pixel));
@@ -716,7 +762,8 @@ private:
       camera_model.image_width,
       camera_model.image_height,
       lut.map_x,
-      lut.map_y);
+      lut.map_y,
+      image_config_);
 
     const int valid_pixels = cv::countNonZero(lut.valid_mask);
     const int output_pixels =
@@ -1044,7 +1091,7 @@ private:
 
       try {
         output_publisher_->publish(
-          makeBgr8Message(*frame, output_frame_id_));
+          makeMono8Message(*frame, output_frame_id_));
         last_published_at = now;
         published_total_.fetch_add(1U, std::memory_order_relaxed);
         published_interval_.fetch_add(1U, std::memory_order_relaxed);
@@ -1079,6 +1126,10 @@ private:
 
   cv::Mat makeCoordinatePreview(const cv::Mat & bev_image) const
   {
+    if (bev_image.type() != CV_8UC1) {
+      throw std::invalid_argument(
+              "coordinate preview requires a MONO8 BEV image");
+    }
     constexpr double grid_step_m = 0.1;
     constexpr double label_step_m = 0.5;
     constexpr double epsilon = 1.0e-9;
@@ -1097,7 +1148,9 @@ private:
       kPreviewTopMargin,
       bev_image.cols,
       bev_image.rows);
-    bev_image.copyTo(preview(bev_region));
+    cv::Mat bev_bgr;
+    cv::cvtColor(bev_image, bev_bgr, cv::COLOR_GRAY2BGR);
+    bev_bgr.copyTo(preview(bev_region));
     cv::Mat displayed_bev = preview(bev_region);
     cv::Mat grid_overlay = displayed_bev.clone();
 
@@ -1493,6 +1546,7 @@ private:
   double configured_roll_deg_{0.0};
   double configured_pitch_down_deg_{14.0};
   double camera_yaw_deg_{0.0};
+  CudaBevImageConfig image_config_{};
   bool realtime_attitude_enabled_{false};
   std::string realtime_imu_topic_{"/camera/imu"};
   double realtime_attitude_update_hz_{100.0};

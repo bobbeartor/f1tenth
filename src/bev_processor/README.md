@@ -1,7 +1,8 @@
 # bev_processor
 
-`camera_driver`의 왜곡 보정된 1280x720 NV12 영상을 CUDA로 BEV 변환하는
-ROS 2 C++ 패키지다. 실행 진입점은 자동과 수동 두 개로 분리되어 있다.
+`camera_driver`의 왜곡 보정된 1280x720 NV12 영상에서 Y 채널만 사용해
+CUDA로 흑백 BEV 차선 후보 마스크를 만드는 ROS 2 C++ 패키지다. 실행
+진입점은 자동과 수동 두 개로 분리되어 있다.
 
 ## 실행 모드
 
@@ -90,8 +91,8 @@ container에서 실행해 NV12 intra-process 경로를 사용한다. 카메라 �
 1. 선택된 파라미터로 카메라 모델을 완성한다.
 2. 동일한 `mountRotationVehicleFromCamera()`와 `generateRemap()`으로
    지면 역투영 LUT를 만든다.
-3. 동일한 `CudaBevProcessor`가 NV12 샘플링, 색 변환, BEV 워핑을
-   수행한다.
+3. 동일한 `CudaBevProcessor`가 NV12 Y 채널을 bicubic 보간으로 BEV
+   워핑하고, 대비 강화, 이진화, morphology closing을 수행한다.
 4. auto에서는 OAK IMU 변화가 생길 때 기존 CUDA 메모리를 재할당하지
    않고 LUT 두 장만 갱신한다.
 
@@ -99,6 +100,24 @@ container에서 실행해 NV12 intra-process 경로를 사용한다. 카메라 �
 
 - auto: 시작 높이/yaw와 실시간 OAK IMU roll/pitch 변화량
 - manual: `bev_config_manual.yaml`의 직접 측정값
+
+`/camera/image_bev` 출력 인코딩은 `mono8`이다. 임계값을 넘긴 밝은 차선
+후보는 255(흰색), 배경은 0(검은색)으로 발행한다. 좌표 프리뷰에서만
+격자와 중심선을 그리기 위해 일시적으로 BGR로 변환한다.
+
+두 YAML에서 영상 처리를 조정할 수 있다.
+
+```yaml
+grayscale_contrast_gain: 1.8
+grayscale_contrast_center: 128.0
+grayscale_brightness_offset: 0.0
+grayscale_binary_threshold: 170
+grayscale_closing_kernel_size: 3
+```
+
+곡선의 흐린 부분이 사라지면 threshold를 낮추고, 노면 반사가 흰색으로
+남으면 threshold를 높인다. closing 크기는 홀수만 허용하며 현재
+0.01 m/pixel에서 3은 약 3 cm 범위의 작은 끊김을 연결한다.
 
 이전의 `startup_measurement_enabled` launch 옵션은 제거했다. 따라서
 launch 기본값이 YAML의 모드를 덮어쓸 수 없다. 예전

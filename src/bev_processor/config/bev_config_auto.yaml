@@ -39,6 +39,15 @@ bev_processor_auto:
     camera_downward_pitch_deg: 13.0
     camera_yaw_deg: 0.0
 
+    # Use only the NV12 Y plane. CUDA applies bicubic BEV interpolation,
+    # contrast, binary thresholding, then morphology closing.
+    grayscale_contrast_gain: 1.8
+    grayscale_contrast_center: 128.0
+    grayscale_brightness_offset: 0.0
+    grayscale_binary_threshold: 170
+    # Must be odd. At 0.01 m/pixel, 3 closes gaps up to roughly 3 cm.
+    grayscale_closing_kernel_size: 3
+
     # Height remains fixed at the startup stereo-plane measurement. OAK
     # accelerometer+gyroscope changes update roll/pitch at the same 100 Hz as
     # the IMU stream; yaw remains fixed.
