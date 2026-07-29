@@ -119,19 +119,19 @@ BEV 파라미터는 launch에서 별도로 덮어쓰지 않는다. parameter 파
 
 ```yaml
 x_min_m: 0.10
-x_max_m: 2.5
-y_min_m: -0.5
-y_max_m: 0.5
+x_max_m: 3.5
+y_min_m: -0.6
+y_max_m: 0.6
 meter_per_pixel: 0.01
-output_width: 100
-output_height: 240
+output_width: 120
+output_height: 340
 ```
 
 계산식은 다음과 같다.
 
 ```text
-output_width  = (0.5 - (-0.5)) / 0.01 = 100
-output_height = (2.5 - 0.10) / 0.01   = 240
+output_width  = (0.6 - (-0.6)) / 0.01 = 120
+output_height = (3.5 - 0.10) / 0.01   = 340
 ```
 
 ## 로그 확인

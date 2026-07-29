@@ -124,16 +124,17 @@ bev_processor_auto:
     measurement_timeout_sec: 30.0
 
     # Image top is forward; image left is vehicle left.
+    # Previous: X=[0.10, 2.50]m, Y=[-0.50, 0.50]m, output=100x240.
     x_min_m: 0.10
-    x_max_m: 2.5
-    y_min_m: -0.5
-    y_max_m: 0.5
+    x_max_m: 3.5
+    y_min_m: -0.6
+    y_max_m: 0.6
     meter_per_pixel: 0.01
 
     # output_width = round((y_max_m - y_min_m) / meter_per_pixel)
     # output_height = round((x_max_m - x_min_m) / meter_per_pixel)
-    output_width: 100
-    output_height: 240
+    output_width: 120
+    output_height: 340
 
     status_log_interval_sec: 5.0
     startup_timeout_sec: 5.0
