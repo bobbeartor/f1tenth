@@ -5,11 +5,11 @@ from __future__ import annotations
 import rclpy
 from rclpy.node import Node
 from rclpy.time import Time
-from std_msgs.msg import Bool, Float32, Int32, String
+from std_msgs.msg import Bool, Float32, String
 
-from manual_control.erpm_command_profile import (
-    ErpmCommandProfile,
-    ErpmProfileConfig,
+from manual_control.duty_command_profile import (
+    DutyCommandProfile,
+    DutyProfileConfig,
 )
 
 
@@ -21,18 +21,18 @@ class ActuatorCommanderNode(Node):
         self.declare_parameter("brake_topic", "/manual/brake")
         self.declare_parameter("steering_topic", "/manual/steering")
         self.declare_parameter("gear_toggle_topic", "/manual/gear_toggle")
-        self.declare_parameter("current_erpm_topic", "/manual/current_erpm")
+        self.declare_parameter("current_duty_topic", "/manual/current_duty")
         self.declare_parameter("gear_state_topic", "/manual/gear")
-        self.declare_parameter("erpm_topic", "/vesc/erpm")
+        self.declare_parameter("duty_topic", "/vesc/duty")
         self.declare_parameter("servo_position_topic", "/vesc/servo_position")
 
-        self.declare_parameter("forward_max_erpm", 8000)
-        self.declare_parameter("reverse_max_erpm", 5000)
-        self.declare_parameter("start_erpm", 1000)
-        self.declare_parameter("acceleration_erpm_per_sec", 1200.0)
-        self.declare_parameter("coast_deceleration_erpm_per_sec", 600.0)
-        self.declare_parameter("brake_erpm_per_sec", 5000.0)
-        self.declare_parameter("control_rate_hz", 50.0)
+        self.declare_parameter("forward_max_duty", 0.07)
+        self.declare_parameter("reverse_max_duty", 0.04)
+        self.declare_parameter("start_duty", 0.02)
+        self.declare_parameter("acceleration_duty_per_sec", 0.01)
+        self.declare_parameter("coast_deceleration_duty_per_sec", 0.02)
+        self.declare_parameter("brake_duty_per_sec", 0.07)
+        self.declare_parameter("control_rate_hz", 80.0)
         self.declare_parameter("status_log_rate_hz", 2.0)
         self.declare_parameter("input_timeout_sec", 0.3)
 
@@ -46,9 +46,9 @@ class ActuatorCommanderNode(Node):
         brake_topic = str(self.get_parameter("brake_topic").value)
         steering_topic = str(self.get_parameter("steering_topic").value)
         gear_toggle_topic = str(self.get_parameter("gear_toggle_topic").value)
-        current_erpm_topic = str(self.get_parameter("current_erpm_topic").value)
+        current_duty_topic = str(self.get_parameter("current_duty_topic").value)
         gear_state_topic = str(self.get_parameter("gear_state_topic").value)
-        erpm_topic = str(self.get_parameter("erpm_topic").value)
+        duty_topic = str(self.get_parameter("duty_topic").value)
         servo_topic = str(self.get_parameter("servo_position_topic").value)
 
         self.control_rate_hz = max(
@@ -70,25 +70,25 @@ class ActuatorCommanderNode(Node):
             self.get_parameter("steering_deadzone").value
         )
 
-        self.erpm_profile = ErpmCommandProfile(
-            ErpmProfileConfig(
-                forward_max_erpm=int(
-                    self.get_parameter("forward_max_erpm").value
+        self.duty_profile = DutyCommandProfile(
+            DutyProfileConfig(
+                forward_max_duty=float(
+                    self.get_parameter("forward_max_duty").value
                 ),
-                reverse_max_erpm=int(
-                    self.get_parameter("reverse_max_erpm").value
+                reverse_max_duty=float(
+                    self.get_parameter("reverse_max_duty").value
                 ),
-                start_erpm=int(self.get_parameter("start_erpm").value),
-                acceleration_erpm_per_sec=float(
-                    self.get_parameter("acceleration_erpm_per_sec").value
+                start_duty=float(self.get_parameter("start_duty").value),
+                acceleration_duty_per_sec=float(
+                    self.get_parameter("acceleration_duty_per_sec").value
                 ),
-                coast_deceleration_erpm_per_sec=float(
+                coast_deceleration_duty_per_sec=float(
                     self.get_parameter(
-                        "coast_deceleration_erpm_per_sec"
+                        "coast_deceleration_duty_per_sec"
                     ).value
                 ),
-                brake_erpm_per_sec=float(
-                    self.get_parameter("brake_erpm_per_sec").value
+                brake_duty_per_sec=float(
+                    self.get_parameter("brake_duty_per_sec").value
                 ),
                 pedal_deadzone=float(
                     self.get_parameter("pedal_deadzone").value
@@ -107,11 +107,11 @@ class ActuatorCommanderNode(Node):
         self._pedal_input_timed_out = True
         self._steering_input_timed_out = True
 
-        self.erpm_pub = self.create_publisher(Int32, erpm_topic, 10)
+        self.duty_pub = self.create_publisher(Float32, duty_topic, 10)
         self.servo_pub = self.create_publisher(Float32, servo_topic, 10)
-        self.current_erpm_pub = self.create_publisher(
-            Int32,
-            current_erpm_topic,
+        self.current_duty_pub = self.create_publisher(
+            Float32,
+            current_duty_topic,
             10,
         )
         self.gear_state_pub = self.create_publisher(String, gear_state_topic, 10)
@@ -152,7 +152,7 @@ class ActuatorCommanderNode(Node):
 
         self.get_logger().info(
             "Manual drive waiting for joystick input. "
-            f"gear={self.erpm_profile.gear.name}, command_erpm=0"
+            f"gear={self.duty_profile.gear.name}, command_duty=0"
         )
         self._publish_gear_state()
 
@@ -178,14 +178,14 @@ class ActuatorCommanderNode(Node):
     def _on_gear_toggle(self, msg: Bool) -> None:
         pressed = bool(msg.data)
         if pressed and not self._gear_button_pressed:
-            if self.erpm_profile.toggle_gear():
+            if self.duty_profile.toggle_gear():
                 self.get_logger().info(
-                    f"Gear changed: {self.erpm_profile.gear.name}"
+                    f"Gear changed: {self.duty_profile.gear.name}"
                 )
                 self._publish_gear_state()
             else:
                 self.get_logger().warn(
-                    "Gear change rejected: brake to ERPM 0 before pressing Y."
+                    "Gear change rejected: brake to duty 0 before pressing Y."
                 )
         self._gear_button_pressed = pressed
 
@@ -198,9 +198,9 @@ class ActuatorCommanderNode(Node):
 
         if self._pedal_inputs_are_stale(now):
             self._handle_pedal_input_timeout()
-            command_erpm = 0
+            command_duty = 0.0
         else:
-            command_erpm = self.erpm_profile.update(
+            command_duty = self.duty_profile.update(
                 self._accelerator,
                 self._brake,
                 dt_sec,
@@ -212,8 +212,8 @@ class ActuatorCommanderNode(Node):
         else:
             servo_position = self._steering_to_servo(self._steering)
 
-        self.erpm_pub.publish(Int32(data=command_erpm))
-        self.current_erpm_pub.publish(Int32(data=command_erpm))
+        self.duty_pub.publish(Float32(data=command_duty))
+        self.current_duty_pub.publish(Float32(data=command_duty))
         self.servo_pub.publish(Float32(data=servo_position))
 
     def _pedal_inputs_are_stale(self, now: Time) -> bool:
@@ -232,12 +232,12 @@ class ActuatorCommanderNode(Node):
         if not self._pedal_input_timed_out:
             self.get_logger().warn(
                 f"Pedal input timeout ({self.input_timeout_sec:.2f}s). "
-                "Sending ERPM 0."
+                "Sending duty 0."
             )
         self._pedal_input_timed_out = True
         self._accelerator = 0.0
         self._brake = 0.0
-        self.erpm_profile.reset_speed()
+        self.duty_profile.reset_speed()
 
     def _handle_steering_input_timeout(self) -> None:
         if not self._steering_input_timed_out:
@@ -251,21 +251,21 @@ class ActuatorCommanderNode(Node):
     def _publish_status(self) -> None:
         self._publish_gear_state()
         self.get_logger().info(
-            f"Manual status | gear={self.erpm_profile.gear.name} | "
-            f"command_erpm={self.erpm_profile.command_erpm}"
+            f"Manual status | gear={self.duty_profile.gear.name} | "
+            f"command_duty={self.duty_profile.command_duty:.5f}"
         )
 
     def _publish_gear_state(self) -> None:
         self.gear_state_pub.publish(
-            String(data=self.erpm_profile.gear.name)
+            String(data=self.duty_profile.gear.name)
         )
 
     def stop_actuators(self) -> None:
         self.control_timer.cancel()
         self.status_timer.cancel()
-        self.erpm_profile.reset_speed()
-        self.erpm_pub.publish(Int32(data=0))
-        self.current_erpm_pub.publish(Int32(data=0))
+        self.duty_profile.reset_speed()
+        self.duty_pub.publish(Float32(data=0.0))
+        self.current_duty_pub.publish(Float32(data=0.0))
         self.servo_pub.publish(Float32(data=self.servo_center))
         self._publish_gear_state()
 

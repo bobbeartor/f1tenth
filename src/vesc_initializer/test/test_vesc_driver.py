@@ -36,6 +36,28 @@ def make_driver(fake_serial: FakeSerial) -> VescDriver:
 
 
 class VescDriverTest(unittest.TestCase):
+    def test_set_duty_encodes_scaled_comm_set_duty_payload(self) -> None:
+        fake_serial = FakeSerial()
+        driver = make_driver(fake_serial)
+
+        driver.set_duty(0.07)
+
+        self.assertEqual(
+            fake_serial.writes,
+            [VescDriver.make_packet(bytes([5]) + struct.pack(">i", 7000))],
+        )
+
+    def test_set_duty_clamps_to_protocol_range(self) -> None:
+        fake_serial = FakeSerial()
+        driver = make_driver(fake_serial)
+
+        driver.set_duty(-2.0)
+
+        self.assertEqual(
+            fake_serial.writes,
+            [VescDriver.make_packet(bytes([5]) + struct.pack(">i", -100000))],
+        )
+
     def test_get_firmware_version_requires_a_valid_vesc_response(self) -> None:
         response = VescDriver.make_packet(bytes([0, 6, 5]))
         fake_serial = FakeSerial(response=response)

@@ -10,12 +10,12 @@ from typing import Any, Callable
 
 @dataclass(frozen=True)
 class VescCommandIds:
-    # 현재는 비활성화. 실제 제어 경로는 ERPM과 servo만 사용한다.
     set_duty: int = 5
+    # 현재는 비활성화. 안전 정책이 정해진 뒤 사용한다.
     set_current: int = 6
     set_current_brake: int = 7
 
-    # 현재 활성화된 명령.
+    # ERPM은 텔레메트리와 별도 시험 경로에서 사용할 수 있다.
     set_erpm: int = 8
     set_servo_pos: int = 12
     get_firmware_version: int = 0
@@ -24,8 +24,8 @@ class VescCommandIds:
 
 @dataclass(frozen=True)
 class VescScales:
-    # 현재는 비활성화. 나중에 다시 켤 때 설정 구조를 유지하려고 남겨둔다.
     duty: int = 100000
+    # 현재는 비활성화. 나중에 다시 켤 때 설정 구조를 유지하려고 남겨둔다.
     current: int = 1000
     brake_current: int = 1000
 
@@ -122,13 +122,10 @@ class VescDriver:
         self.close()
 
     def set_duty(self, duty: float) -> None:
-        # 현재 duty 명령은 비활성화한다. 모터 속도 제어는 ERPM 명령만 사용한다.
-        # 기존 구현은 나중에 다시 켤 수 있도록 주석으로 남겨둔다.
-        # duty = self._clamp(duty, -1.0, 1.0)
-        # value = int(duty * self.scales.duty)
-        # payload = bytes([self.command_ids.set_duty]) + struct.pack(">i", value)
-        # self.write_payload(payload)
-        raise VescDriverError("Duty 명령은 비활성화되어 있습니다. ERPM 명령을 사용하세요.")
+        duty = self._clamp(duty, -1.0, 1.0)
+        value = int(duty * self.scales.duty)
+        payload = bytes([self.command_ids.set_duty]) + struct.pack(">i", value)
+        self.write_payload(payload)
 
     def set_current(self, current_amps: float) -> None:
         # 현재 current 명령은 비활성화한다. 안전 정책이 정해진 뒤 다시 켠다.

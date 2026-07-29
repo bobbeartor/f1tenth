@@ -8,16 +8,16 @@ vesc_initialize_node:
     connect_on_startup: true  # 노드 시작 시 VESC 포트를 먼저 열어본다.
     verify_firmware_on_startup: true  # 펌웨어 응답을 받아 실제 VESC인지 확인한다.
 
-    erpm_topic: "/vesc/erpm"                       # std_msgs/msg/Int32
+    duty_topic: "/vesc/duty"                       # std_msgs/msg/Float32
     measured_erpm_topic: "/vesc/measured_erpm"     # VESC가 추정한 실제 ERPM, std_msgs/msg/Int32
     servo_position_topic: "/vesc/servo_position"   # std_msgs/msg/Float32
     connection_status_topic: "/vesc/connected"     # std_msgs/msg/Bool
 
-    min_erpm: -100000      # ERPM 명령 하한. 실제 제한값은 추후 차량에 맞게 조정한다.
-    max_erpm: 100000       # ERPM 명령 상한. 실제 제한값은 추후 차량에 맞게 조정한다.
+    min_duty: -0.04        # 수동 후진 설정과 동일한 하한
+    max_duty: 0.07         # 수동 전진 설정과 동일한 상한
     servo_min: 0.0         # VESC servo position 하한
     servo_max: 1.0         # VESC servo position 상한
-    command_timeout: 0.3   # 이 시간 동안 새 ERPM 명령이 없으면 ERPM 0을 보낸다.
+    command_timeout: 0.3   # 이 시간 동안 새 duty 명령이 없으면 duty 0을 보낸다.
     log_commands: false    # true이면 시리얼로 전달된 명령을 로그에 표시한다.
     telemetry_rate_hz: 10.0      # VESC 실제 ERPM 조회/토픽 발행 주기
     telemetry_log_rate_hz: 2.0   # 목표/실제 ERPM 콘솔 출력 주기
@@ -27,8 +27,8 @@ vesc_initialize_node:
       end_byte: 3             # VESC packet 종료 바이트
       comm_get_firmware_version: 0  # 연결 확인에 사용하는 펌웨어 버전 요청
       comm_get_values_selective: 50 # 실제 ERPM만 선택해 조회하는 명령 ID
-      comm_set_duty: 5        # 현재 비활성화. 모터 속도는 ERPM 명령을 사용한다.
-      comm_set_erpm: 8        # VESC set_rpm expects ERPM, not wheel RPM. ERPM is electrical RPM.
+      comm_set_duty: 5        # 수동 주행 모터 명령(COMM_SET_DUTY)
+      comm_set_erpm: 8        # 별도 ERPM 시험 경로용
       comm_set_servo_pos: 12  # 서보 위치 명령 ID(COMM_SET_SERVO_POS)
-      duty_scale: 100000      # 현재 비활성화. 나중에 duty를 다시 켤 때 사용한다.
+      duty_scale: 100000      # duty float를 VESC 정수 payload로 바꾸는 배율
       servo_scale: 1000       # servo position float 값을 VESC 정수 payload로 바꾸는 배율

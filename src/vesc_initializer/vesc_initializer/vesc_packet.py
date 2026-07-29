@@ -13,7 +13,6 @@ MAX_SHORT_PAYLOAD_SIZE = 255
 
 @dataclass(frozen=True)
 class VescCommandIds:
-    # 현재는 비활성화. 실제 제어 경로는 ERPM과 servo만 사용한다.
     set_duty: int = 5
     set_current: int = 6
     set_current_brake: int = 7
@@ -25,7 +24,6 @@ class VescCommandIds:
 
 @dataclass(frozen=True)
 class VescScales:
-    # 현재는 비활성화. 나중에 다시 켤 때 설정 구조를 유지하려고 남겨둔다.
     duty: int = 100000
     current: int = 1000
     brake_current: int = 1000
@@ -70,15 +68,12 @@ def make_duty_packet(
     command_ids: VescCommandIds | None = None,
     scales: VescScales | None = None,
 ) -> bytes:
-    # 현재 duty 패킷 생성은 비활성화한다. 모터 속도 제어는 ERPM 명령만 사용한다.
-    # 기존 구현은 나중에 다시 켤 수 있도록 주석으로 남겨둔다.
-    # command_ids = command_ids or VescCommandIds()
-    # scales = scales or VescScales()
-    # duty = clamp(duty, -1.0, 1.0)
-    # value = int(duty * scales.duty)
-    # payload = bytes([command_ids.set_duty]) + struct.pack(">i", value)
-    # return make_packet(payload)
-    raise VescPacketError("Duty 패킷 생성은 비활성화되어 있습니다. ERPM 명령을 사용하세요.")
+    command_ids = command_ids or VescCommandIds()
+    scales = scales or VescScales()
+    duty = clamp(duty, -1.0, 1.0)
+    value = int(duty * scales.duty)
+    payload = bytes([command_ids.set_duty]) + struct.pack(">i", value)
+    return make_packet(payload)
 
 
 def make_current_packet(

@@ -4,18 +4,18 @@ actuator_commander_node:
     brake_topic: "/manual/brake"                   # LT, std_msgs/msg/Float32, 0.0 ~ 1.0
     steering_topic: "/manual/steering"             # 왼쪽 스틱 X, -1.0 ~ 1.0
     gear_toggle_topic: "/manual/gear_toggle"       # Y 버튼, std_msgs/msg/Bool
-    current_erpm_topic: "/manual/current_erpm"     # 현재 명령 ERPM
+    current_duty_topic: "/manual/current_duty"     # 현재 duty 명령
     gear_state_topic: "/manual/gear"               # FORWARD 또는 REVERSE
-    erpm_topic: "/vesc/erpm"
+    duty_topic: "/vesc/duty"
     servo_position_topic: "/vesc/servo_position"
 
-    forward_max_erpm: 5000
-    reverse_max_erpm: 2000
-    start_erpm: 1000             # RT 가속을 시작할 때 즉시 적용할 ERPM 크기
-    acceleration_erpm_per_sec: 800.0
-    coast_deceleration_erpm_per_sec: 1500.0  # 페달을 놓았을 때 자연 감속량
-    brake_erpm_per_sec: 5000.0               # LT를 끝까지 누를 때 감속량
-    control_rate_hz: 50.0
+    forward_max_duty: 0.07
+    reverse_max_duty: 0.04
+    start_duty: 0.02                    # RT 입력 시 즉시 적용할 duty 크기
+    acceleration_duty_per_sec: 0.01     # 최대 전진 duty까지 약 5초
+    coast_deceleration_duty_per_sec: 0.02
+    brake_duty_per_sec: 0.07
+    control_rate_hz: 80.0
     status_log_rate_hz: 2.0
     input_timeout_sec: 0.30
 
