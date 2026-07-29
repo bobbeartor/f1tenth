@@ -12,6 +12,7 @@ def generate_launch_description():
 
     params_file = LaunchConfiguration("params_file")
     preview_enabled = LaunchConfiguration("preview_enabled")
+    preview_grid_enabled = LaunchConfiguration("preview_grid_enabled")
     publish_enabled = LaunchConfiguration("publish_enabled")
 
     return LaunchDescription(
@@ -25,6 +26,11 @@ def generate_launch_description():
                 "preview_enabled",
                 default_value="false",
                 description="Show the independent latest-frame preview.",
+            ),
+            DeclareLaunchArgument(
+                "preview_grid_enabled",
+                default_value="true",
+                description="Draw a light-gray 20-pixel grid on the preview.",
             ),
             DeclareLaunchArgument(
                 "publish_enabled",
@@ -46,6 +52,7 @@ def generate_launch_description():
                             params_file,
                             {
                                 "preview_enabled": preview_enabled,
+                                "preview_grid_enabled": preview_grid_enabled,
                                 "publish_enabled": publish_enabled,
                                 # A standalone camera/undistortion preview
                                 # never starts the OAK IMU stream.

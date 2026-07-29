@@ -43,6 +43,9 @@ camera_driver:
     preview_window_name: "OAK rectified image"
     preview_max_width: 1280
     preview_max_height: 720
+    # Draw a subtle source-image coordinate grid on the standalone preview.
+    preview_grid_enabled: true
+    preview_grid_spacing_px: 20
 
     startup_timeout_sec: 5.0
     status_log_interval_sec: 5.0

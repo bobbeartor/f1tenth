@@ -22,6 +22,7 @@
 #include "depthai/depthai.hpp"
 #include "opencv2/core.hpp"
 #include "opencv2/highgui.hpp"
+#include "opencv2/imgproc.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/imu.hpp"
@@ -239,6 +240,10 @@ private:
       node_.declare_parameter<int>("preview_max_width", 1280);
     preview_max_height_ =
       node_.declare_parameter<int>("preview_max_height", 720);
+    preview_grid_enabled_ =
+      node_.declare_parameter<bool>("preview_grid_enabled", true);
+    preview_grid_spacing_px_ =
+      node_.declare_parameter<int>("preview_grid_spacing_px", 20);
     startup_timeout_sec_ =
       node_.declare_parameter<double>("startup_timeout_sec", 5.0);
     status_log_interval_sec_ =
@@ -277,6 +282,7 @@ private:
       throw std::invalid_argument(
               "preview maximum dimensions must not be negative");
     }
+    require_positive(preview_grid_spacing_px_, "preview_grid_spacing_px");
 
     camera_socket_ = parse_camera_socket(camera_socket_name_);
     resize_mode_ = parse_resize_mode(resize_mode_name_);
@@ -365,10 +371,13 @@ private:
       width_, height_, sensor_fps_, usb_speed_name(device->getUsbSpeed()));
     RCLCPP_INFO(
       node_.get_logger(),
-      "Options: undistort=%s, publish=%s, preview=%s, queue=%d/%s",
+      "Options: undistort=%s, publish=%s, preview=%s, "
+      "preview_grid=%s/%dpx, queue=%d/%s",
       undistort_enabled_ ? "on" : "off",
       publish_enabled_ ? "on" : "off",
       preview_enabled_ ? "on" : "off",
+      preview_grid_enabled_ ? "on" : "off",
+      preview_grid_spacing_px_,
       queue_size_,
       queue_blocking_ ? "blocking" : "non-blocking");
     if (imu_bridge_enabled_) {
@@ -688,6 +697,37 @@ private:
     preview_window_sized_ = true;
   }
 
+  void draw_preview_grid(cv::Mat & frame) const
+  {
+    const cv::Scalar grid_color(210, 210, 210);
+    for (
+      int x = preview_grid_spacing_px_;
+      x < frame.cols;
+      x += preview_grid_spacing_px_)
+    {
+      cv::line(
+        frame,
+        cv::Point(x, 0),
+        cv::Point(x, frame.rows - 1),
+        grid_color,
+        1,
+        cv::LINE_AA);
+    }
+    for (
+      int y = preview_grid_spacing_px_;
+      y < frame.rows;
+      y += preview_grid_spacing_px_)
+    {
+      cv::line(
+        frame,
+        cv::Point(0, y),
+        cv::Point(frame.cols - 1, y),
+        grid_color,
+        1,
+        cv::LINE_AA);
+    }
+  }
+
   void preview_loop()
   {
     try {
@@ -727,13 +767,16 @@ private:
         auto snapshot = std::atomic_load_explicit(
           &latest_frame_, std::memory_order_acquire);
         if (snapshot && snapshot->generation != previewed_generation) {
-          const auto bgr = snapshot->packet->getCvFrame();
-          if (bgr.empty() || bgr.type() != CV_8UC3) {
+          auto preview_frame = snapshot->packet->getCvFrame();
+          if (preview_frame.empty() || preview_frame.type() != CV_8UC3) {
             throw std::runtime_error(
                     "DepthAI could not convert the NV12 preview to BGR");
           }
-          resize_preview_window(bgr);
-          cv::imshow(preview_window_name_, bgr);
+          if (preview_grid_enabled_) {
+            draw_preview_grid(preview_frame);
+          }
+          resize_preview_window(preview_frame);
+          cv::imshow(preview_window_name_, preview_frame);
           previewed_generation = snapshot->generation;
           previewed_total_.fetch_add(1);
           previewed_interval_.fetch_add(1);
@@ -891,6 +934,8 @@ private:
   std::string preview_window_name_;
   int preview_max_width_{1280};
   int preview_max_height_{720};
+  bool preview_grid_enabled_{true};
+  int preview_grid_spacing_px_{20};
   double startup_timeout_sec_{5.0};
   double status_log_interval_sec_{5.0};
   dai::CameraBoardSocket camera_socket_{dai::CameraBoardSocket::CAM_A};

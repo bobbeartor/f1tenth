@@ -169,6 +169,14 @@ ros2 launch camera_driver camera_driver.launch.py
 ros2 launch camera_driver camera_driver.launch.py preview_enabled:=false
 ```
 
+기본 독립 프리뷰에는 원본 영상 좌표 기준 20픽셀 간격의 연한 회색 격자가
+표시된다. 격자만 끄려면 다음처럼 실행한다.
+
+```bash
+ros2 launch camera_driver camera_driver.launch.py \
+  preview_enabled:=true preview_grid_enabled:=false
+```
+
 ROS 이미지 발행 없이 캡처와 직접 프리뷰만 측정:
 
 ```bash
@@ -224,6 +232,8 @@ ros2 topic info /camera/image_rect --verbose
 | `imu_topic` | `/camera/imu` | `sensor_msgs/Imu` 출력 |
 | `preview_enabled` | `false` | OpenCV 직접 프리뷰 |
 | `preview_fps` | `143.0` | 프리뷰 갱신 최대 FPS |
+| `preview_grid_enabled` | `true` | 독립 프리뷰 격자 표시 |
+| `preview_grid_spacing_px` | `20` | 원본 영상 기준 격자 간격 |
 
 143 FPS에서 `1280x720 NV12`의 순수 영상 데이터는 약 189 MiB/s다.
 `BGR888i`의 약 377 MiB/s보다 작다. 외부 프로세스 구독자는 DDS 직렬화와
