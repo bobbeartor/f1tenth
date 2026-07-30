@@ -39,11 +39,11 @@ camera_driver:
     imu_stabilization_warmup_samples: 200
     imu_stabilization_acceleration_time_constant_sec: 1.5
     imu_stabilization_acceleration_gate_deg: 8.0
-    imu_stabilization_smoothing_time_constant_sec: 0.25
+    imu_stabilization_smoothing_time_constant_sec: 0.30
     imu_stabilization_maximum_correction_deg: 4.0
     # Change a gain to -1.0 only if a hardware-axis validation shows inversion.
-    imu_stabilization_roll_gain: 1.0
-    imu_stabilization_pitch_gain: 1.0
+    imu_stabilization_roll_gain: 1.1
+    imu_stabilization_pitch_gain: 1.1
 
     # Disabled by default while measuring direct camera performance.
     publish_enabled: false

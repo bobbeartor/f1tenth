@@ -18,7 +18,7 @@ struct ImuImageStabilizerConfig
   double maximum_acceleration_mps2{12.0};
   double acceleration_correction_time_constant_sec{1.5};
   double acceleration_correction_gate_deg{8.0};
-  double trajectory_smoothing_time_constant_sec{0.25};
+  double trajectory_smoothing_time_constant_sec{0.30};
   double maximum_correction_deg{4.0};
   double maximum_sample_interval_sec{0.1};
   double maximum_history_sec{1.0};
