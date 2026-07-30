@@ -45,6 +45,11 @@ camera_driver:
     imu_stabilization_roll_gain: 1.0
     imu_stabilization_pitch_gain: 1.0
 
+    # Stabilize the full 1280x720 frame first, then remove the area above the
+    # road-focused view. NV12 chroma alignment requires an even pixel value.
+    # Set to 0 to retain the full frame.
+    output_crop_top_px: 250
+
     # Disabled by default while measuring direct camera performance.
     publish_enabled: false
     publish_fps: 120.0

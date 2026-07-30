@@ -257,6 +257,8 @@ private:
       node_.declare_parameter<double>("imu_stabilization_roll_gain", 1.0);
     imu_stabilization_pitch_gain_ =
       node_.declare_parameter<double>("imu_stabilization_pitch_gain", 1.0);
+    output_crop_top_px_ =
+      node_.declare_parameter<int>("output_crop_top_px", 250);
     publish_enabled_ =
       node_.declare_parameter<bool>("publish_enabled", false);
     publish_fps_ =
@@ -282,6 +284,18 @@ private:
 
     require_positive(width_, "width");
     require_positive(height_, "height");
+    if (width_ % 2 != 0 || height_ % 2 != 0) {
+      throw std::invalid_argument(
+              "width and height must be even for NV12");
+    }
+    if (
+      output_crop_top_px_ < 0 ||
+      output_crop_top_px_ >= height_ ||
+      output_crop_top_px_ % 2 != 0)
+    {
+      throw std::invalid_argument(
+              "output_crop_top_px must be an even value in [0, height)");
+    }
     require_positive(sensor_fps_, "sensor_fps");
     require_positive(queue_size_, "queue_size");
     require_positive(startup_timeout_sec_, "startup_timeout_sec");
@@ -420,13 +434,17 @@ private:
     RCLCPP_INFO(
       node_.get_logger(),
       "Options: undistort=%s, publish=%s, preview=%s, "
-      "preview_grid=%s/%dpx, imu_stabilization=%s, queue=%d/%s",
+      "preview_grid=%s/%dpx, imu_stabilization=%s, "
+      "output_crop=top %dpx -> %dx%d, queue=%d/%s",
       undistort_enabled_ ? "on" : "off",
       publish_enabled_ ? "on" : "off",
       preview_enabled_ ? "on" : "off",
       preview_grid_enabled_ ? "on" : "off",
       preview_grid_spacing_px_,
       imu_stabilization_enabled_ ? "on" : "off",
+      output_crop_top_px_,
+      width_,
+      height_ - output_crop_top_px_,
       queue_size_,
       queue_blocking_ ? "blocking" : "non-blocking");
     if (imu_stream_enabled_) {
@@ -542,6 +560,15 @@ private:
               static_cast<double>(k_rect[1][1]),
               static_cast<double>(k_rect[0][2]),
               static_cast<double>(k_rect[1][2]));
+            RCLCPP_INFO(
+              node_.get_logger(),
+              "Cropped output %dx%d: fx=%.9f, fy=%.9f, cx=%.9f, cy=%.9f",
+              width_, height_ - output_crop_top_px_,
+              static_cast<double>(k_rect[0][0]),
+              static_cast<double>(k_rect[1][1]),
+              static_cast<double>(k_rect[0][2]),
+              static_cast<double>(k_rect[1][2]) -
+              static_cast<double>(output_crop_top_px_));
           } else {
             RCLCPP_WARN(
               node_.get_logger(),
@@ -616,15 +643,6 @@ private:
               "DepthAI returned an undersized NV12 frame");
     }
 
-    const auto homography = stabilizationHomography(
-      packet, sensor_timestamp);
-    if (!homography) {
-      message.step = stride;
-      message.data.resize(expected_bytes);
-      std::memcpy(message.data.data(), nv12.data(), expected_bytes);
-      return;
-    }
-
     const int frame_width = static_cast<int>(packet.getWidth());
     const int frame_height = static_cast<int>(packet.getHeight());
     cv::Mat input_y(
@@ -640,45 +658,82 @@ private:
       const_cast<std::uint8_t *>(
         nv12.data() + stride * static_cast<std::size_t>(frame_height)),
       stride);
-    cv::Mat output_y(frame_height, frame_width, CV_8UC1);
-    cv::Mat output_uv(frame_height / 2, frame_width / 2, CV_8UC2);
-    cv::warpPerspective(
-      input_y,
-      output_y,
-      cv::Mat(*homography),
-      output_y.size(),
-      cv::INTER_LINEAR,
-      cv::BORDER_CONSTANT,
-      cv::Scalar(0));
+    cv::Mat stabilized_y;
+    cv::Mat stabilized_uv;
+    cv::Mat processed_y = input_y;
+    cv::Mat processed_uv = input_uv;
 
-    const cv::Matx33d half_scale(
-      0.5, 0.0, 0.0,
-      0.0, 0.5, 0.0,
-      0.0, 0.0, 1.0);
-    const cv::Matx33d double_scale(
-      2.0, 0.0, 0.0,
-      0.0, 2.0, 0.0,
-      0.0, 0.0, 1.0);
-    const cv::Matx33d uv_homography =
-      half_scale * (*homography) * double_scale;
-    cv::warpPerspective(
-      input_uv,
-      output_uv,
-      cv::Mat(uv_homography),
-      output_uv.size(),
-      cv::INTER_LINEAR,
-      cv::BORDER_CONSTANT,
-      cv::Scalar(128, 128));
+    const auto homography = stabilizationHomography(
+      packet, sensor_timestamp);
+    if (homography) {
+      stabilized_y.create(frame_height, frame_width, CV_8UC1);
+      stabilized_uv.create(frame_height / 2, frame_width / 2, CV_8UC2);
+      cv::warpPerspective(
+        input_y,
+        stabilized_y,
+        cv::Mat(*homography),
+        stabilized_y.size(),
+        cv::INTER_LINEAR,
+        cv::BORDER_CONSTANT,
+        cv::Scalar(0));
 
+      const cv::Matx33d half_scale(
+        0.5, 0.0, 0.0,
+        0.0, 0.5, 0.0,
+        0.0, 0.0, 1.0);
+      const cv::Matx33d double_scale(
+        2.0, 0.0, 0.0,
+        0.0, 2.0, 0.0,
+        0.0, 0.0, 1.0);
+      const cv::Matx33d uv_homography =
+        half_scale * (*homography) * double_scale;
+      cv::warpPerspective(
+        input_uv,
+        stabilized_uv,
+        cv::Mat(uv_homography),
+        stabilized_uv.size(),
+        cv::INTER_LINEAR,
+        cv::BORDER_CONSTANT,
+        cv::Scalar(128, 128));
+      processed_y = stabilized_y;
+      processed_uv = stabilized_uv;
+      stabilized_frames_total_.fetch_add(1U);
+    }
+
+    const int output_height = frame_height - output_crop_top_px_;
+    const cv::Mat cropped_y = processed_y(
+      cv::Rect(0, output_crop_top_px_, frame_width, output_height));
+    const cv::Mat cropped_uv = processed_uv(
+      cv::Rect(
+        0,
+        output_crop_top_px_ / 2,
+        frame_width / 2,
+        output_height / 2));
+
+    message.width = static_cast<std::uint32_t>(frame_width);
+    message.height = static_cast<std::uint32_t>(output_height);
     message.step = static_cast<std::uint32_t>(frame_width);
     const std::size_t y_bytes =
       static_cast<std::size_t>(frame_width) *
-      static_cast<std::size_t>(frame_height);
+      static_cast<std::size_t>(output_height);
     const std::size_t uv_bytes = y_bytes / 2U;
     message.data.resize(y_bytes + uv_bytes);
-    std::memcpy(message.data.data(), output_y.data, y_bytes);
-    std::memcpy(message.data.data() + y_bytes, output_uv.data, uv_bytes);
-    stabilized_frames_total_.fetch_add(1U);
+    for (int row = 0; row < cropped_y.rows; ++row) {
+      std::memcpy(
+        message.data.data() +
+        static_cast<std::size_t>(row) *
+        static_cast<std::size_t>(frame_width),
+        cropped_y.ptr(row),
+        static_cast<std::size_t>(frame_width));
+    }
+    for (int row = 0; row < cropped_uv.rows; ++row) {
+      std::memcpy(
+        message.data.data() + y_bytes +
+        static_cast<std::size_t>(row) *
+        static_cast<std::size_t>(frame_width),
+        cropped_uv.ptr(row),
+        static_cast<std::size_t>(frame_width));
+    }
   }
 
   void imu_loop()
@@ -960,6 +1015,14 @@ private:
             preview_frame = std::move(stabilized);
             stabilized_frames_total_.fetch_add(1U);
           }
+          if (output_crop_top_px_ > 0) {
+            preview_frame = preview_frame(
+              cv::Rect(
+                0,
+                output_crop_top_px_,
+                preview_frame.cols,
+                preview_frame.rows - output_crop_top_px_)).clone();
+          }
           if (preview_grid_enabled_) {
             draw_preview_grid(preview_frame);
           }
@@ -1130,6 +1193,7 @@ private:
   ImuImageStabilizerConfig imu_stabilizer_config_{};
   double imu_stabilization_roll_gain_{1.0};
   double imu_stabilization_pitch_gain_{1.0};
+  int output_crop_top_px_{250};
   bool publish_enabled_{false};
   double publish_fps_{120.0};
   bool preview_enabled_{false};

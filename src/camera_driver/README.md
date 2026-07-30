@@ -3,7 +3,9 @@
 OAK/DepthAI 카메라 영상을 낮은 지연시간으로 받는 ROS 2 C++ 패키지다.
 기본 설정은 다음과 같다.
 
-- 센서 모드/출력: OV9782 `THE_720_P`, `1280x720`, `NV12`
+- 센서 모드: OV9782 `THE_720_P`, `1280x720`, `NV12`
+- 기본 프리뷰/ROS 출력: 전체 프레임 안정화 후 상단 250px을 제거한
+  `1280x470`
 - 요청 센서 FPS: `120`
 - USB 최대 속도 요청: `SUPER` (5 Gbps)
 - XLink 청크 분할: 비활성화 (`setXLinkChunkSize(0)`)
@@ -19,9 +21,11 @@ OAK/DepthAI 카메라 영상을 낮은 지연시간으로 받는 ROS 2 C++ 패�
 상하를 크롭한 1280x720 출력을 최대 143 FPS로 지원한다. 노드는 요청값과
 별도로 측정된 캡처 FPS와 장치 sequence gap을 주기적으로 출력한다.
 
-첫 프레임에는 최종 출력에 적용된 resize와 장치 내부 왜곡 보정을 모두
-반영한 `K_rect`의 `fx`, `fy`, `cx`, `cy`도 한 번 출력한다. BEV처럼
-투영 기하가 필요한 후속 처리에서는 원본 센서 행렬 대신 이 값을 사용한다.
+첫 프레임에는 resize와 장치 내부 왜곡 보정을 반영한 전체 1280x720
+`K_rect`와 크롭된 1280x470 출력용 내부 파라미터를 한 번씩 출력한다.
+상단 250px 크롭에서는 `fx`, `fy`, `cx`는 그대로이고 `cy`만 250만큼
+작아진다. BEV처럼 투영 기하가 필요한 후속 처리에서는 크롭 출력값을
+사용한다.
 
 ## 성능 구조
 
@@ -35,11 +39,11 @@ OAK에서 `NV12`를 생성해 Jetson으로 전송한다. BGR888i보다 전송량
 보관하며 색 변환을 하지 않는다. ROS 토픽 발행을 선택한 경우 원본 NV12를
 `sensor_msgs/Image` 데이터로 한 번 복사한다.
 
-NV12 메시지는 `encoding="nv12"`, `height=720`, `step=Y/UV plane stride`를
-사용하고, `data`에는 Y plane 720행 다음에 interleaved UV plane 360행이
-연속으로 들어간다. 일반 BGR8 구독자가 아니라 NV12를 이해하는 처리 노드가
-받아야 한다. `bev_processor`는 같은 컴포넌트 컨테이너 안에서 이 메시지를
-받아 CUDA로 바로 BEV를 생성한다.
+기본 NV12 메시지는 `encoding="nv12"`, `width=1280`, `height=470`,
+`step=1280`을 사용하고, `data`에는 Y plane 470행 다음에 interleaved UV
+plane 235행이 연속으로 들어간다. 일반 BGR8 구독자가 아니라 NV12를
+이해하는 처리 노드가 받아야 한다. `bev_processor`에 연결할 때는 입력
+높이를 470으로, `cy`를 전체 프레임 값보다 250 작게 설정해야 한다.
 
 왜곡 보정은 `Camera::requestOutput(..., enableUndistortion=true)`로 요청한다.
 따라서 호스트에서 `cv::remap()`을 수행하지 않는다.
@@ -190,7 +194,9 @@ ros2 launch camera_driver camera_driver.launch.py \
 이후 400 Hz IMU 자세에서 느린 카메라 궤적을 분리하고, 영상 timestamp에
 해당하는 고주파 roll/pitch 보정값을 보간한다. 카메라 내부 파라미터로
 회전 homography를 만들어 프리뷰 BGR 또는 발행 NV12의 Y/UV 평면을
-워핑한다. 영상 가장자리에는 보정으로 인한 검은 영역이 생길 수 있다.
+전체 1280x720 크기로 워핑한 다음 상단 250px을 제거한다. 따라서 크롭이
+안정화 homography의 카메라 중심을 바꾸지 않는다. 영상 가장자리에는
+보정으로 인한 검은 영역이 생길 수 있다.
 워핑은 현재 CPU OpenCV 경로이므로 활성화 후 상태 로그의 실제 capture
 FPS와 누락 프레임 수를 Jetson에서 확인해야 한다.
 
@@ -244,7 +250,7 @@ ros2 topic info /camera/image_rect --verbose
 | 파라미터 | 기본값 | 의미 |
 |---|---:|---|
 | `sensor_fps` | `120.0` | OAK 센서/출력 요청 FPS |
-| `width`, `height` | `1280`, `720` | 출력 해상도 |
+| `width`, `height` | `1280`, `720` | OAK에서 받는 크롭 전 해상도 |
 | `undistort_enabled` | `true` | OAK 장치 내부 왜곡 보정 |
 | `queue_size` | `8` | DepthAI 호스트 큐 크기 |
 | `queue_blocking` | `false` | 큐가 찼을 때 캡처 차단 여부 |
@@ -261,6 +267,7 @@ ros2 topic info /camera/image_rect --verbose
 | `imu_stabilization_maximum_correction_deg` | `4.0` | 축별 최대 영상 보정각 |
 | `imu_stabilization_roll_gain` | `1.0` | roll 보정 방향/크기 |
 | `imu_stabilization_pitch_gain` | `1.0` | pitch 보정 방향/크기 |
+| `output_crop_top_px` | `250` | 안정화 후 제거할 상단 행 수 (`0`이면 원본) |
 | `preview_enabled` | `false` | OpenCV 직접 프리뷰 |
 | `preview_fps` | `60.0` | 프리뷰 갱신 목표 최대 FPS |
 | `preview_grid_enabled` | `true` | 독립 프리뷰 격자 표시 |
