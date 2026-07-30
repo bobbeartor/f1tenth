@@ -1523,8 +1523,10 @@ private:
         *get_clock(),
         5000,
         "No valid input received on %s. Check that camera_driver publishing "
-        "is enabled and the image is 1280x720 nv12.",
-        input_topic_.c_str());
+        "is enabled and the image is %dx%d nv12.",
+        input_topic_.c_str(),
+        camera_model_.image_width,
+        camera_model_.image_height);
     }
   }
 

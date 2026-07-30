@@ -1,8 +1,9 @@
 # bev_processor
 
-`camera_driver`의 왜곡 보정된 1280x720 NV12 영상에서 Y 채널만 사용해
-CUDA로 흑백 BEV 차선 후보 마스크를 만드는 ROS 2 C++ 패키지다. 실행
-진입점은 자동과 수동 두 개로 분리되어 있다.
+`camera_driver`가 전체 1280x720 프레임을 IMU로 안정화한 뒤 상단 250px을
+제거해 발행하는 1280x470 NV12 영상에서 Y 채널만 사용한다. CUDA로 흑백
+BEV 차선 후보 마스크를 만드는 ROS 2 C++ 패키지이며, 실행 진입점은 자동과
+수동 두 개로 분리되어 있다.
 
 ## 실행 모드
 
@@ -11,11 +12,10 @@ CUDA로 흑백 BEV 차선 후보 마스크를 만드는 ROS 2 C++ 패키지다. 
 시작할 때 OAK stereo depth의 노면 점들에 RANSAC과 PCA로 평면을 맞춰
 카메라 높이와 노면 법선을 측정하고, 정지 상태에서 평균낸 IMU 중력
 법선과 신뢰도 기반으로 융합해 roll과 하향 pitch를 결정한다. 측정값으로
-첫 BEV LUT를 만든다. 이후 높이와 yaw는 시작값으로 고정하고, OAK의
-실시간 자이로+가속도에서 시작 IMU 기준 대비 roll/pitch 변화량만 구한다.
-raw 가속도와 자이로 동기 샘플은 400 Hz로 수신하며 자세 추정기는 모든
-샘플을 처리한다. BEV LUT 반영은 최대 120 Hz로 실행한다. 새 IMU 변화가
-없거나 각도 변화가 임계값보다 작으면 LUT를 다시 만들지 않는다.
+첫 BEV LUT를 만든다. 이후 높이, roll, pitch, yaw는 시작값으로 고정한다.
+실시간 roll/pitch 흔들림은 `camera_driver`가 전체 영상에서 먼저 보정한
+뒤 상단을 크롭하므로, BEV LUT의 실시간 자세 갱신은 중복 보정을 막기
+위해 기본 비활성화한다.
 
 센서 시작 직후의 과도값을 버리기 위해 1초간 워밍업하고, 400 Hz IMU
 800개 샘플과 중앙 228x114 stereo ROI를 사용한다. 이전 320x160 ROI의
@@ -37,19 +37,14 @@ IMU 고정 장착 오차는 `measurement_imu_roll_bias_deg`와
 시작 로그의 `source`는 두 법선을 융합했으면 `imu_depth_fused`, 충돌 후
 한 센서를 선택했으면 `depth_selected` 또는 `imu_selected`로 표시된다.
 
-실시간 자세는 자이로 적분을 빠른 변화 경로로 사용하고, 가속도 방향이
-예측 자세에서 설정 gate 안에 있을 때만 느리게 중력 방향을 보정한다.
-가감속에 오염된 가속도는 자세 보정에 사용하지 않는다. 시작 측정의 raw
-IMU 평균을 기준으로 변화량만 적용하므로 고정 장착 오차가 다시 더해지지
-않는다. IMU가 끊기면 마지막 정상 LUT를 유지한다.
+영상 안정화는 카메라 드라이버에서 자이로 적분을 빠른 변화 경로로
+사용하고, 가속도 방향이 설정 gate 안에 있을 때만 느리게 중력 방향을
+보정한다. 안정화된 영상과 시작 측정으로 만든 고정 LUT를 함께 사용한다.
 
 > 현재 실험 조건은 차량이 정지해 있고 노면과 센서가 안정된 상태다.
 > 실차 주행 알고리즘과 통합할 때는 가속·제동·코너링의 선형가속도가
-> 중력 방향을 오염시키므로, 실제 주행 로그를 기준으로 가속도 보정 gate,
-> 보정 시정수, 최대 자세 변화량을 다시 조정해야 한다. 필요하면 조향각,
-> 차속 또는 VESC 상태를 이용해 동적 주행 중 가속도 보정을 일시적으로
-> 약화하거나 중단한다. IMU 수신과 자세 추정은 400 Hz이고, BEV LUT
-> 반영의 기본 주기는 최대 120 Hz다.
+> 카메라 안정화의 중력 방향을 오염시킬 수 있으므로 실제 주행 로그를
+> 기준으로 가속도 보정 gate와 시정수를 다시 조정해야 한다.
 
 ```bash
 ros2 launch bev_processor bev_processor_auto.launch.py
@@ -94,12 +89,12 @@ container에서 실행해 NV12 intra-process 경로를 사용한다. 카메라 �
    지면 역투영 LUT를 만든다.
 3. 동일한 `CudaBevProcessor`가 NV12 Y 채널을 bicubic 보간으로 BEV
    워핑하고, 대비 강화, 이진화, morphology closing을 수행한다.
-4. auto에서는 OAK IMU 변화가 생길 때 기존 CUDA 메모리를 재할당하지
-   않고 LUT 두 장만 갱신한다.
+4. 카메라 안정화가 켜져 있으므로 auto/manual 모두 시작 자세로 만든
+   LUT를 유지한다.
 
 차이는 LUT 생성에 넣는 높이/roll/pitch의 출처뿐이다.
 
-- auto: 시작 높이/yaw와 실시간 OAK IMU roll/pitch 변화량
+- auto: 시작할 때 측정한 높이/roll/pitch와 설정된 yaw
 - manual: `bev_config_manual.yaml`의 직접 측정값
 
 `/camera/image_bev` 출력 인코딩은 `mono8`이다. 임계값을 넘긴 밝은 차선
@@ -165,7 +160,6 @@ output_height = (3.5 - 0.10) / 0.01   = 340
 [bev_processor_auto] Startup attitude fusion: ...
 [bev_processor_auto] Startup ground-plane diagnostics: ...
 [bev_processor_auto] Startup extrinsics mode=auto, source=OAK adaptive IMU+depth: ...
-[bev_processor_auto] Realtime attitude: IMU=..., LUT=..., fixed_height=...
 ```
 
 수동 모드에서는 측정 로그가 나오면 안 되고 다음처럼 표시되어야 한다.
@@ -176,8 +170,7 @@ output_height = (3.5 - 0.10) / 0.01   = 340
 ```
 
 상태 로그에도 `mode=auto` 또는 `mode=manual`과 실제 적용 중인
-높이/roll/하향 pitch가 출력된다. auto의 `Realtime attitude` 로그에는
-IMU 수신률, LUT 갱신률, IMU age, 가속도 보정/거부 횟수가 표시된다.
+높이/roll/하향 pitch가 출력된다.
 
 `camera_height_estimator`는 별도 도구이며 BEV에 값을 전달하거나 토픽을
 발행하지 않는다.

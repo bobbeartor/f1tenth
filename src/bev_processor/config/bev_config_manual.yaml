@@ -19,13 +19,14 @@ bev_processor_manual:
     preview_max_width: 1280
     preview_max_height: 720
 
-    # K_rect reported by camera_driver for the rectified 1280x720 output.
+    # camera_driver stabilizes the full 1280x720 frame, then crops its top
+    # 250 rows. Cropping preserves fx/fy/cx and shifts cy by -250 pixels.
     input_width: 1280
-    input_height: 720
+    input_height: 470
     fx: 561.400939941
     fy: 561.136352539
     cx: 643.032653809
-    cy: 352.621124268
+    cy: 102.621124268
 
     # Vehicle coordinates: origin=front-axle ground center,
     # +X=forward, +Y=left, +Z=up.

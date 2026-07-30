@@ -19,13 +19,14 @@ bev_processor_auto:
     preview_max_width: 1280
     preview_max_height: 720
 
-    # K_rect reported by camera_driver for the rectified 1280x720 output.
+    # camera_driver stabilizes the full 1280x720 frame, then crops its top
+    # 250 rows. Cropping preserves fx/fy/cx and shifts cy by -250 pixels.
     input_width: 1280
-    input_height: 720
+    input_height: 470
     fx: 561.400939941
     fy: 561.136352539
     cx: 643.032653809
-    cy: 352.621124268
+    cy: 102.621124268
 
     # Vehicle coordinates: origin=front-axle ground center,
     # +X=forward, +Y=left, +Z=up.
@@ -48,14 +49,13 @@ bev_processor_auto:
     # Must be odd. At 0.01 m/pixel, 3 closes gaps up to roughly 3 cm.
     grayscale_closing_kernel_size: 3
 
-    # Height remains fixed at the startup stereo-plane measurement. OAK raw
-    # accelerometer+gyroscope samples are received and fused at 400 Hz.
-    # Roll/pitch changes update the BEV LUT at up to 120 Hz; yaw remains fixed.
+    # Height/roll/pitch remain fixed at the startup stereo-plane measurement.
+    # The camera driver already applies IMU roll/pitch stabilization before
+    # cropping, so LUT attitude updates must stay off to avoid double correction.
     #
-    # Current tuning assumes stationary, stable testing. Retune the
-    # acceleration gate/time constant with driving logs before acceleration,
-    # braking, and cornering tests.
-    realtime_attitude_enabled: true
+    # The parameters below are retained for optional experiments with camera
+    # stabilization disabled.
+    realtime_attitude_enabled: false
     realtime_imu_topic: "/camera/imu"
     realtime_attitude_update_hz: 120.0
     realtime_imu_minimum_acceleration_mps2: 7.5
