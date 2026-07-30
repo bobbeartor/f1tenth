@@ -249,7 +249,7 @@ ros2 topic info /camera/image_rect --verbose
 | `queue_size` | `8` | DepthAI 호스트 큐 크기 |
 | `queue_blocking` | `false` | 큐가 찼을 때 캡처 차단 여부 |
 | `publish_enabled` | `false` | ROS 이미지 발행 |
-| `publish_fps` | `143.0` | ROS 발행 최대 FPS |
+| `publish_fps` | `120.0` | ROS 발행 목표 최대 FPS |
 | `imu_bridge_enabled` | `false` | 가속도+자이로 ROS 발행 |
 | `imu_rate_hz` | `400.0` | raw accel+gyro 동기 요청/발행 rate |
 | `imu_topic` | `/camera/imu` | `sensor_msgs/Imu` 출력 |
@@ -262,7 +262,7 @@ ros2 topic info /camera/image_rect --verbose
 | `imu_stabilization_roll_gain` | `1.0` | roll 보정 방향/크기 |
 | `imu_stabilization_pitch_gain` | `1.0` | pitch 보정 방향/크기 |
 | `preview_enabled` | `false` | OpenCV 직접 프리뷰 |
-| `preview_fps` | `143.0` | 프리뷰 갱신 최대 FPS |
+| `preview_fps` | `60.0` | 프리뷰 갱신 목표 최대 FPS |
 | `preview_grid_enabled` | `true` | 독립 프리뷰 격자 표시 |
 | `preview_grid_spacing_px` | `20` | 원본 영상 기준 격자 간격 |
 

@@ -8,6 +8,7 @@ import rclpy
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool, Float32, String
 
@@ -42,20 +43,42 @@ class JoyParamsConverterNode(Node):
         gear_toggle_topic = str(self.get_parameter("gear_toggle_topic").value)
         debug_topic = str(self.get_parameter("debug_topic").value)
 
+        # Controller data describes current state, not an event stream. Keeping
+        # only one sample prevents held inputs from building a stale backlog.
+        latest_state_qos = QoSProfile(depth=1)
+        latest_state_qos.reliability = ReliabilityPolicy.BEST_EFFORT
+        latest_state_qos.durability = DurabilityPolicy.VOLATILE
         self.accelerator_pub = self.create_publisher(
             Float32,
             accelerator_topic,
-            10,
+            latest_state_qos,
         )
-        self.brake_pub = self.create_publisher(Float32, brake_topic, 10)
-        self.steering_pub = self.create_publisher(Float32, steering_topic, 10)
+        self.brake_pub = self.create_publisher(
+            Float32,
+            brake_topic,
+            latest_state_qos,
+        )
+        self.steering_pub = self.create_publisher(
+            Float32,
+            steering_topic,
+            latest_state_qos,
+        )
         self.gear_toggle_pub = self.create_publisher(
             Bool,
             gear_toggle_topic,
-            10,
+            latest_state_qos,
         )
-        self.debug_pub = self.create_publisher(String, debug_topic, 10)
-        self.joy_sub = self.create_subscription(Joy, joy_topic, self._on_joy, 10)
+        self.debug_pub = self.create_publisher(
+            String,
+            debug_topic,
+            latest_state_qos,
+        )
+        self.joy_sub = self.create_subscription(
+            Joy,
+            joy_topic,
+            self._on_joy,
+            latest_state_qos,
+        )
 
         self.get_logger().info(
             "Subscribing to %s, publishing accelerator=%s, brake=%s, "

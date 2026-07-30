@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
 from std_msgs.msg import Bool, Float32, String
 
@@ -107,12 +108,25 @@ class ActuatorCommanderNode(Node):
         self._pedal_input_timed_out = True
         self._steering_input_timed_out = True
 
-        self.duty_pub = self.create_publisher(Float32, duty_topic, 10)
-        self.servo_pub = self.create_publisher(Float32, servo_topic, 10)
+        # Manual commands are state values. Intermediate samples may be
+        # discarded; every consumer should act on the newest sample only.
+        latest_command_qos = QoSProfile(depth=1)
+        latest_command_qos.reliability = ReliabilityPolicy.BEST_EFFORT
+        latest_command_qos.durability = DurabilityPolicy.VOLATILE
+        self.duty_pub = self.create_publisher(
+            Float32,
+            duty_topic,
+            latest_command_qos,
+        )
+        self.servo_pub = self.create_publisher(
+            Float32,
+            servo_topic,
+            latest_command_qos,
+        )
         self.current_duty_pub = self.create_publisher(
             Float32,
             current_duty_topic,
-            10,
+            latest_command_qos,
         )
         self.gear_state_pub = self.create_publisher(String, gear_state_topic, 10)
 
@@ -120,25 +134,25 @@ class ActuatorCommanderNode(Node):
             Float32,
             accelerator_topic,
             self._on_accelerator,
-            10,
+            latest_command_qos,
         )
         self.brake_sub = self.create_subscription(
             Float32,
             brake_topic,
             self._on_brake,
-            10,
+            latest_command_qos,
         )
         self.steering_sub = self.create_subscription(
             Float32,
             steering_topic,
             self._on_steering,
-            10,
+            latest_command_qos,
         )
         self.gear_toggle_sub = self.create_subscription(
             Bool,
             gear_toggle_topic,
             self._on_gear_toggle,
-            10,
+            latest_command_qos,
         )
 
         self.control_timer = self.create_timer(

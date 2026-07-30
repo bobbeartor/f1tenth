@@ -133,23 +133,29 @@ class VescInitializeNode(Node):
         if bool(self.get_parameter("connect_on_startup").value):
             self._try_open_driver()
 
+        # Duty/ERPM/servo commands are desired current states. If serial I/O
+        # pauses the executor, discard superseded commands instead of replaying
+        # them after the operator has released or changed an input.
+        latest_command_qos = QoSProfile(depth=1)
+        latest_command_qos.reliability = ReliabilityPolicy.BEST_EFFORT
+        latest_command_qos.durability = DurabilityPolicy.VOLATILE
         self.duty_sub = self.create_subscription(
             Float32,
             duty_topic,
             self._on_duty,
-            10,
+            latest_command_qos,
         )
         self.erpm_sub = self.create_subscription(
             Int32,
             erpm_topic,
             self._on_erpm,
-            10,
+            latest_command_qos,
         )
         self.servo_sub = self.create_subscription(
             Float32,
             servo_topic,
             self._on_servo_position,
-            10,
+            latest_command_qos,
         )
 
         if self.command_timeout > 0.0:

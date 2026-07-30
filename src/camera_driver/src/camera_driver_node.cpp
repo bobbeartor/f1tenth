@@ -260,11 +260,11 @@ private:
     publish_enabled_ =
       node_.declare_parameter<bool>("publish_enabled", false);
     publish_fps_ =
-      node_.declare_parameter<double>("publish_fps", 143.0);
+      node_.declare_parameter<double>("publish_fps", 120.0);
     preview_enabled_ =
       node_.declare_parameter<bool>("preview_enabled", false);
     preview_fps_ =
-      node_.declare_parameter<double>("preview_fps", 143.0);
+      node_.declare_parameter<double>("preview_fps", 60.0);
     preview_window_name_ = node_.declare_parameter<std::string>(
       "preview_window_name", "OAK rectified image");
     preview_max_width_ =
@@ -1131,9 +1131,9 @@ private:
   double imu_stabilization_roll_gain_{1.0};
   double imu_stabilization_pitch_gain_{1.0};
   bool publish_enabled_{false};
-  double publish_fps_{143.0};
+  double publish_fps_{120.0};
   bool preview_enabled_{false};
-  double preview_fps_{143.0};
+  double preview_fps_{60.0};
   std::string preview_window_name_;
   int preview_max_width_{1280};
   int preview_max_height_{720};

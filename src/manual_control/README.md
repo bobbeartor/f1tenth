@@ -35,6 +35,11 @@ published on `/manual/gear` and
 
 The manual controller runs at 80 Hz. Its configured duty limits and ramps are:
 
+Controller state and VESC command topics use `KEEP_LAST(1)` best-effort QoS.
+Holding RT, Y, or a steering input therefore replaces the pending value instead
+of accumulating old commands. When serial I/O is temporarily delayed, the VESC
+node processes only the newest waiting duty/ERPM/servo command.
+
 ```yaml
 forward_max_duty: 0.07
 reverse_max_duty: 0.04
