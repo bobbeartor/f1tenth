@@ -29,7 +29,7 @@ class ActuatorCommanderNode(Node):
 
         self.declare_parameter("forward_max_duty", 0.07)
         self.declare_parameter("reverse_max_duty", 0.04)
-        self.declare_parameter("start_duty", 0.02)
+        self.declare_parameter("start_duty", 0.03)
         self.declare_parameter("acceleration_duty_per_sec", 0.01)
         self.declare_parameter("coast_deceleration_duty_per_sec", 0.02)
         self.declare_parameter("brake_duty_per_sec", 0.07)

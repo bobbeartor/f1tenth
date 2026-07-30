@@ -43,7 +43,7 @@ node processes only the newest waiting duty/ERPM/servo command.
 ```yaml
 forward_max_duty: 0.07
 reverse_max_duty: 0.04
-start_duty: 0.02
+start_duty: 0.03
 acceleration_duty_per_sec: 0.01
 coast_deceleration_duty_per_sec: 0.02
 brake_duty_per_sec: 0.07
