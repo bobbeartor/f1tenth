@@ -257,10 +257,10 @@ ros2 topic info /camera/image_rect --verbose
 | `imu_stabilization_warmup_samples` | `200` | 초기 bias/중력 평균 샘플 수 |
 | `imu_stabilization_acceleration_time_constant_sec` | `1.5` | 중력 방향 보정 시정수 |
 | `imu_stabilization_acceleration_gate_deg` | `8.0` | 동적 가속도 보정 거부 각도 |
-| `imu_stabilization_smoothing_time_constant_sec` | `0.30` | 느린 카메라 궤적 평활화 시정수 |
+| `imu_stabilization_smoothing_time_constant_sec` | `0.25` | 느린 카메라 궤적 평활화 시정수 |
 | `imu_stabilization_maximum_correction_deg` | `4.0` | 축별 최대 영상 보정각 |
-| `imu_stabilization_roll_gain` | `1.1` | roll 보정 방향/크기 |
-| `imu_stabilization_pitch_gain` | `1.1` | pitch 보정 방향/크기 |
+| `imu_stabilization_roll_gain` | `1.0` | roll 보정 방향/크기 |
+| `imu_stabilization_pitch_gain` | `1.0` | pitch 보정 방향/크기 |
 | `preview_enabled` | `false` | OpenCV 직접 프리뷰 |
 | `preview_fps` | `60.0` | 프리뷰 갱신 목표 최대 FPS |
 | `preview_grid_enabled` | `true` | 독립 프리뷰 격자 표시 |

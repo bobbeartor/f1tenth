@@ -13,8 +13,8 @@ vesc_initialize_node:
     servo_position_topic: "/vesc/servo_position"   # std_msgs/msg/Float32
     connection_status_topic: "/vesc/connected"     # std_msgs/msg/Bool
 
-    min_duty: -0.04        # 수동 후진 설정과 동일한 하한
-    max_duty: 0.07         # 수동 전진 설정과 동일한 상한
+    min_duty: -0.08        # 수동 후진 설정과 동일한 하한
+    max_duty: 0.10         # 수동 전진 설정과 동일한 상한
     servo_min: 0.0         # VESC servo position 하한
     servo_max: 1.0         # VESC servo position 상한
     command_timeout: 0.3   # 이 시간 동안 새 duty 명령이 없으면 duty 0을 보낸다.

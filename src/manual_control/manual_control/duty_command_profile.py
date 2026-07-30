@@ -14,6 +14,7 @@ class DutyProfileConfig:
     forward_max_duty: float
     reverse_max_duty: float
     start_duty: float
+    reverse_start_duty: float
     acceleration_duty_per_sec: float
     coast_deceleration_duty_per_sec: float
     brake_duty_per_sec: float
@@ -26,11 +27,14 @@ class DutyProfileConfig:
             raise ValueError("reverse_max_duty must be in (0, 1]")
         if self.start_duty <= 0.0:
             raise ValueError("start_duty must be positive")
-        if self.start_duty > min(
-            self.forward_max_duty,
-            self.reverse_max_duty,
-        ):
-            raise ValueError("start_duty must not exceed either gear limit")
+        if self.start_duty > self.forward_max_duty:
+            raise ValueError("start_duty must not exceed forward_max_duty")
+        if self.reverse_start_duty <= 0.0:
+            raise ValueError("reverse_start_duty must be positive")
+        if self.reverse_start_duty > self.reverse_max_duty:
+            raise ValueError(
+                "reverse_start_duty must not exceed reverse_max_duty"
+            )
         if self.acceleration_duty_per_sec <= 0.0:
             raise ValueError("acceleration_duty_per_sec must be positive")
         if self.coast_deceleration_duty_per_sec <= 0.0:
@@ -66,8 +70,9 @@ class DutyCommandProfile:
             )
         elif accelerator > 0.0:
             target_duty = self.gear.value * self._gear_limit()
-            if abs(self.current_duty) < self.config.start_duty:
-                self.current_duty = self.gear.value * self.config.start_duty
+            start_duty = self._gear_start_duty()
+            if abs(self.current_duty) < start_duty:
+                self.current_duty = self.gear.value * start_duty
             else:
                 self.current_duty = self._move_toward(
                     self.current_duty,
@@ -99,6 +104,11 @@ class DutyCommandProfile:
         if self.gear is Gear.FORWARD:
             return self.config.forward_max_duty
         return self.config.reverse_max_duty
+
+    def _gear_start_duty(self) -> float:
+        if self.gear is Gear.FORWARD:
+            return self.config.start_duty
+        return self.config.reverse_start_duty
 
     def _pedal_value(self, value: float) -> float:
         value = self._clamp(float(value), 0.0, 1.0)

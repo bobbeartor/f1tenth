@@ -41,10 +41,11 @@ of accumulating old commands. When serial I/O is temporarily delayed, the VESC
 node processes only the newest waiting duty/ERPM/servo command.
 
 ```yaml
-forward_max_duty: 0.07
-reverse_max_duty: 0.04
-start_duty: 0.03
-acceleration_duty_per_sec: 0.01
+forward_max_duty: 0.10
+reverse_max_duty: 0.08
+start_duty: 0.06
+reverse_start_duty: 0.05
+acceleration_duty_per_sec: 0.03
 coast_deceleration_duty_per_sec: 0.02
 brake_duty_per_sec: 0.07
 ```

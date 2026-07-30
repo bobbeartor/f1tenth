@@ -27,21 +27,22 @@ class ActuatorCommanderNode(Node):
         self.declare_parameter("duty_topic", "/vesc/duty")
         self.declare_parameter("servo_position_topic", "/vesc/servo_position")
 
-        self.declare_parameter("forward_max_duty", 0.07)
-        self.declare_parameter("reverse_max_duty", 0.04)
-        self.declare_parameter("start_duty", 0.03)
-        self.declare_parameter("acceleration_duty_per_sec", 0.01)
+        self.declare_parameter("forward_max_duty", 0.10)
+        self.declare_parameter("reverse_max_duty", 0.08)
+        self.declare_parameter("start_duty", 0.06)
+        self.declare_parameter("reverse_start_duty", 0.05)
+        self.declare_parameter("acceleration_duty_per_sec", 0.03)
         self.declare_parameter("coast_deceleration_duty_per_sec", 0.02)
         self.declare_parameter("brake_duty_per_sec", 0.07)
         self.declare_parameter("control_rate_hz", 80.0)
         self.declare_parameter("status_log_rate_hz", 2.0)
         self.declare_parameter("input_timeout_sec", 0.3)
 
-        self.declare_parameter("servo_left", 0.25)
-        self.declare_parameter("servo_center", 0.50)
-        self.declare_parameter("servo_right", 0.75)
-        self.declare_parameter("pedal_deadzone", 0.03)
-        self.declare_parameter("steering_deadzone", 0.05)
+        self.declare_parameter("servo_left", 0.98)
+        self.declare_parameter("servo_center", 0.46)
+        self.declare_parameter("servo_right", 0.02)
+        self.declare_parameter("pedal_deadzone", 0.01)
+        self.declare_parameter("steering_deadzone", 0.04)
 
         accelerator_topic = str(self.get_parameter("accelerator_topic").value)
         brake_topic = str(self.get_parameter("brake_topic").value)
@@ -80,6 +81,9 @@ class ActuatorCommanderNode(Node):
                     self.get_parameter("reverse_max_duty").value
                 ),
                 start_duty=float(self.get_parameter("start_duty").value),
+                reverse_start_duty=float(
+                    self.get_parameter("reverse_start_duty").value
+                ),
                 acceleration_duty_per_sec=float(
                     self.get_parameter("acceleration_duty_per_sec").value
                 ),

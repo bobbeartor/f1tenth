@@ -9,10 +9,11 @@ actuator_commander_node:
     duty_topic: "/vesc/duty"
     servo_position_topic: "/vesc/servo_position"
 
-    forward_max_duty: 0.07
-    reverse_max_duty: 0.04
-    start_duty: 0.03                    # RT 입력 시 즉시 적용할 duty 크기
-    acceleration_duty_per_sec: 0.01     # 최대 전진 duty까지 약 5초
+    forward_max_duty: 0.10
+    reverse_max_duty: 0.08
+    start_duty: 0.06                    # 전진 RT 입력 시 즉시 적용
+    reverse_start_duty: 0.05            # 후진 RT 입력 시 -0.05 적용
+    acceleration_duty_per_sec: 0.03     # 최대 전진 duty까지 약 1.3초
     coast_deceleration_duty_per_sec: 0.02
     brake_duty_per_sec: 0.07
     control_rate_hz: 80.0
@@ -20,7 +21,7 @@ actuator_commander_node:
     input_timeout_sec: 0.30
 
     servo_left: 0.98
-    servo_center: 0.50
+    servo_center: 0.46
     servo_right: 0.02
     pedal_deadzone: 0.01
     steering_deadzone: 0.04
