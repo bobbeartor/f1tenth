@@ -42,9 +42,9 @@ int main()
     561.400939941,
     561.136352539,
     643.032653809,
-    102.621124268,
+    352.621124268,
     1280,
-    470,
+    720,
     cv::Vec3d(0.0, 0.0, 0.20),
     bev_processor::mountRotationVehicleFromCamera(
       0.0, bev_processor::degToRad(14.0), 0.0)};
@@ -99,7 +99,7 @@ int main()
       "near ground must map lower in the camera image than far ground");
   }
 
-  cv::Mat input(470, 1280, CV_8UC3);
+  cv::Mat input(720, 1280, CV_8UC3);
   for (int row = 0; row < input.rows; ++row) {
     for (int column = 0; column < input.cols; ++column) {
       input.at<cv::Vec3b>(row, column) = cv::Vec3b(
@@ -120,9 +120,9 @@ int main()
     561.400939941,
     561.136352539,
     643.032653809,
-    102.621124268,
+    352.621124268,
     1280,
-    470,
+    720,
     cv::Vec3d(0.0, 0.0, 0.17),
     bev_processor::mountRotationVehicleFromCamera(
       0.0, bev_processor::degToRad(13.0), 0.0)};
@@ -135,11 +135,11 @@ int main()
     static_cast<double>(driving_valid) / (120.0 * 340.0);
   passed &= require(
     driving_lut.valid_mask.at<std::uint8_t>(0, 60) != 0U,
-    "the cropped image must retain the 3.5 meter center projection");
+    "the full-height image must retain the 3.5 meter center projection");
   passed &= require(
-    driving_lut.map_y.at<float>(0, 60) >= 0.0F &&
-    driving_lut.map_y.at<float>(0, 60) < 3.0F,
-    "the 3.5 meter projection must remain near the cropped top edge");
+    driving_lut.map_y.at<float>(0, 60) >= 250.0F &&
+    driving_lut.map_y.at<float>(0, 60) < 253.0F,
+    "the 3.5 meter projection must retain its full-frame row");
 
   if (!passed) {
     return EXIT_FAILURE;

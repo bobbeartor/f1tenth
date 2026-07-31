@@ -19,6 +19,7 @@ class DutyProfileConfig:
     coast_deceleration_duty_per_sec: float
     brake_duty_per_sec: float
     pedal_deadzone: float
+    immediate_stop_on_accelerator_release: bool
 
     def __post_init__(self) -> None:
         if not 0.0 < self.forward_max_duty <= 1.0:
@@ -79,6 +80,10 @@ class DutyCommandProfile:
                     target_duty,
                     accelerator * self.config.acceleration_duty_per_sec * dt_sec,
                 )
+        elif self.config.immediate_stop_on_accelerator_release:
+            # Pedal messages describe the current operator state. Do not keep
+            # replaying a previously accumulated duty after the pedal release.
+            self.current_duty = 0.0
         else:
             self.current_duty = self._move_toward(
                 self.current_duty,

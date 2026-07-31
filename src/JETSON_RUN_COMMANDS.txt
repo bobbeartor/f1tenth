@@ -124,23 +124,21 @@ DISPLAY/그래픽 화면을 사용할 수 있어야 한다.
 [6. NV12 카메라 + CUDA BEV 통합 실행]
 
 카메라와 BEV를 같은 컴포넌트 컨테이너에서 intra-process로 연결한다.
-카메라 원본 프리뷰는 끄고, GPU가 NV12를 바로 100x240 BGR BEV로
+카메라 원본 프리뷰는 끄고, GPU가 NV12를 바로 120x340 BGR BEV로
 변환한다.
 
-자동 측정 모드(OAK stereo 평면 높이와 IMU/Depth 융합 roll/pitch를
-시작 시 1회 측정):
+시작 시 OAK stereo 평면으로 높이를 측정하고, 설정에서 선택한 depth 또는
+IMU로 roll/pitch를 1회 측정한다.
+측정 중에는 차량을 정지시키고 중앙에 평평한 노면이 보이게 한다.
+측정이 끝나면 카메라 드라이버가 영상을 안정화하고 BEV LUT는 고정한다.
 
 cd ~/Desktop/f1tenth_test0724/f1tenth_project_repo
 source /opt/ros/humble/setup.bash
 source install/setup.bash
-ros2 launch bev_processor bev_processor_auto.launch.py
+ros2 launch bev_processor bev_processor.launch.py
 
-수동 설정 모드(bev_config_manual.yaml의 직접 측정값 사용):
-
-ros2 launch bev_processor bev_processor_manual.launch.py
-
-BEV 프리뷰/토픽 설정은 선택한 bev_config_auto.yaml 또는
-bev_config_manual.yaml에서 변경한다. camera_height_estimator는 별도
+BEV 프리뷰/토픽/측정 설정은 bev_config.yaml에서 변경한다.
+camera_height_estimator는 별도
 측정 도구이며 BEV 실행에 값을 전달하지 않는다.
 
 CUDA Toolkit 확인:

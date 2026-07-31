@@ -235,7 +235,7 @@ private:
       node_.declare_parameter<bool>("imu_stabilization_enabled", false);
     const int imu_stabilization_warmup_samples =
       node_.declare_parameter<int>(
-      "imu_stabilization_warmup_samples", 200);
+      "imu_stabilization_warmup_samples", 400);
     require_positive(
       imu_stabilization_warmup_samples,
       "imu_stabilization_warmup_samples");
@@ -243,13 +243,13 @@ private:
       static_cast<std::size_t>(imu_stabilization_warmup_samples);
     imu_stabilizer_config_.acceleration_correction_time_constant_sec =
       node_.declare_parameter<double>(
-      "imu_stabilization_acceleration_time_constant_sec", 1.5);
+      "imu_stabilization_acceleration_time_constant_sec", 2.2);
     imu_stabilizer_config_.acceleration_correction_gate_deg =
       node_.declare_parameter<double>(
       "imu_stabilization_acceleration_gate_deg", 8.0);
     imu_stabilizer_config_.trajectory_smoothing_time_constant_sec =
       node_.declare_parameter<double>(
-      "imu_stabilization_smoothing_time_constant_sec", 0.25);
+      "imu_stabilization_smoothing_time_constant_sec", 0.6);
     imu_stabilizer_config_.maximum_correction_deg =
       node_.declare_parameter<double>(
       "imu_stabilization_maximum_correction_deg", 4.0);
@@ -258,7 +258,7 @@ private:
     imu_stabilization_pitch_gain_ =
       node_.declare_parameter<double>("imu_stabilization_pitch_gain", 1.0);
     output_crop_top_px_ =
-      node_.declare_parameter<int>("output_crop_top_px", 250);
+      node_.declare_parameter<int>("output_crop_top_px", 0);
     publish_enabled_ =
       node_.declare_parameter<bool>("publish_enabled", false);
     publish_fps_ =
@@ -562,7 +562,7 @@ private:
               static_cast<double>(k_rect[1][2]));
             RCLCPP_INFO(
               node_.get_logger(),
-              "Cropped output %dx%d: fx=%.9f, fy=%.9f, cx=%.9f, cy=%.9f",
+              "Published output %dx%d: fx=%.9f, fy=%.9f, cx=%.9f, cy=%.9f",
               width_, height_ - output_crop_top_px_,
               static_cast<double>(k_rect[0][0]),
               static_cast<double>(k_rect[1][1]),
@@ -1193,7 +1193,7 @@ private:
   ImuImageStabilizerConfig imu_stabilizer_config_{};
   double imu_stabilization_roll_gain_{1.0};
   double imu_stabilization_pitch_gain_{1.0};
-  int output_crop_top_px_{250};
+  int output_crop_top_px_{0};
   bool publish_enabled_{false};
   double publish_fps_{120.0};
   bool preview_enabled_{false};

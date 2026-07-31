@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <string>
 
-#include "bev_processor/attitude_fusion.hpp"
+#include "bev_processor/startup_attitude.hpp"
 
 namespace bev_processor
 {
@@ -15,8 +15,8 @@ struct OakStartupMeasurementConfig
   int stereo_width{640};
   int stereo_height{400};
   int depth_queue_size{2};
-  double imu_rate_hz{100.0};
-  int imu_queue_size{50};
+  double imu_rate_hz{400.0};
+  int imu_queue_size{200};
   double warmup_sec{1.0};
   double ir_dot_projector_intensity{1.0};
 
@@ -36,9 +36,11 @@ struct OakStartupMeasurementConfig
   double plane_maximum_residual_mad_m{0.005};
   double plane_maximum_imu_difference_deg{15.0};
 
-  AttitudeFusionConfig attitude_fusion{};
+  StartupAttitudeSource attitude_source{StartupAttitudeSource::kDepth};
+  double imu_roll_bias_deg{0.0};
+  double imu_pitch_bias_deg{0.0};
 
-  int imu_sample_count{200};
+  int imu_sample_count{800};
   double imu_max_direction_rms_deg{0.25};
   double imu_accel_min_mps2{7.50};
   double imu_accel_max_mps2{12.00};
@@ -59,12 +61,9 @@ struct OakStartupMeasurement
   double imu_pitch_down_deg{0.0};
   double corrected_imu_roll_deg{0.0};
   double corrected_imu_pitch_down_deg{0.0};
+  double depth_roll_deg{0.0};
+  double depth_pitch_down_deg{0.0};
   double imu_direction_rms_deg{0.0};
-  double imu_uncertainty_deg{0.0};
-  double depth_uncertainty_deg{0.0};
-  double fusion_imu_weight{0.0};
-  double fusion_depth_weight{0.0};
-  double fusion_agreement_gate_deg{0.0};
   double height_stddev_m{0.0};
   double plane_normal_rms_deg{0.0};
   double median_depth_m{0.0};

@@ -37,6 +37,7 @@ class ActuatorCommanderNode(Node):
         self.declare_parameter("control_rate_hz", 80.0)
         self.declare_parameter("status_log_rate_hz", 2.0)
         self.declare_parameter("input_timeout_sec", 0.3)
+        self.declare_parameter("immediate_stop_on_accelerator_release", True)
 
         self.declare_parameter("servo_left", 0.98)
         self.declare_parameter("servo_center", 0.46)
@@ -98,13 +99,17 @@ class ActuatorCommanderNode(Node):
                 pedal_deadzone=float(
                     self.get_parameter("pedal_deadzone").value
                 ),
+                immediate_stop_on_accelerator_release=bool(
+                    self.get_parameter(
+                        "immediate_stop_on_accelerator_release"
+                    ).value
+                ),
             )
         )
 
         self._accelerator = 0.0
         self._brake = 0.0
         self._steering = 0.0
-        self._gear_button_pressed = False
         self._last_accelerator_time: Time | None = None
         self._last_brake_time: Time | None = None
         self._last_steering_time: Time | None = None
@@ -152,11 +157,14 @@ class ActuatorCommanderNode(Node):
             self._on_steering,
             latest_command_qos,
         )
+        button_event_qos = QoSProfile(depth=10)
+        button_event_qos.reliability = ReliabilityPolicy.RELIABLE
+        button_event_qos.durability = DurabilityPolicy.VOLATILE
         self.gear_toggle_sub = self.create_subscription(
             Bool,
             gear_toggle_topic,
             self._on_gear_toggle,
-            latest_command_qos,
+            button_event_qos,
         )
 
         self.control_timer = self.create_timer(
@@ -194,18 +202,19 @@ class ActuatorCommanderNode(Node):
         self._steering_input_timed_out = False
 
     def _on_gear_toggle(self, msg: Bool) -> None:
-        pressed = bool(msg.data)
-        if pressed and not self._gear_button_pressed:
-            if self.duty_profile.toggle_gear():
-                self.get_logger().info(
-                    f"Gear changed: {self.duty_profile.gear.name}"
-                )
-                self._publish_gear_state()
-            else:
-                self.get_logger().warn(
-                    "Gear change rejected: brake to duty 0 before pressing Y."
-                )
-        self._gear_button_pressed = pressed
+        if not bool(msg.data):
+            return
+
+        if self.duty_profile.toggle_gear():
+            self.get_logger().info(
+                f"Gear changed: {self.duty_profile.gear.name}"
+            )
+            self._publish_gear_state()
+        else:
+            self.get_logger().warn(
+                "Gear change rejected: release the accelerator and wait for "
+                "duty 0 before pressing Y."
+            )
 
     def _on_control_timer(self) -> None:
         now = self.get_clock().now()

@@ -1,206 +1,111 @@
 # bev_processor
 
-`camera_driver`가 전체 1280x720 프레임을 IMU로 안정화한 뒤 상단 250px을
-제거해 발행하는 1280x470 NV12 영상에서 Y 채널만 사용한다. CUDA로 흑백
-BEV 차선 후보 마스크를 만드는 ROS 2 C++ 패키지이며, 실행 진입점은 자동과
-수동 두 개로 분리되어 있다.
+`camera_driver`가 IMU로 안정화해 발행하는 전체 1280x720 NV12 영상을
+CUDA에서 컬러 BEV로 변환하는 ROS 2 C++ 패키지다. 실행 모드는 하나이며,
+시작할 때 카메라 높이·roll·하향 pitch를 반드시 측정한다.
 
-## 실행 모드
+## 작동 순서
 
-### `bev_processor_auto`
+1. `bev_processor`가 OAK를 먼저 단독으로 연다.
+2. 차량이 정지한 상태에서 stereo depth 중앙 ROI의 노면 평면과 IMU 중력
+   방향을 측정한다.
+3. 노면 평면에서 카메라 높이를 구하고, `measurement_attitude_source`에서
+   선택한 `depth` 또는 `imu`로 roll과 하향 pitch를 구한다.
+4. 측정한 높이·roll·pitch와 설정 파일의 X/Y/yaw로 BEV LUT를 한 번 만든다.
+5. OAK 측정 파이프라인을 닫고 `camera_driver`를 시작한다.
+6. 카메라 드라이버가 roll/pitch 흔들림을 영상에서 보정하고,
+   `bev_processor`는 시작 LUT를 바꾸지 않은 채 컬러 BEV 변환만 수행한다.
 
-시작할 때 OAK stereo depth의 노면 점들에 RANSAC과 PCA로 평면을 맞춰
-카메라 높이와 노면 법선을 측정하고, 정지 상태에서 평균낸 IMU 중력
-법선과 신뢰도 기반으로 융합해 roll과 하향 pitch를 결정한다. 측정값으로
-첫 BEV LUT를 만든다. 이후 높이, roll, pitch, yaw는 시작값으로 고정한다.
-실시간 roll/pitch 흔들림은 `camera_driver`가 전체 영상에서 먼저 보정한
-뒤 상단을 크롭하므로, BEV LUT의 실시간 자세 갱신은 중복 보정을 막기
-위해 기본 비활성화한다.
+높이는 항상 depth 노면 평면에서 구한다. 시작 측정에 실패하면 임의의
+수동 외부 파라미터로 계속하지 않고 노드 시작을 중단한다. LUT 생성 후에는
+BEV 노드가 IMU를 구독하거나 자세 변화에 따라 LUT를 다시 만들지 않는다.
 
-센서 시작 직후의 과도값을 버리기 위해 1초간 워밍업하고, 400 Hz IMU
-800개 샘플과 중앙 228x114 stereo ROI를 사용한다. 이전 320x160 ROI의
-각 변을 5/7로 줄인 크기다. 2픽셀 간격으로 만든
-3D 점들 중 노면 평면 inlier만 사용하고, 안정된 평면 30프레임의 높이와
-평균 법선을 구한다. IMU와 Depth가 통계적 허용 범위 안에서 일치하면
-법선을 분산 역가중으로 융합한다. 충돌하면 신뢰도가 설정값 이상 우세한
-센서만 선택하고, 우세한 센서가 없으면 재측정한다.
+카메라 X/Y 위치와 yaw는 시작 측정으로 구하지 않으므로 실제 장착값을
+`config/bev_config.yaml`에 입력해야 한다. 높이·roll·pitch 입력 항목은 없고
+시작 측정 결과만 사용한다.
 
-자동 측정 중에는 Pro-series OAK의 IR dot projector를 최대 세기 1.0으로
-켜서 무늬가 적은 노면의 stereo 대응점을 보강한다. 세기는
-`measurement_ir_dot_projector_intensity`로 설정하며, 활성화에 실패하면
-passive stereo로 조용히 진행하지 않고 측정을 중단한다.
+## 실행
 
-IMU 고정 장착 오차는 `measurement_imu_roll_bias_deg`와
-`measurement_imu_pitch_bias_deg`로 보정할 수 있다. bias는
-`IMU 측정값 - 신뢰하는 실제값`의 부호로 입력한다. 반복 측정으로
-확인하기 전에는 0을 유지한다. 높이는 항상 Depth 평면값을 사용한다.
-시작 로그의 `source`는 두 법선을 융합했으면 `imu_depth_fused`, 충돌 후
-한 센서를 선택했으면 `depth_selected` 또는 `imu_selected`로 표시된다.
-
-영상 안정화는 카메라 드라이버에서 자이로 적분을 빠른 변화 경로로
-사용하고, 가속도 방향이 설정 gate 안에 있을 때만 느리게 중력 방향을
-보정한다. 안정화된 영상과 시작 측정으로 만든 고정 LUT를 함께 사용한다.
-
-> 현재 실험 조건은 차량이 정지해 있고 노면과 센서가 안정된 상태다.
-> 실차 주행 알고리즘과 통합할 때는 가속·제동·코너링의 선형가속도가
-> 카메라 안정화의 중력 방향을 오염시킬 수 있으므로 실제 주행 로그를
-> 기준으로 가속도 보정 gate와 시정수를 다시 조정해야 한다.
+측정이 끝날 때까지 차량을 완전히 정지시키고, 카메라 중앙에 장애물 없는
+평평한 노면이 보이게 한다. 이후 카메라 드라이버 안정화기의 초기 400개
+IMU 샘플 수집이 끝날 때까지 약 1초 더 정지 상태를 유지한다.
 
 ```bash
-ros2 launch bev_processor bev_processor_auto.launch.py
+ros2 launch bev_processor bev_processor.launch.py
 ```
 
-설정 파일은 `config/bev_config_auto.yaml`이다. 카메라 X/Y 위치와 yaw,
-카메라 내부 파라미터, BEV 범위와 출력 크기는 이 파일에서 읽는다.
+사용 파일은 하나씩이다.
 
-### `bev_processor_manual`
+- launch: `launch/bev_processor.launch.py`
+- BEV 설정: `config/bev_config.yaml`
+- 카메라 설정: `camera_driver/config/camera_config.yaml`
 
-OAK stereo/IMU 측정을 전혀 실행하지 않는다. 높이, roll, 하향 pitch를
-포함한 모든 외부 파라미터를 `config/bev_config_manual.yaml`에서 그대로
-읽어 BEV LUT를 생성하며 실시간 IMU 자세 갱신도 실행하지 않는다.
+launch는 두 노드를 같은 multi-threaded component container에 올리고
+intra-process 통신을 사용한다. BEV 시작 측정이 OAK 장치를 반환한 다음
+카메라 드라이버가 장치를 연다. 카메라 원본 프리뷰는 끄고 작은 BEV 결과만
+프리뷰한다.
 
-```bash
-ros2 launch bev_processor bev_processor_manual.launch.py
-```
+## 변환 로직
 
-직접 측정값은 다음 항목에 입력한다.
+`CudaBevProcessor`는 다음 처리만 수행한다.
 
-```yaml
-camera_x_m: 0.0
-camera_y_m: 0.0
-camera_z_m: 0.17
-camera_roll_deg: 0.0
-camera_downward_pitch_deg: 13.0
-camera_yaw_deg: 0.0
-```
+1. BEV LUT 좌표에서 NV12 Y/UV 값을 bilinear 보간한다.
+2. YUV를 BGR로 변환한다.
+3. LUT 기반 BEV 워핑 결과를 `bgr8`로 발행한다.
 
-두 launch 모두 `camera_driver`와 BEV를 같은 multi-threaded component
-container에서 실행해 NV12 intra-process 경로를 사용한다. 카메라 원본
-프리뷰는 끄고 작은 BEV 결과만 프리뷰한다.
+Sobel, 미분 필터, 대비 강화, 밝기 임계값, morphology, 차선 추출과 상단
+크롭은 적용하지 않는다. BEV 프리뷰에만 격자와 중심선을 표시한다.
 
-## 공통 변환 로직
+## 시작 측정
 
-자동/수동은 C++ 노드나 CUDA 코드를 복제하지 않는다. 두 launch 모두
-동일한 `bev_processor::BevProcessorNode`를 로드하며 다음 공통 경로를
-사용한다.
+OAK stereo depth의 중앙 ROI에 RANSAC/PCA 평면을 맞춘다. 안정된 평면
+30프레임의 높이와 평균 법선을 구하고, 정지 상태에서 IMU 중력 방향도
+평균한다. 높이는 항상 depth 평면을 사용한다. roll/pitch는
+`measurement_attitude_source: "depth"`이면 평면 법선,
+`measurement_attitude_source: "imu"`이면 bias 보정된 IMU 중력 방향을
+그대로 사용하며 두 결과를 융합하지 않는다. Pro-series OAK에서는 시작 측정 동안
+IR dot projector를 사용해 무늬가 적은 노면의 stereo 대응점을 보강한다.
 
-1. 선택된 파라미터로 카메라 모델을 완성한다.
-2. 동일한 `mountRotationVehicleFromCamera()`와 `generateRemap()`으로
-   지면 역투영 LUT를 만든다.
-3. 동일한 `CudaBevProcessor`가 NV12 Y 채널을 bicubic 보간으로 BEV
-   워핑하고, 대비 강화, 이진화, morphology closing을 수행한다.
-4. 카메라 안정화가 켜져 있으므로 auto/manual 모두 시작 자세로 만든
-   LUT를 유지한다.
+각 측정 파라미터의 선정 방법과 조정 방향은 `config/bev_config.yaml`의
+한글 주석에 적혀 있다. IMU 장착 bias는
+`measurement_imu_roll_bias_deg`와 `measurement_imu_pitch_bias_deg`로
+보정하며, 평평한 기준면에서 반복 측정한 일정한 편차가 확인되기 전에는
+0을 유지한다.
 
-차이는 LUT 생성에 넣는 높이/roll/pitch의 출처뿐이다.
-
-- auto: 시작할 때 측정한 높이/roll/pitch와 설정된 yaw
-- manual: `bev_config_manual.yaml`의 직접 측정값
-
-`/camera/image_bev` 출력 인코딩은 `mono8`이다. 임계값을 넘긴 밝은 차선
-후보는 255(흰색), 배경은 0(검은색)으로 발행한다. 좌표 프리뷰에서만
-격자와 중심선을 그리기 위해 일시적으로 BGR로 변환한다.
-
-두 YAML에서 영상 처리를 조정할 수 있다.
-
-```yaml
-grayscale_contrast_gain: 1.8
-grayscale_contrast_center: 128.0
-grayscale_brightness_offset: 0.0
-grayscale_binary_threshold: 170
-grayscale_closing_kernel_size: 3
-```
-
-곡선의 흐린 부분이 사라지면 threshold를 낮추고, 노면 반사가 흰색으로
-남으면 threshold를 높인다. closing 크기는 홀수만 허용하며 현재
-0.01 m/pixel에서 3은 약 3 cm 범위의 작은 끊김을 연결한다.
-
-이전의 `startup_measurement_enabled` launch 옵션은 제거했다. 따라서
-launch 기본값이 YAML의 모드를 덮어쓸 수 없다. 예전
-`camera_bev.launch.py`와 `bev_processor.launch.py`는 오래된 설치 파일의
-재실행을 막기 위해 오류 안내만 출력한다. 예전 독립 실행 파일인
-`bev_processor_node`도 같은 안내 후 종료한다. 각 YAML에는 필수
-`processor_mode`가 있고 노드명도 각각 `bev_processor_auto`,
-`bev_processor_manual`로 고정된다. 잘못된 YAML을 넘기면 C++ 기본값으로
-조용히 실행하지 않고 즉시 오류로 종료한다.
-
-BEV 파라미터는 launch에서 별도로 덮어쓰지 않는다. parameter 파일 변경
-후에는 노드를 재시작해야 한다. auto 실행 중 LUT 갱신은 ROS parameter
-변경이 아니라 실시간 IMU 입력으로만 수행된다.
-
-## 현재 공통 BEV 범위
-
-두 설정 파일의 영상 범위와 해상도는 동일하다.
-
-```yaml
-x_min_m: 0.10
-x_max_m: 3.5
-y_min_m: -0.6
-y_max_m: 0.6
-meter_per_pixel: 0.01
-output_width: 120
-output_height: 340
-```
-
-계산식은 다음과 같다.
+정상 시작 로그에는 다음 항목이 출력된다.
 
 ```text
-output_width  = (0.6 - (-0.6)) / 0.01 = 120
-output_height = (3.5 - 0.10) / 0.01   = 340
+[bev_processor] Measuring startup camera height ... roll/pitch ... source ...
+[bev_processor] BEV_STARTUP_MEASUREMENT: source=..., height=..., roll=..., ...
+[bev_processor] Startup IMU: ...
+[bev_processor] Startup attitude selection: selected=..., ...
+[bev_processor] Startup ground-plane diagnostics: ...
+[bev_processor] BEV LUT installed from startup depth height + selected attitude: ...
 ```
 
-## 로그 확인
+상태 로그의 `extrinsics=startup_measured, fixed_lut=true`는 시작 측정 자세의
+고정 LUT를 사용 중이라는 뜻이다.
 
-자동 모드에서는 다음 로그가 모두 나와야 한다.
+## BEV 범위
+
+BEV 범위와 현재 값은 `config/bev_config.yaml`에서 관리한다. 출력 크기는
+다음 식과 일치해야 한다.
 
 ```text
-[bev_processor_auto] Measuring startup camera height/roll/pitch ...
-[bev_processor_auto] BEV_STARTUP_MEASUREMENT: source=imu_depth_fused, ...
-[bev_processor_auto] Startup IMU: raw=..., corrected=...
-[bev_processor_auto] Startup attitude fusion: ...
-[bev_processor_auto] Startup ground-plane diagnostics: ...
-[bev_processor_auto] Startup extrinsics mode=auto, source=OAK adaptive IMU+depth: ...
+output_width  = round((y_max_m - y_min_m) / meter_per_pixel)
+output_height = round((x_max_m - x_min_m) / meter_per_pixel)
 ```
-
-수동 모드에서는 측정 로그가 나오면 안 되고 다음처럼 표시되어야 한다.
-
-```text
-[bev_processor_manual] BEV processor mode=manual started: ...
-[bev_processor_manual] Startup extrinsics mode=manual, source=manual config: ...
-```
-
-상태 로그에도 `mode=auto` 또는 `mode=manual`과 실제 적용 중인
-높이/roll/하향 pitch가 출력된다.
-
-`camera_height_estimator`는 별도 도구이며 BEV에 값을 전달하거나 토픽을
-발행하지 않는다.
 
 ## 빌드
 
-Jetson의 워크스페이스 루트에서 실행한다.
-
 ```bash
-cd ~/Desktop/f1tenth_test0724/f1tenth_project_repo
 source /opt/ros/humble/setup.bash
-
 colcon build \
   --packages-select camera_driver bev_processor \
   --cmake-clean-cache \
   --cmake-args -DCMAKE_BUILD_TYPE=Release
-
 source install/setup.bash
 ```
 
-CUDA 컴파일러를 자동으로 찾지 못하면 경로를 지정한다.
-
-```bash
-colcon build \
-  --packages-select camera_driver bev_processor \
-  --cmake-clean-cache \
-  --cmake-args \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc
-```
-
-프리뷰나 토픽 발행 여부를 바꾸려면 사용할 auto/manual YAML의
-`preview_enabled`, `publish_enabled`, `preview_max_fps`를 수정한다.
+CUDA 컴파일러를 자동으로 찾지 못하면
+`-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc`를 추가한다.

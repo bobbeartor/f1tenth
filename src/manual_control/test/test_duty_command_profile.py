@@ -9,7 +9,9 @@ from manual_control.duty_command_profile import (
 )
 
 
-def make_profile() -> DutyCommandProfile:
+def make_profile(
+    immediate_stop_on_accelerator_release: bool = True,
+) -> DutyCommandProfile:
     return DutyCommandProfile(
         DutyProfileConfig(
             forward_max_duty=0.10,
@@ -20,6 +22,9 @@ def make_profile() -> DutyCommandProfile:
             coast_deceleration_duty_per_sec=0.02,
             brake_duty_per_sec=0.07,
             pedal_deadzone=0.03,
+            immediate_stop_on_accelerator_release=(
+                immediate_stop_on_accelerator_release
+            ),
         )
     )
 
@@ -43,12 +48,19 @@ class DutyCommandProfileTest(unittest.TestCase):
         self.assertAlmostEqual(profile.update(0.5, 0.0, 1.0), 0.06)
         self.assertAlmostEqual(profile.update(1.0, 0.0, 100.0), 0.10)
 
-    def test_releasing_both_pedals_coasts_toward_zero(self) -> None:
+    def test_releasing_accelerator_stops_duty_immediately(self) -> None:
         profile = make_profile()
         profile.update(1.0, 0.0, 1.0)
 
-        self.assertAlmostEqual(profile.update(0.0, 0.0, 0.5), 0.05)
-        self.assertEqual(profile.update(0.0, 0.0, 5.0), 0.0)
+        self.assertEqual(profile.update(0.0, 0.0, 0.5), 0.0)
+
+    def test_long_held_accelerator_is_not_replayed_after_release(self) -> None:
+        profile = make_profile()
+        for _ in range(500):
+            profile.update(1.0, 0.0, 0.0125)
+
+        self.assertEqual(profile.command_duty, 0.10)
+        self.assertEqual(profile.update(0.0, 0.0, 0.0125), 0.0)
 
     def test_brake_has_priority_and_decreases_duty(self) -> None:
         profile = make_profile()
@@ -67,6 +79,15 @@ class DutyCommandProfileTest(unittest.TestCase):
         self.assertFalse(profile.toggle_gear())
         self.assertEqual(profile.gear, Gear.REVERSE)
 
+    def test_gear_toggle_is_available_immediately_after_pedal_release(self) -> None:
+        profile = make_profile()
+        profile.update(1.0, 0.0, 1.0)
+
+        self.assertFalse(profile.toggle_gear())
+        self.assertEqual(profile.update(0.0, 0.0, 0.0125), 0.0)
+        self.assertTrue(profile.toggle_gear())
+        self.assertEqual(profile.gear, Gear.REVERSE)
+
     def test_reverse_accelerator_is_clamped_to_reverse_limit(self) -> None:
         profile = make_profile()
         profile.toggle_gear()
@@ -83,8 +104,8 @@ class DutyCommandProfileTest(unittest.TestCase):
         self.assertAlmostEqual(profile.update(0.0, 0.5, 0.5), -0.0625)
         self.assertEqual(profile.update(0.0, 1.0, 1.0), 0.0)
 
-    def test_coasting_moves_reverse_duty_toward_zero(self) -> None:
-        profile = make_profile()
+    def test_optional_coasting_moves_reverse_duty_toward_zero(self) -> None:
+        profile = make_profile(immediate_stop_on_accelerator_release=False)
         profile.toggle_gear()
         profile.update(1.0, 0.0, 1.0)
 

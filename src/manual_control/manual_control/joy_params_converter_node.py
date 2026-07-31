@@ -12,6 +12,8 @@ from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool, Float32, String
 
+from manual_control.button_debouncer import RisingEdgeDebouncer
+
 
 class JoyParamsConverterNode(Node):
     def __init__(self) -> None:
@@ -27,6 +29,7 @@ class JoyParamsConverterNode(Node):
         self.declare_parameter("publish_debug", True)
         self.declare_parameter("trigger_deadzone", 0.03)
         self.declare_parameter("steering_deadzone", 0.05)
+        self.declare_parameter("button_debounce_sec", 0.20)
 
         self.keymap = self._load_keymap()
         self.publish_debug = bool(self.get_parameter("publish_debug").value)
@@ -34,6 +37,13 @@ class JoyParamsConverterNode(Node):
             self.get_parameter("trigger_deadzone").value
         )
         self.steering_deadzone = float(self.get_parameter("steering_deadzone").value)
+        self.button_debounce_sec = max(
+            0.0,
+            float(self.get_parameter("button_debounce_sec").value),
+        )
+        self.gear_button_debouncer = RisingEdgeDebouncer(
+            self.button_debounce_sec
+        )
         self._log_joystick_connection_status()
 
         joy_topic = str(self.get_parameter("joy_topic").value)
@@ -63,10 +73,15 @@ class JoyParamsConverterNode(Node):
             steering_topic,
             latest_state_qos,
         )
+        # Gear changes are discrete events. Unlike continuously refreshed axis
+        # states, a short button press must not be lost by KEEP_LAST(1).
+        button_event_qos = QoSProfile(depth=10)
+        button_event_qos.reliability = ReliabilityPolicy.RELIABLE
+        button_event_qos.durability = DurabilityPolicy.VOLATILE
         self.gear_toggle_pub = self.create_publisher(
             Bool,
             gear_toggle_topic,
-            latest_state_qos,
+            button_event_qos,
         )
         self.debug_pub = self.create_publisher(
             String,
@@ -82,13 +97,14 @@ class JoyParamsConverterNode(Node):
 
         self.get_logger().info(
             "Subscribing to %s, publishing accelerator=%s, brake=%s, "
-            "steering=%s, gear_toggle=%s"
+            "steering=%s, gear_toggle=%s (debounce=%.3fs)"
             % (
                 joy_topic,
                 accelerator_topic,
                 brake_topic,
                 steering_topic,
                 gear_toggle_topic,
+                self.button_debounce_sec,
             )
         )
 
@@ -167,12 +183,14 @@ class JoyParamsConverterNode(Node):
         accelerator = controller_state["triggers"]["rt"]["value"]
         brake = controller_state["triggers"]["lt"]["value"]
         steering = controller_state["axes"]["left_stick_x"]
-        gear_toggle = controller_state["buttons"].get("y", False)
+        gear_button_pressed = controller_state["buttons"].get("y", False)
 
         self.accelerator_pub.publish(Float32(data=accelerator))
         self.brake_pub.publish(Float32(data=brake))
         self.steering_pub.publish(Float32(data=steering))
-        self.gear_toggle_pub.publish(Bool(data=gear_toggle))
+        now_sec = self.get_clock().now().nanoseconds / 1_000_000_000.0
+        if self.gear_button_debouncer.update(gear_button_pressed, now_sec):
+            self.gear_toggle_pub.publish(Bool(data=True))
 
         if self.publish_debug:
             self.debug_pub.publish(

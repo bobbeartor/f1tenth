@@ -4,8 +4,7 @@ OAK/DepthAI 카메라 영상을 낮은 지연시간으로 받는 ROS 2 C++ 패�
 기본 설정은 다음과 같다.
 
 - 센서 모드: OV9782 `THE_720_P`, `1280x720`, `NV12`
-- 기본 프리뷰/ROS 출력: 전체 프레임 안정화 후 상단 250px을 제거한
-  `1280x470`
+- 기본 프리뷰/ROS 출력: 안정화된 전체 `1280x720` 프레임
 - 요청 센서 FPS: `120`
 - USB 최대 속도 요청: `SUPER` (5 Gbps)
 - XLink 청크 분할: 비활성화 (`setXLinkChunkSize(0)`)
@@ -22,10 +21,8 @@ OAK/DepthAI 카메라 영상을 낮은 지연시간으로 받는 ROS 2 C++ 패�
 별도로 측정된 캡처 FPS와 장치 sequence gap을 주기적으로 출력한다.
 
 첫 프레임에는 resize와 장치 내부 왜곡 보정을 반영한 전체 1280x720
-`K_rect`와 크롭된 1280x470 출력용 내부 파라미터를 한 번씩 출력한다.
-상단 250px 크롭에서는 `fx`, `fy`, `cx`는 그대로이고 `cy`만 250만큼
-작아진다. BEV처럼 투영 기하가 필요한 후속 처리에서는 크롭 출력값을
-사용한다.
+`K_rect`의 `fx`, `fy`, `cx`, `cy`를 출력한다. BEV처럼 투영 기하가
+필요한 후속 처리에서는 이 값을 사용한다.
 
 ## 성능 구조
 
@@ -39,19 +36,20 @@ OAK에서 `NV12`를 생성해 Jetson으로 전송한다. BGR888i보다 전송량
 보관하며 색 변환을 하지 않는다. ROS 토픽 발행을 선택한 경우 원본 NV12를
 `sensor_msgs/Image` 데이터로 한 번 복사한다.
 
-기본 NV12 메시지는 `encoding="nv12"`, `width=1280`, `height=470`,
-`step=1280`을 사용하고, `data`에는 Y plane 470행 다음에 interleaved UV
-plane 235행이 연속으로 들어간다. 일반 BGR8 구독자가 아니라 NV12를
-이해하는 처리 노드가 받아야 한다. `bev_processor`에 연결할 때는 입력
-높이를 470으로, `cy`를 전체 프레임 값보다 250 작게 설정해야 한다.
+기본 NV12 메시지는 `encoding="nv12"`, `width=1280`, `height=720`,
+`step=1280`을 사용하고, `data`에는 Y plane 720행 다음에 interleaved UV
+plane 360행이 연속으로 들어간다. 일반 BGR8 구독자가 아니라 NV12를
+이해하는 처리 노드가 받아야 한다.
 
 왜곡 보정은 `Camera::requestOutput(..., enableUndistortion=true)`로 요청한다.
 따라서 호스트에서 `cv::remap()`을 수행하지 않는다.
 
 IMU 브리지를 켜면 raw accelerometer와 raw gyroscope를 같은 400 Hz로
 요청하고, factory IMU-to-camera 회전행렬을 두 벡터에 모두 적용해
-`sensor_msgs/Imu`로 발행한다. orientation 자체는 채우지 않으며,
-`bev_processor_auto`가 두 벡터를 융합해 roll/pitch 변화량을 추정한다.
+`sensor_msgs/Imu`로 발행한다. orientation 자체는 채우지 않는다. 통합
+`bev_processor`는 실시간 IMU 토픽으로 LUT를 갱신하지 않으므로 기본 통합
+launch에서는 IMU 브리지 발행을 끈다. 영상 안정화용 IMU는 드라이버 내부에서
+계속 사용한다.
 
 ROS 발행은 `sensor_msgs/msg/Image`의 `UniquePtr`를 사용한다. 기본 launch는
 컴포넌트 컨테이너에서 intra-process 통신을 활성화한다. 향후 C++ 영상 처리
@@ -189,20 +187,19 @@ ros2 launch camera_driver camera_driver.launch.py \
   preview_enabled:=true imu_stabilization_enabled:=true
 ```
 
-안정화기는 처음 200개 IMU 샘플로 중력 방향과 자이로 bias를 측정하므로
-시작 후 약 0.5초 동안 차량을 정지시킨다.
+안정화기는 처음 400개 IMU 샘플로 중력 방향과 자이로 bias를 측정하므로
+시작 후 약 1초 동안 차량을 정지시킨다.
 이후 400 Hz IMU 자세에서 느린 카메라 궤적을 분리하고, 영상 timestamp에
 해당하는 고주파 roll/pitch 보정값을 보간한다. 카메라 내부 파라미터로
 회전 homography를 만들어 프리뷰 BGR 또는 발행 NV12의 Y/UV 평면을
-전체 1280x720 크기로 워핑한 다음 상단 250px을 제거한다. 따라서 크롭이
-안정화 homography의 카메라 중심을 바꾸지 않는다. 영상 가장자리에는
-보정으로 인한 검은 영역이 생길 수 있다.
+전체 1280x720 크기로 워핑한다. 영상 가장자리에는 보정으로 인한 검은
+영역이 생길 수 있다.
 워핑은 현재 CPU OpenCV 경로이므로 활성화 후 상태 로그의 실제 capture
 FPS와 누락 프레임 수를 Jetson에서 확인해야 한다.
 
-> `bev_processor`의 `realtime_attitude_enabled`와 카메라 IMU 안정화를
-> 동시에 켜면 같은 roll/pitch 회전을 두 번 보정할 수 있다. 안정화된
-> 카메라 출력을 BEV 입력으로 사용할 때는 둘 중 하나만 활성화한다.
+통합 `bev_processor`는 시작 시 측정한 자세로 LUT를 한 번 만든 뒤 고정한다.
+실시간 roll/pitch 흔들림 보정은 카메라 드라이버에서만 수행하므로 같은
+회전을 BEV에서 중복 보정하지 않는다.
 
 ROS 이미지 발행 없이 캡처와 직접 프리뷰만 측정:
 
@@ -250,7 +247,7 @@ ros2 topic info /camera/image_rect --verbose
 | 파라미터 | 기본값 | 의미 |
 |---|---:|---|
 | `sensor_fps` | `120.0` | OAK 센서/출력 요청 FPS |
-| `width`, `height` | `1280`, `720` | OAK에서 받는 크롭 전 해상도 |
+| `width`, `height` | `1280`, `720` | OAK 입력 및 기본 출력 해상도 |
 | `undistort_enabled` | `true` | OAK 장치 내부 왜곡 보정 |
 | `queue_size` | `8` | DepthAI 호스트 큐 크기 |
 | `queue_blocking` | `false` | 큐가 찼을 때 캡처 차단 여부 |
@@ -260,14 +257,14 @@ ros2 topic info /camera/image_rect --verbose
 | `imu_rate_hz` | `400.0` | raw accel+gyro 동기 요청/발행 rate |
 | `imu_topic` | `/camera/imu` | `sensor_msgs/Imu` 출력 |
 | `imu_stabilization_enabled` | `false` | IMU 영상 안정화 |
-| `imu_stabilization_warmup_samples` | `200` | 초기 bias/중력 평균 샘플 수 |
-| `imu_stabilization_acceleration_time_constant_sec` | `1.5` | 중력 방향 보정 시정수 |
+| `imu_stabilization_warmup_samples` | `400` | 초기 bias/중력 평균 샘플 수 |
+| `imu_stabilization_acceleration_time_constant_sec` | `2.2` | 중력 방향 보정 시정수 |
 | `imu_stabilization_acceleration_gate_deg` | `8.0` | 동적 가속도 보정 거부 각도 |
-| `imu_stabilization_smoothing_time_constant_sec` | `0.25` | 느린 카메라 궤적 평활화 시정수 |
+| `imu_stabilization_smoothing_time_constant_sec` | `0.6` | 느린 카메라 궤적 평활화 시정수 |
 | `imu_stabilization_maximum_correction_deg` | `4.0` | 축별 최대 영상 보정각 |
 | `imu_stabilization_roll_gain` | `1.0` | roll 보정 방향/크기 |
 | `imu_stabilization_pitch_gain` | `1.0` | pitch 보정 방향/크기 |
-| `output_crop_top_px` | `250` | 안정화 후 제거할 상단 행 수 (`0`이면 원본) |
+| `output_crop_top_px` | `0` | 안정화 후 제거할 상단 행 수 (`0`이면 원본) |
 | `preview_enabled` | `false` | OpenCV 직접 프리뷰 |
 | `preview_fps` | `60.0` | 프리뷰 갱신 목표 최대 FPS |
 | `preview_grid_enabled` | `true` | 독립 프리뷰 격자 표시 |
@@ -276,5 +273,5 @@ ros2 topic info /camera/image_rect --verbose
 143 FPS에서 `1280x720 NV12`의 순수 영상 데이터는 약 189 MiB/s다.
 `BGR888i`의 약 377 MiB/s보다 작다. 외부 프로세스 구독자는 DDS 직렬화와
 추가 복사를 사용하므로, 주 영상 처리는
-`bev_processor_auto.launch.py`/`bev_processor_manual.launch.py`처럼 같은
-프로세스의 intra-process C++ 컴포넌트로 구성하는 것이 좋다.
+`bev_processor.launch.py`처럼 같은 프로세스의 intra-process C++
+컴포넌트로 구성하는 것이 좋다.

@@ -38,6 +38,7 @@ def generate_launch_description():
         name="joy_params_converter_node",
         output="screen",
         parameters=[
+            actuator_commander_config,
             {
                 "keymap_path": keymap_path,
                 "joy_topic": "/joy",
