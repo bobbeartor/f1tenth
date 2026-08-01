@@ -34,6 +34,44 @@ IMU 샘플 수집이 끝날 때까지 약 1초 더 정지 상태를 유지한다
 ros2 launch bev_processor bev_processor.launch.py
 ```
 
+SSH 터미널에서 GUI 부하 없이 흔들림 보정과 BEV 변환 속도를
+측정할 때는 연산 측정 모드를 켠다.
+
+```bash
+ros2 launch bev_processor bev_processor.launch.py \
+  performance_measurement_enabled:=true
+```
+
+연산 측정 모드는 카메라와 BEV의 OpenCV GUI 프리뷰를 모두 강제로
+끈다. `status_log_interval_sec` 주기마다 다음 형식의 로그가 같은
+터미널에 출력된다.
+
+```text
+[PERF][CAMERA] capture_fps=120.0 stabilized_fps=119.8 \
+stabilized_compute_ms(avg/max)=... ...
+[PERF][PIPELINE] stabilized_fps=119.8 bev_ready_fps=119.6 \
+processed_fps=119.6 \
+latency_ms(stabilized_avg/max=.../...,bev_ready_avg/max=.../...) \
+bev_compute_ms(avg/max)=... skipped=0 errors(...)=0/0/0
+```
+
+- `CAMERA.stabilized_fps`: 흔들림 보정된 NV12 프레임의 발행 속도
+- `stabilized_compute_ms`: 흔들림 보정 homography 적용과 NV12 출력
+  메시지 준비까지의 평균/최대 시간
+- `PIPELINE.stabilized_fps`: 흔들림 보정 프레임이 BEV 입력
+  콜백에 도착한 속도
+- `bev_ready_fps`: BEV BGR8 결과가 다음 알고리즘용 ROS 출력으로
+  발행 완료된 속도
+- `latency_ms.stabilized`: 센서 프레임 타임스탬프부터 BEV 입력
+  콜백까지의 평균/최대 지연
+- `latency_ms.bev_ready`: 센서 타임스탬프부터 BEV 발행
+  완료까지의 평균/최대 지연
+- `bev_compute_ms`: NV12 업로드, CUDA 커널, BGR8 다운로드 및
+  CUDA stream 동기화까지의 평균/최대 시간
+
+`stabilizer=warmup`인 구간은 측정에서 제외하고 `ready`가 된 다음
+값을 확인한다.
+
 사용 파일은 하나씩이다.
 
 - launch: `launch/bev_processor.launch.py`

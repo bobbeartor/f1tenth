@@ -1,6 +1,9 @@
 camera_driver:
   ros__parameters:
     enabled: true
+    # true면 SSH 터미널 연산 측정을 위해 GUI 프리뷰를 강제로 끄고
+    # 캡처/흔들림 보정 출력 FPS를 상태 로그에 출력한다.
+    performance_measurement_enabled: false
 
     # OV9782 THE_720_P sensor mode: 1280x720, up to 143 FPS, 2 MIPI lanes.
     sensor_fps: 120.0

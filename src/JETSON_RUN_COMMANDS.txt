@@ -137,6 +137,15 @@ source /opt/ros/humble/setup.bash
 source install/setup.bash
 ros2 launch bev_processor bev_processor.launch.py
 
+SSH 터미널에서 GUI 없이 흔들림 보정 FPS와 BEV 완료 FPS/지연을
+측정하려면:
+
+ros2 launch bev_processor bev_processor.launch.py \
+  performance_measurement_enabled:=true
+
+이 모드에서는 카메라/BEV 프리뷰가 모두 꺼지며, 5초마다
+[PERF][CAMERA]와 [PERF][PIPELINE] 로그가 출력된다.
+
 BEV 프리뷰/토픽/측정 설정은 bev_config.yaml에서 변경한다.
 camera_height_estimator는 별도
 측정 도구이며 BEV 실행에 값을 전달하지 않는다.

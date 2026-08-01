@@ -6,6 +6,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -16,6 +17,13 @@ def generate_launch_description():
         camera_share, "config", "camera_config.yaml"
     )
     bev_params = os.path.join(bev_share, "config", "bev_config.yaml")
+    performance_measurement_enabled = LaunchConfiguration(
+        "performance_measurement_enabled"
+    )
+    performance_measurement_parameter = ParameterValue(
+        performance_measurement_enabled,
+        value_type=bool,
+    )
 
     return LaunchDescription(
         [
@@ -29,6 +37,14 @@ def generate_launch_description():
                 default_value=bev_params,
                 description=(
                     "BEV parameter YAML; its root must be bev_processor"
+                ),
+            ),
+            DeclareLaunchArgument(
+                "performance_measurement_enabled",
+                default_value="false",
+                description=(
+                    "Disable GUI previews and print stabilized/BEV pipeline "
+                    "performance measurements."
                 ),
             ),
             ComposableNodeContainer(
@@ -46,6 +62,11 @@ def generate_launch_description():
                         name="bev_processor",
                         parameters=[
                             LaunchConfiguration("bev_params_file"),
+                            {
+                                "performance_measurement_enabled": (
+                                    performance_measurement_parameter
+                                ),
+                            },
                         ],
                         extra_arguments=[
                             {"use_intra_process_comms": True},
@@ -65,6 +86,9 @@ def generate_launch_description():
                                 "imu_bridge_enabled": False,
                                 "imu_stabilization_enabled": True,
                                 "output_crop_top_px": 0,
+                                "performance_measurement_enabled": (
+                                    performance_measurement_parameter
+                                ),
                             },
                         ],
                         extra_arguments=[

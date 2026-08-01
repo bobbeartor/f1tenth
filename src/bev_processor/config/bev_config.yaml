@@ -3,6 +3,10 @@ bev_processor:
     # YAML이 빠지거나 노드명이 맞지 않을 때 C++ 기본값으로 조용히 실행되는 것을 막는다.
     configuration_version: 1
 
+    # true면 GUI 프리뷰를 강제로 끄고 흔들림 보정 입력부터 BEV 발행까지의
+    # FPS·지연·CUDA 처리 시간을 상태 로그 주기마다 출력한다.
+    performance_measurement_enabled: false
+
     # camera_driver가 발행하는 안정화된 1280x720 NV12 영상을 입력으로 사용한다.
     input_topic: "/camera/image_rect"
     output_topic: "/camera/image_bev"

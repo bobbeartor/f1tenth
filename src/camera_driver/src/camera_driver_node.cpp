@@ -39,6 +39,22 @@ namespace
 constexpr std::uint32_t kOv9782The720PWidth = 1280U;
 constexpr std::uint32_t kOv9782The720PHeight = 720U;
 
+void update_maximum(
+  std::atomic<std::uint64_t> & target,
+  const std::uint64_t candidate)
+{
+  auto current = target.load(std::memory_order_relaxed);
+  while (
+    current < candidate &&
+    !target.compare_exchange_weak(
+      current,
+      candidate,
+      std::memory_order_relaxed,
+      std::memory_order_relaxed))
+  {
+  }
+}
+
 std::string uppercase(std::string value)
 {
   std::transform(
@@ -134,6 +150,13 @@ public:
       return;
     }
 
+    if (performance_measurement_enabled_) {
+      RCLCPP_INFO(
+        node_.get_logger(),
+        "Performance measurement mode enabled: camera GUI preview is off; "
+        "capture and stabilized-output FPS will be reported.");
+    }
+
     if (preview_enabled_ && !graphical_display_available()) {
       preview_enabled_ = false;
       RCLCPP_WARN(
@@ -207,6 +230,8 @@ private:
   void read_parameters()
   {
     enabled_ = node_.declare_parameter<bool>("enabled", true);
+    performance_measurement_enabled_ = node_.declare_parameter<bool>(
+      "performance_measurement_enabled", false);
     camera_socket_name_ =
       node_.declare_parameter<std::string>("camera_socket", "CAM_A");
     width_ = node_.declare_parameter<int>("width", 1280);
@@ -281,6 +306,10 @@ private:
       node_.declare_parameter<double>("startup_timeout_sec", 5.0);
     status_log_interval_sec_ =
       node_.declare_parameter<double>("status_log_interval_sec", 5.0);
+
+    if (performance_measurement_enabled_) {
+      preview_enabled_ = false;
+    }
 
     require_positive(width_, "width");
     require_positive(height_, "height");
@@ -870,10 +899,25 @@ private:
           message->width = snapshot->packet->getWidth();
           message->encoding = "nv12";
           message->is_bigendian = false;
+          const auto stabilization_started_at =
+            std::chrono::steady_clock::now();
           copy_nv12_to_message(
             *snapshot->packet,
             snapshot->sensor_timestamp,
             *message);
+          if (performance_measurement_enabled_) {
+            const auto stabilization_finished_at =
+              std::chrono::steady_clock::now();
+            const auto stabilization_ns = static_cast<std::uint64_t>(
+              std::chrono::duration_cast<std::chrono::nanoseconds>(
+                stabilization_finished_at - stabilization_started_at).count());
+            stabilization_process_samples_interval_.fetch_add(
+              1U, std::memory_order_relaxed);
+            stabilization_process_ns_interval_.fetch_add(
+              stabilization_ns, std::memory_order_relaxed);
+            update_maximum(
+              stabilization_process_ns_max_interval_, stabilization_ns);
+          }
 
           publisher_->publish(std::move(message));
           published_generation = snapshot->generation;
@@ -1076,10 +1120,26 @@ private:
     last_status_at_ = now;
 
     const auto capture_count = received_interval_.exchange(0);
+    const auto published_count = published_interval_.exchange(0);
     const auto preview_count = previewed_interval_.exchange(0);
     const auto dropped_count = device_drops_interval_.exchange(0);
+    const auto stabilization_process_samples =
+      stabilization_process_samples_interval_.exchange(
+      0U, std::memory_order_relaxed);
+    const auto stabilization_process_ns =
+      stabilization_process_ns_interval_.exchange(
+      0U, std::memory_order_relaxed);
+    const auto stabilization_process_ns_max =
+      stabilization_process_ns_max_interval_.exchange(
+      0U, std::memory_order_relaxed);
     const auto capture_hz = static_cast<double>(capture_count) / elapsed;
+    const auto published_hz = static_cast<double>(published_count) / elapsed;
     const auto preview_hz = static_cast<double>(preview_count) / elapsed;
+    const auto average_stabilization_process_ms =
+      stabilization_process_samples > 0U ?
+      static_cast<double>(stabilization_process_ns) /
+      static_cast<double>(stabilization_process_samples) / 1.0e6 :
+      0.0;
     if (imu_stream_enabled_) {
       const auto imu_count = imu_processed_interval_.exchange(0);
       const auto imu_hz = static_cast<double>(imu_count) / elapsed;
@@ -1089,21 +1149,53 @@ private:
           imu_stabilizer_ && imu_stabilizer_->initialized() ?
           "ready" : "warmup";
       }
-      RCLCPP_INFO(
-        node_.get_logger(),
-        "FPS: capture=%.1f/%.1f, preview=%.1f, IMU=%.1f, "
-        "stabilizer=%s (warps=%lu, misses=%lu), dropped=%lu",
-        capture_hz, sensor_fps_, preview_hz, imu_hz,
-        stabilization_state,
-        static_cast<unsigned long>(stabilized_frames_total_.load()),
-        static_cast<unsigned long>(stabilization_missed_total_.load()),
-        static_cast<unsigned long>(dropped_count));
+      if (performance_measurement_enabled_) {
+        RCLCPP_INFO(
+          node_.get_logger(),
+          "[PERF][CAMERA] capture_fps=%.1f stabilized_fps=%.1f "
+          "stabilized_compute_ms(avg/max)=%.3f/%.3f "
+          "imu_fps=%.1f stabilizer=%s warps=%lu misses=%lu dropped=%lu "
+          "errors(capture/publish)=%lu/%lu",
+          capture_hz,
+          published_hz,
+          average_stabilization_process_ms,
+          static_cast<double>(stabilization_process_ns_max) / 1.0e6,
+          imu_hz,
+          stabilization_state,
+          static_cast<unsigned long>(stabilized_frames_total_.load()),
+          static_cast<unsigned long>(stabilization_missed_total_.load()),
+          static_cast<unsigned long>(dropped_count),
+          static_cast<unsigned long>(capture_errors_total_.load()),
+          static_cast<unsigned long>(publish_errors_total_.load()));
+      } else {
+        RCLCPP_INFO(
+          node_.get_logger(),
+          "FPS: capture=%.1f/%.1f, preview=%.1f, IMU=%.1f, "
+          "stabilizer=%s (warps=%lu, misses=%lu), dropped=%lu",
+          capture_hz, sensor_fps_, preview_hz, imu_hz,
+          stabilization_state,
+          static_cast<unsigned long>(stabilized_frames_total_.load()),
+          static_cast<unsigned long>(stabilization_missed_total_.load()),
+          static_cast<unsigned long>(dropped_count));
+      }
     } else {
-      RCLCPP_INFO(
-        node_.get_logger(),
-        "FPS: capture=%.1f/%.1f, preview=%.1f, dropped=%lu",
-        capture_hz, sensor_fps_, preview_hz,
-        static_cast<unsigned long>(dropped_count));
+      if (performance_measurement_enabled_) {
+        RCLCPP_INFO(
+          node_.get_logger(),
+          "[PERF][CAMERA] capture_fps=%.1f output_fps=%.1f "
+          "stabilizer=off dropped=%lu errors(capture/publish)=%lu/%lu",
+          capture_hz,
+          published_hz,
+          static_cast<unsigned long>(dropped_count),
+          static_cast<unsigned long>(capture_errors_total_.load()),
+          static_cast<unsigned long>(publish_errors_total_.load()));
+      } else {
+        RCLCPP_INFO(
+          node_.get_logger(),
+          "FPS: capture=%.1f/%.1f, preview=%.1f, dropped=%lu",
+          capture_hz, sensor_fps_, preview_hz,
+          static_cast<unsigned long>(dropped_count));
+      }
     }
 
     const auto running_for =
@@ -1173,6 +1265,7 @@ private:
   CameraDriverNode & node_;
 
   bool enabled_{true};
+  bool performance_measurement_enabled_{false};
   std::string camera_socket_name_;
   int width_{1280};
   int height_{720};
@@ -1256,6 +1349,9 @@ private:
   std::atomic<std::uint64_t> imu_errors_total_{0};
   std::atomic<std::uint64_t> stabilized_frames_total_{0};
   std::atomic<std::uint64_t> stabilization_missed_total_{0};
+  std::atomic<std::uint64_t> stabilization_process_samples_interval_{0};
+  std::atomic<std::uint64_t> stabilization_process_ns_interval_{0};
+  std::atomic<std::uint64_t> stabilization_process_ns_max_interval_{0};
 
   std::chrono::steady_clock::time_point started_at_;
   std::chrono::steady_clock::time_point last_status_at_;

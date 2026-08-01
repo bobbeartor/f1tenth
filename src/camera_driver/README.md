@@ -246,6 +246,7 @@ ros2 topic info /camera/image_rect --verbose
 
 | 파라미터 | 기본값 | 의미 |
 |---|---:|---|
+| `performance_measurement_enabled` | `false` | GUI 프리뷰 강제 비활성화 및 연산 FPS 로그 |
 | `sensor_fps` | `120.0` | OAK 센서/출력 요청 FPS |
 | `width`, `height` | `1280`, `720` | OAK 입력 및 기본 출력 해상도 |
 | `undistort_enabled` | `true` | OAK 장치 내부 왜곡 보정 |

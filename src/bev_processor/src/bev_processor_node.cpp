@@ -99,6 +99,13 @@ public:
     readParameters();
     validateParameters();
 
+    if (performance_measurement_enabled_) {
+      RCLCPP_INFO(
+        get_logger(),
+        "Performance measurement mode enabled: all GUI previews are off; "
+        "stabilized-input and BEV-ready pipeline metrics will be reported.");
+    }
+
     RCLCPP_INFO(
       get_logger(),
       "Measuring startup camera height from the OAK stereo ground plane "
@@ -283,6 +290,7 @@ private:
     // A missing or node-name-mismatched YAML must not fall back silently to
     // C++ defaults because the measured pose and BEV bounds are safety-critical.
     declare_parameter<int>("configuration_version", 0);
+    declare_parameter<bool>("performance_measurement_enabled", false);
 
     declare_parameter<std::string>("input_topic", "/camera/image_rect");
     declare_parameter<std::string>("output_topic", "/camera/image_bev");
@@ -365,6 +373,8 @@ private:
   {
     configuration_version_ = static_cast<int>(
       get_parameter("configuration_version").as_int());
+    performance_measurement_enabled_ =
+      get_parameter("performance_measurement_enabled").as_bool();
 
     input_topic_ = get_parameter("input_topic").as_string();
     output_topic_ = get_parameter("output_topic").as_string();
@@ -380,6 +390,9 @@ private:
       static_cast<int>(get_parameter("preview_max_width").as_int());
     preview_max_height_ =
       static_cast<int>(get_parameter("preview_max_height").as_int());
+    if (performance_measurement_enabled_) {
+      preview_enabled_ = false;
+    }
 
     camera_model_.fx = get_parameter("fx").as_double();
     camera_model_.fy = get_parameter("fy").as_double();
@@ -630,6 +643,13 @@ private:
       return;
     }
 
+    recordPipelineLatency(
+      message->header,
+      stabilized_latency_samples_interval_,
+      stabilized_latency_ns_interval_,
+      stabilized_latency_ns_max_interval_);
+    accepted_interval_.fetch_add(1U, std::memory_order_relaxed);
+
     {
       std::lock_guard<std::mutex> lock(input_mutex_);
       latest_input_ = std::move(message);
@@ -745,6 +765,11 @@ private:
       try {
         output_publisher_->publish(
           makeBgr8Message(*frame, output_frame_id_));
+        recordPipelineLatency(
+          frame->header,
+          bev_ready_latency_samples_interval_,
+          bev_ready_latency_ns_interval_,
+          bev_ready_latency_ns_max_interval_);
         last_published_at = now;
         published_total_.fetch_add(1U, std::memory_order_relaxed);
         published_interval_.fetch_add(1U, std::memory_order_relaxed);
@@ -1040,6 +1065,33 @@ private:
     }
   }
 
+  void recordPipelineLatency(
+    const std_msgs::msg::Header & header,
+    std::atomic<std::uint64_t> & sample_count,
+    std::atomic<std::uint64_t> & latency_ns_sum,
+    std::atomic<std::uint64_t> & latency_ns_max)
+  {
+    if (!performance_measurement_enabled_) {
+      return;
+    }
+
+    const rclcpp::Time frame_stamp(
+      header.stamp,
+      get_clock()->get_clock_type());
+    const std::int64_t latency_ns =
+      (get_clock()->now() - frame_stamp).nanoseconds();
+    constexpr std::int64_t maximum_valid_latency_ns =
+      60LL * 1000LL * 1000LL * 1000LL;
+    if (latency_ns < 0 || latency_ns > maximum_valid_latency_ns) {
+      return;
+    }
+
+    const auto valid_latency_ns = static_cast<std::uint64_t>(latency_ns);
+    sample_count.fetch_add(1U, std::memory_order_relaxed);
+    latency_ns_sum.fetch_add(valid_latency_ns, std::memory_order_relaxed);
+    updateMaximum(latency_ns_max, valid_latency_ns);
+  }
+
   void logStatus()
   {
     const auto now = SteadyClock::now();
@@ -1049,6 +1101,8 @@ private:
 
     const auto received =
       received_interval_.exchange(0U, std::memory_order_relaxed);
+    const auto accepted =
+      accepted_interval_.exchange(0U, std::memory_order_relaxed);
     const auto processed =
       processed_interval_.exchange(0U, std::memory_order_relaxed);
     const auto skipped =
@@ -1061,6 +1115,22 @@ private:
       process_ns_interval_.exchange(0U, std::memory_order_relaxed);
     const auto process_ns_max =
       process_ns_max_interval_.exchange(0U, std::memory_order_relaxed);
+    const auto stabilized_latency_samples =
+      stabilized_latency_samples_interval_.exchange(
+      0U, std::memory_order_relaxed);
+    const auto stabilized_latency_ns =
+      stabilized_latency_ns_interval_.exchange(0U, std::memory_order_relaxed);
+    const auto stabilized_latency_ns_max =
+      stabilized_latency_ns_max_interval_.exchange(
+      0U, std::memory_order_relaxed);
+    const auto bev_ready_latency_samples =
+      bev_ready_latency_samples_interval_.exchange(
+      0U, std::memory_order_relaxed);
+    const auto bev_ready_latency_ns =
+      bev_ready_latency_ns_interval_.exchange(0U, std::memory_order_relaxed);
+    const auto bev_ready_latency_ns_max =
+      bev_ready_latency_ns_max_interval_.exchange(
+      0U, std::memory_order_relaxed);
 
     double latest_age_ms = 0.0;
     const auto latest = std::atomic_load_explicit(
@@ -1075,38 +1145,75 @@ private:
       static_cast<double>(process_ns) /
       static_cast<double>(processed) / 1.0e6 :
       0.0;
-    RCLCPP_INFO(
-      get_logger(),
-      "\nBEV status: input=%.1fHz (%llu total), processed=%.1fHz "
-      "(%llu total, skipped=%llu/%llu interval/total), "
-      "ROS=%.1fHz, preview=%.1fHz, "
-      "gpu=%.3f/%.3fms avg/max, latest_age=%.2fms, "
-      "extrinsics=startup_measured, fixed_lut=true, "
-      "(height=%.3fm,roll=%.2f,pitch_down=%.2fdeg), "
-      "errors(invalid/process/publish)=%llu/%llu/%llu",
-      static_cast<double>(received) / elapsed_sec,
-      static_cast<unsigned long long>(
-        received_total_.load(std::memory_order_relaxed)),
-      static_cast<double>(processed) / elapsed_sec,
-      static_cast<unsigned long long>(
-        processed_total_.load(std::memory_order_relaxed)),
-      static_cast<unsigned long long>(skipped),
-      static_cast<unsigned long long>(
-        skipped_total_.load(std::memory_order_relaxed)),
-      static_cast<double>(published) / elapsed_sec,
-      static_cast<double>(previewed) / elapsed_sec,
-      average_process_ms,
-      static_cast<double>(process_ns_max) / 1.0e6,
-      latest_age_ms,
-      camera_model_.position_vehicle_m[2],
-      applied_roll_deg_.load(std::memory_order_relaxed),
-      applied_pitch_down_deg_.load(std::memory_order_relaxed),
-      static_cast<unsigned long long>(
-        invalid_total_.load(std::memory_order_relaxed)),
-      static_cast<unsigned long long>(
-        processing_error_total_.load(std::memory_order_relaxed)),
-      static_cast<unsigned long long>(
-        publish_error_total_.load(std::memory_order_relaxed)));
+    const double average_stabilized_latency_ms =
+      stabilized_latency_samples > 0U ?
+      static_cast<double>(stabilized_latency_ns) /
+      static_cast<double>(stabilized_latency_samples) / 1.0e6 :
+      0.0;
+    const double average_bev_ready_latency_ms =
+      bev_ready_latency_samples > 0U ?
+      static_cast<double>(bev_ready_latency_ns) /
+      static_cast<double>(bev_ready_latency_samples) / 1.0e6 :
+      0.0;
+    if (performance_measurement_enabled_) {
+      RCLCPP_INFO(
+        get_logger(),
+        "[PERF][PIPELINE] stabilized_fps=%.1f bev_ready_fps=%.1f "
+        "processed_fps=%.1f "
+        "latency_ms(stabilized_avg/max=%.2f/%.2f,"
+        "bev_ready_avg/max=%.2f/%.2f) "
+        "bev_compute_ms(avg/max)=%.3f/%.3f skipped=%llu "
+        "errors(invalid/process/publish)=%llu/%llu/%llu",
+        static_cast<double>(accepted) / elapsed_sec,
+        static_cast<double>(published) / elapsed_sec,
+        static_cast<double>(processed) / elapsed_sec,
+        average_stabilized_latency_ms,
+        static_cast<double>(stabilized_latency_ns_max) / 1.0e6,
+        average_bev_ready_latency_ms,
+        static_cast<double>(bev_ready_latency_ns_max) / 1.0e6,
+        average_process_ms,
+        static_cast<double>(process_ns_max) / 1.0e6,
+        static_cast<unsigned long long>(skipped),
+        static_cast<unsigned long long>(
+          invalid_total_.load(std::memory_order_relaxed)),
+        static_cast<unsigned long long>(
+          processing_error_total_.load(std::memory_order_relaxed)),
+        static_cast<unsigned long long>(
+          publish_error_total_.load(std::memory_order_relaxed)));
+    } else {
+      RCLCPP_INFO(
+        get_logger(),
+        "\nBEV status: input=%.1fHz (%llu total), processed=%.1fHz "
+        "(%llu total, skipped=%llu/%llu interval/total), "
+        "ROS=%.1fHz, preview=%.1fHz, "
+        "gpu=%.3f/%.3fms avg/max, latest_age=%.2fms, "
+        "extrinsics=startup_measured, fixed_lut=true, "
+        "(height=%.3fm,roll=%.2f,pitch_down=%.2fdeg), "
+        "errors(invalid/process/publish)=%llu/%llu/%llu",
+        static_cast<double>(received) / elapsed_sec,
+        static_cast<unsigned long long>(
+          received_total_.load(std::memory_order_relaxed)),
+        static_cast<double>(processed) / elapsed_sec,
+        static_cast<unsigned long long>(
+          processed_total_.load(std::memory_order_relaxed)),
+        static_cast<unsigned long long>(skipped),
+        static_cast<unsigned long long>(
+          skipped_total_.load(std::memory_order_relaxed)),
+        static_cast<double>(published) / elapsed_sec,
+        static_cast<double>(previewed) / elapsed_sec,
+        average_process_ms,
+        static_cast<double>(process_ns_max) / 1.0e6,
+        latest_age_ms,
+        camera_model_.position_vehicle_m[2],
+        applied_roll_deg_.load(std::memory_order_relaxed),
+        applied_pitch_down_deg_.load(std::memory_order_relaxed),
+        static_cast<unsigned long long>(
+          invalid_total_.load(std::memory_order_relaxed)),
+        static_cast<unsigned long long>(
+          processing_error_total_.load(std::memory_order_relaxed)),
+        static_cast<unsigned long long>(
+          publish_error_total_.load(std::memory_order_relaxed)));
+    }
 
     if (
       accepted_total_.load(std::memory_order_relaxed) == 0U &&
@@ -1126,6 +1233,7 @@ private:
   }
 
   int configuration_version_{0};
+  bool performance_measurement_enabled_{false};
   std::string input_topic_;
   std::string output_topic_;
   std::string output_frame_id_;
@@ -1184,12 +1292,19 @@ private:
   std::atomic<std::uint64_t> processing_error_total_{0U};
   std::atomic<std::uint64_t> publish_error_total_{0U};
   std::atomic<std::uint64_t> received_interval_{0U};
+  std::atomic<std::uint64_t> accepted_interval_{0U};
   std::atomic<std::uint64_t> processed_interval_{0U};
   std::atomic<std::uint64_t> skipped_interval_{0U};
   std::atomic<std::uint64_t> published_interval_{0U};
   std::atomic<std::uint64_t> previewed_interval_{0U};
   std::atomic<std::uint64_t> process_ns_interval_{0U};
   std::atomic<std::uint64_t> process_ns_max_interval_{0U};
+  std::atomic<std::uint64_t> stabilized_latency_samples_interval_{0U};
+  std::atomic<std::uint64_t> stabilized_latency_ns_interval_{0U};
+  std::atomic<std::uint64_t> stabilized_latency_ns_max_interval_{0U};
+  std::atomic<std::uint64_t> bev_ready_latency_samples_interval_{0U};
+  std::atomic<std::uint64_t> bev_ready_latency_ns_interval_{0U};
+  std::atomic<std::uint64_t> bev_ready_latency_ns_max_interval_{0U};
 };
 
 }  // namespace bev_processor
