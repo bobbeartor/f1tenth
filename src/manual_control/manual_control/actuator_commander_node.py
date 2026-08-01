@@ -29,10 +29,10 @@ class ActuatorCommanderNode(Node):
 
         self.declare_parameter("forward_max_duty", 0.10)
         self.declare_parameter("reverse_max_duty", 0.08)
-        self.declare_parameter("start_duty", 0.06)
+        self.declare_parameter("start_duty", 0.05)
         self.declare_parameter("reverse_start_duty", 0.05)
         self.declare_parameter("acceleration_duty_per_sec", 0.03)
-        self.declare_parameter("coast_deceleration_duty_per_sec", 0.02)
+        self.declare_parameter("coast_deceleration_duty_per_sec", 0.005)
         self.declare_parameter("brake_duty_per_sec", 0.07)
         self.declare_parameter("control_rate_hz", 80.0)
         self.declare_parameter("status_log_rate_hz", 2.0)
@@ -213,7 +213,7 @@ class ActuatorCommanderNode(Node):
         else:
             self.get_logger().warn(
                 "Gear change rejected: release the accelerator and wait for "
-                "duty 0 before pressing Y."
+                "duty 0 before pressing RB."
             )
 
     def _on_control_timer(self) -> None:

@@ -36,7 +36,7 @@ published on `/manual/gear` and
 
 RB is converted from a repeated button state into one reliable rising-edge
 event. The first press is handled immediately, holding the button does not
-repeat the gear change, and edges within `button_debounce_sec: 0.20` are
+repeat the gear change, and edges within `button_debounce_sec: 0.15` are
 discarded as contact bounce.
 
 The manual controller runs at 80 Hz. Its configured duty limits and ramps are:
@@ -50,13 +50,13 @@ VESC node processes only the newest waiting duty/ERPM/servo command.
 ```yaml
 forward_max_duty: 0.10
 reverse_max_duty: 0.08
-start_duty: 0.06
+start_duty: 0.05
 reverse_start_duty: 0.05
 acceleration_duty_per_sec: 0.03
-coast_deceleration_duty_per_sec: 0.02
+coast_deceleration_duty_per_sec: 0.005
 brake_duty_per_sec: 0.07
 immediate_stop_on_accelerator_release: true
-button_debounce_sec: 0.20
+button_debounce_sec: 0.15
 ```
 
 `coast_deceleration_duty_per_sec` is used only when

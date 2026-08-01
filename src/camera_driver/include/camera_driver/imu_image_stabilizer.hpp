@@ -16,9 +16,9 @@ struct ImuImageStabilizerConfig
   std::size_t warmup_samples{400U};
   double minimum_acceleration_mps2{7.5};
   double maximum_acceleration_mps2{12.0};
-  double acceleration_correction_time_constant_sec{2.2};
-  double acceleration_correction_gate_deg{8.0};
-  double trajectory_smoothing_time_constant_sec{0.6};
+  double acceleration_correction_time_constant_sec{4.0};
+  double acceleration_correction_gate_deg{4.0};
+  double trajectory_smoothing_time_constant_sec{0.48};
   double maximum_correction_deg{4.0};
   double maximum_sample_interval_sec{0.1};
   double maximum_history_sec{1.0};

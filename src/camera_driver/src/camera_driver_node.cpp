@@ -243,20 +243,20 @@ private:
       static_cast<std::size_t>(imu_stabilization_warmup_samples);
     imu_stabilizer_config_.acceleration_correction_time_constant_sec =
       node_.declare_parameter<double>(
-      "imu_stabilization_acceleration_time_constant_sec", 2.2);
+      "imu_stabilization_acceleration_time_constant_sec", 4.0);
     imu_stabilizer_config_.acceleration_correction_gate_deg =
       node_.declare_parameter<double>(
-      "imu_stabilization_acceleration_gate_deg", 8.0);
+      "imu_stabilization_acceleration_gate_deg", 4.0);
     imu_stabilizer_config_.trajectory_smoothing_time_constant_sec =
       node_.declare_parameter<double>(
-      "imu_stabilization_smoothing_time_constant_sec", 0.6);
+      "imu_stabilization_smoothing_time_constant_sec", 0.48);
     imu_stabilizer_config_.maximum_correction_deg =
       node_.declare_parameter<double>(
       "imu_stabilization_maximum_correction_deg", 4.0);
     imu_stabilization_roll_gain_ =
       node_.declare_parameter<double>("imu_stabilization_roll_gain", 1.0);
     imu_stabilization_pitch_gain_ =
-      node_.declare_parameter<double>("imu_stabilization_pitch_gain", 1.0);
+      node_.declare_parameter<double>("imu_stabilization_pitch_gain", 0.9);
     output_crop_top_px_ =
       node_.declare_parameter<int>("output_crop_top_px", 0);
     publish_enabled_ =
@@ -1192,7 +1192,7 @@ private:
   bool imu_stabilization_enabled_{false};
   ImuImageStabilizerConfig imu_stabilizer_config_{};
   double imu_stabilization_roll_gain_{1.0};
-  double imu_stabilization_pitch_gain_{1.0};
+  double imu_stabilization_pitch_gain_{0.9};
   int output_crop_top_px_{0};
   bool publish_enabled_{false};
   double publish_fps_{120.0};

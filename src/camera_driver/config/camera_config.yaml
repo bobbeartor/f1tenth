@@ -35,13 +35,13 @@ camera_driver:
     # 고주파 roll/pitch 흔들림을 보정한다. BEV LUT는 시작 측정 후 고정된다.
     imu_stabilization_enabled: false
     imu_stabilization_warmup_samples: 400
-    imu_stabilization_acceleration_time_constant_sec: 2.2
-    imu_stabilization_acceleration_gate_deg: 8.0
-    imu_stabilization_smoothing_time_constant_sec: 0.6
+    imu_stabilization_acceleration_time_constant_sec: 4.0
+    imu_stabilization_acceleration_gate_deg: 4.0
+    imu_stabilization_smoothing_time_constant_sec: 0.48
     imu_stabilization_maximum_correction_deg: 4.0
     # Change a gain to -1.0 only if a hardware-axis validation shows inversion.
     imu_stabilization_roll_gain: 1.0
-    imu_stabilization_pitch_gain: 1.0
+    imu_stabilization_pitch_gain: 0.9
 
     # Keep the full stabilized frame. Optional NV12 cropping requires an even
     # pixel value.

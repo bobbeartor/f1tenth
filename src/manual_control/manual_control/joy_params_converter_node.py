@@ -29,7 +29,7 @@ class JoyParamsConverterNode(Node):
         self.declare_parameter("publish_debug", True)
         self.declare_parameter("trigger_deadzone", 0.03)
         self.declare_parameter("steering_deadzone", 0.05)
-        self.declare_parameter("button_debounce_sec", 0.20)
+        self.declare_parameter("button_debounce_sec", 0.15)
 
         self.keymap = self._load_keymap()
         self.publish_debug = bool(self.get_parameter("publish_debug").value)
