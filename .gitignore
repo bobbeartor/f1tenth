@@ -3,6 +3,10 @@ autodrive_ws/build/
 autodrive_ws/install/
 autodrive_ws/log/
 
+/build/
+/install/
+/log/
+
 # Python caches and virtual environments
 __pycache__/
 *.py[cod]

@@ -6,7 +6,7 @@ camera_driver:
     performance_measurement_enabled: false
 
     # OV9782 THE_720_P sensor mode: 1280x720, up to 143 FPS, 2 MIPI lanes.
-    sensor_fps: 120.0
+    sensor_fps: 110.0
     width: 1280
     height: 720
 
@@ -38,8 +38,8 @@ camera_driver:
     # 고주파 roll/pitch 흔들림을 보정한다. BEV LUT는 시작 측정 후 고정된다.
     imu_stabilization_enabled: false
     imu_stabilization_warmup_samples: 400
-    imu_stabilization_acceleration_time_constant_sec: 4.0
-    imu_stabilization_acceleration_gate_deg: 4.0
+    imu_stabilization_acceleration_time_constant_sec: 4.3
+    imu_stabilization_acceleration_gate_deg: 4.3
     imu_stabilization_smoothing_time_constant_sec: 0.48
     imu_stabilization_maximum_correction_deg: 4.0
     # Change a gain to -1.0 only if a hardware-axis validation shows inversion.
