@@ -765,11 +765,17 @@ private:
       try {
         output_publisher_->publish(
           makeBgr8Message(*frame, output_frame_id_));
+        const auto published_at = SteadyClock::now();
         recordPipelineLatency(
           frame->header,
           bev_ready_latency_samples_interval_,
           bev_ready_latency_ns_interval_,
           bev_ready_latency_ns_max_interval_);
+        recordSteadyLatency(
+          published_at - frame->input_received_at,
+          bev_stage_latency_samples_interval_,
+          bev_stage_latency_ns_interval_,
+          bev_stage_latency_ns_max_interval_);
         last_published_at = now;
         published_total_.fetch_add(1U, std::memory_order_relaxed);
         published_interval_.fetch_add(1U, std::memory_order_relaxed);
@@ -1092,6 +1098,30 @@ private:
     updateMaximum(latency_ns_max, valid_latency_ns);
   }
 
+  void recordSteadyLatency(
+    const SteadyClock::duration latency,
+    std::atomic<std::uint64_t> & sample_count,
+    std::atomic<std::uint64_t> & latency_ns_sum,
+    std::atomic<std::uint64_t> & latency_ns_max)
+  {
+    if (!performance_measurement_enabled_) {
+      return;
+    }
+
+    const auto latency_ns =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(latency).count();
+    constexpr std::int64_t maximum_valid_latency_ns =
+      60LL * 1000LL * 1000LL * 1000LL;
+    if (latency_ns < 0 || latency_ns > maximum_valid_latency_ns) {
+      return;
+    }
+
+    const auto valid_latency_ns = static_cast<std::uint64_t>(latency_ns);
+    sample_count.fetch_add(1U, std::memory_order_relaxed);
+    latency_ns_sum.fetch_add(valid_latency_ns, std::memory_order_relaxed);
+    updateMaximum(latency_ns_max, valid_latency_ns);
+  }
+
   void logStatus()
   {
     const auto now = SteadyClock::now();
@@ -1131,6 +1161,14 @@ private:
     const auto bev_ready_latency_ns_max =
       bev_ready_latency_ns_max_interval_.exchange(
       0U, std::memory_order_relaxed);
+    const auto bev_stage_latency_samples =
+      bev_stage_latency_samples_interval_.exchange(
+      0U, std::memory_order_relaxed);
+    const auto bev_stage_latency_ns =
+      bev_stage_latency_ns_interval_.exchange(0U, std::memory_order_relaxed);
+    const auto bev_stage_latency_ns_max =
+      bev_stage_latency_ns_max_interval_.exchange(
+      0U, std::memory_order_relaxed);
 
     double latest_age_ms = 0.0;
     const auto latest = std::atomic_load_explicit(
@@ -1155,13 +1193,19 @@ private:
       static_cast<double>(bev_ready_latency_ns) /
       static_cast<double>(bev_ready_latency_samples) / 1.0e6 :
       0.0;
+    const double average_bev_stage_latency_ms =
+      bev_stage_latency_samples > 0U ?
+      static_cast<double>(bev_stage_latency_ns) /
+      static_cast<double>(bev_stage_latency_samples) / 1.0e6 :
+      0.0;
     if (performance_measurement_enabled_) {
       RCLCPP_INFO(
         get_logger(),
         "[PERF][PIPELINE] stabilized_fps=%.1f bev_ready_fps=%.1f "
         "processed_fps=%.1f "
-        "latency_ms(stabilized_avg/max=%.2f/%.2f,"
-        "bev_ready_avg/max=%.2f/%.2f) "
+        "latency_ms(depthai_to_bev_input_avg/max=%.2f/%.2f,"
+        "depthai_to_bev_ready_avg/max=%.2f/%.2f,"
+        "bev_input_to_ready_avg/max=%.3f/%.3f) "
         "bev_compute_ms(avg/max)=%.3f/%.3f skipped=%llu "
         "errors(invalid/process/publish)=%llu/%llu/%llu",
         static_cast<double>(accepted) / elapsed_sec,
@@ -1171,6 +1215,8 @@ private:
         static_cast<double>(stabilized_latency_ns_max) / 1.0e6,
         average_bev_ready_latency_ms,
         static_cast<double>(bev_ready_latency_ns_max) / 1.0e6,
+        average_bev_stage_latency_ms,
+        static_cast<double>(bev_stage_latency_ns_max) / 1.0e6,
         average_process_ms,
         static_cast<double>(process_ns_max) / 1.0e6,
         static_cast<unsigned long long>(skipped),
@@ -1305,6 +1351,9 @@ private:
   std::atomic<std::uint64_t> bev_ready_latency_samples_interval_{0U};
   std::atomic<std::uint64_t> bev_ready_latency_ns_interval_{0U};
   std::atomic<std::uint64_t> bev_ready_latency_ns_max_interval_{0U};
+  std::atomic<std::uint64_t> bev_stage_latency_samples_interval_{0U};
+  std::atomic<std::uint64_t> bev_stage_latency_ns_interval_{0U};
+  std::atomic<std::uint64_t> bev_stage_latency_ns_max_interval_{0U};
 };
 
 }  // namespace bev_processor

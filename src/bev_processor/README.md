@@ -48,26 +48,55 @@ ros2 launch bev_processor bev_processor.launch.py \
 
 ```text
 [PERF][CAMERA] capture_fps=120.0 stabilized_fps=119.8 \
-stabilized_compute_ms(avg/max)=... ...
+stabilized_compute_ms(avg/max)=.../... \
+latency_ms(depthai_to_host_avg/max=.../...,\
+host_to_stabilized_avg/max=.../...,\
+depthai_to_stabilized_avg/max=.../...) ...
 [PERF][PIPELINE] stabilized_fps=119.8 bev_ready_fps=119.6 \
 processed_fps=119.6 \
-latency_ms(stabilized_avg/max=.../...,bev_ready_avg/max=.../...) \
+latency_ms(depthai_to_bev_input_avg/max=.../...,\
+depthai_to_bev_ready_avg/max=.../...,\
+bev_input_to_ready_avg/max=.../...) \
 bev_compute_ms(avg/max)=... skipped=0 errors(...)=0/0/0
 ```
 
 - `CAMERA.stabilized_fps`: 흔들림 보정된 NV12 프레임의 발행 속도
 - `stabilized_compute_ms`: 흔들림 보정 homography 적용과 NV12 출력
   메시지 준비까지의 평균/최대 시간
+- `depthai_to_host`: DepthAI 프레임의 `getTimestamp()`부터 Jetson의
+  카메라 캡처 스레드가 패킷을 꺼낸 시점까지의 평균/최대 시간
+- `host_to_stabilized`: Jetson 패킷 수신부터 흔들림 보정된 NV12
+  메시지 준비까지의 평균/최대 시간. 발행 스레드 대기 시간도 포함한다.
+- `depthai_to_stabilized`: 같은 DepthAI timestamp부터 흔들림 보정
+  메시지 준비까지의 전체 평균/최대 시간
 - `PIPELINE.stabilized_fps`: 흔들림 보정 프레임이 BEV 입력
   콜백에 도착한 속도
 - `bev_ready_fps`: BEV BGR8 결과가 다음 알고리즘용 ROS 출력으로
   발행 완료된 속도
-- `latency_ms.stabilized`: 센서 프레임 타임스탬프부터 BEV 입력
-  콜백까지의 평균/최대 지연
-- `latency_ms.bev_ready`: 센서 타임스탬프부터 BEV 발행
-  완료까지의 평균/최대 지연
+- `depthai_to_bev_input`: DepthAI timestamp부터 BEV 입력 콜백까지의
+  평균/최대 프레임 나이
+- `depthai_to_bev_ready`: DepthAI timestamp부터 BEV 발행 완료까지의
+  평균/최대 프레임 나이
+- `bev_input_to_ready`: BEV 입력 콜백부터 BEV 발행 완료까지
+  `steady_clock`으로 직접 잰 평균/최대 시간. timestamp 변환 오차의
+  영향을 받지 않는다.
 - `bev_compute_ms`: NV12 업로드, CUDA 커널, BGR8 다운로드 및
   CUDA stream 동기화까지의 평균/최대 시간
+
+지연 위치는 다음처럼 판별한다.
+
+- `depthai_to_host`가 크면 OAK 내부 출력, USB/XLink 또는 DepthAI
+  출력 큐 구간을 우선 확인한다.
+- `host_to_stabilized`가 크면 Jetson 발행 스레드 대기와 흔들림 보정
+  경로를 확인한다.
+- `depthai_to_stabilized`는 작은데 `depthai_to_bev_input`만 크면
+  카메라 ROS 발행부터 BEV 콜백 디스패치 구간을 확인한다.
+- `bev_input_to_ready`가 크면 BEV 큐, 변환 또는 출력 메시지 준비
+  구간을 확인한다.
+
+`depthai_to_bev_ready`는 BEV 노드의 `publish()` 반환 시점까지다.
+후속 주행 노드가 실제로 메시지를 받은 시점까지 확인하려면 그 노드의
+구독 콜백에서 `now - message.header.stamp`를 추가로 측정한다.
 
 `stabilizer=warmup`인 구간은 측정에서 제외하고 `ready`가 된 다음
 값을 확인한다.

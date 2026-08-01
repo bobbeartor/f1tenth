@@ -55,6 +55,36 @@ void update_maximum(
   }
 }
 
+void record_steady_latency(
+  const std::chrono::steady_clock::duration latency,
+  std::atomic<std::uint64_t> & sample_count,
+  std::atomic<std::uint64_t> & latency_ns_sum,
+  std::atomic<std::uint64_t> & latency_ns_max)
+{
+  const auto latency_ns =
+    std::chrono::duration_cast<std::chrono::nanoseconds>(latency).count();
+  constexpr std::int64_t maximum_valid_latency_ns =
+    60LL * 1000LL * 1000LL * 1000LL;
+  if (latency_ns < 0 || latency_ns > maximum_valid_latency_ns) {
+    return;
+  }
+
+  const auto valid_latency_ns = static_cast<std::uint64_t>(latency_ns);
+  sample_count.fetch_add(1U, std::memory_order_relaxed);
+  latency_ns_sum.fetch_add(valid_latency_ns, std::memory_order_relaxed);
+  update_maximum(latency_ns_max, valid_latency_ns);
+}
+
+double average_milliseconds(
+  const std::uint64_t duration_ns,
+  const std::uint64_t sample_count)
+{
+  return sample_count > 0U ?
+         static_cast<double>(duration_ns) /
+         static_cast<double>(sample_count) / 1.0e6 :
+         0.0;
+}
+
 std::string uppercase(std::string value)
 {
   std::transform(
@@ -527,6 +557,13 @@ private:
 
         const auto received_at = std::chrono::steady_clock::now();
         const auto sensor_timestamp = packet->getTimestamp();
+        if (performance_measurement_enabled_) {
+          record_steady_latency(
+            received_at - sensor_timestamp,
+            sensor_to_host_samples_interval_,
+            sensor_to_host_ns_interval_,
+            sensor_to_host_ns_max_interval_);
+        }
         const auto device_sequence = packet->getSequenceNum();
         if (last_device_sequence_.has_value() &&
           device_sequence > *last_device_sequence_ + 1)
@@ -917,6 +954,16 @@ private:
               stabilization_ns, std::memory_order_relaxed);
             update_maximum(
               stabilization_process_ns_max_interval_, stabilization_ns);
+            record_steady_latency(
+              stabilization_finished_at - snapshot->received_timestamp,
+              host_to_stabilized_samples_interval_,
+              host_to_stabilized_ns_interval_,
+              host_to_stabilized_ns_max_interval_);
+            record_steady_latency(
+              stabilization_finished_at - snapshot->sensor_timestamp,
+              sensor_to_stabilized_samples_interval_,
+              sensor_to_stabilized_ns_interval_,
+              sensor_to_stabilized_ns_max_interval_);
           }
 
           publisher_->publish(std::move(message));
@@ -1132,6 +1179,28 @@ private:
     const auto stabilization_process_ns_max =
       stabilization_process_ns_max_interval_.exchange(
       0U, std::memory_order_relaxed);
+    const auto sensor_to_host_samples =
+      sensor_to_host_samples_interval_.exchange(0U, std::memory_order_relaxed);
+    const auto sensor_to_host_ns =
+      sensor_to_host_ns_interval_.exchange(0U, std::memory_order_relaxed);
+    const auto sensor_to_host_ns_max =
+      sensor_to_host_ns_max_interval_.exchange(0U, std::memory_order_relaxed);
+    const auto host_to_stabilized_samples =
+      host_to_stabilized_samples_interval_.exchange(
+      0U, std::memory_order_relaxed);
+    const auto host_to_stabilized_ns =
+      host_to_stabilized_ns_interval_.exchange(0U, std::memory_order_relaxed);
+    const auto host_to_stabilized_ns_max =
+      host_to_stabilized_ns_max_interval_.exchange(
+      0U, std::memory_order_relaxed);
+    const auto sensor_to_stabilized_samples =
+      sensor_to_stabilized_samples_interval_.exchange(
+      0U, std::memory_order_relaxed);
+    const auto sensor_to_stabilized_ns =
+      sensor_to_stabilized_ns_interval_.exchange(0U, std::memory_order_relaxed);
+    const auto sensor_to_stabilized_ns_max =
+      sensor_to_stabilized_ns_max_interval_.exchange(
+      0U, std::memory_order_relaxed);
     const auto capture_hz = static_cast<double>(capture_count) / elapsed;
     const auto published_hz = static_cast<double>(published_count) / elapsed;
     const auto preview_hz = static_cast<double>(preview_count) / elapsed;
@@ -1140,6 +1209,13 @@ private:
       static_cast<double>(stabilization_process_ns) /
       static_cast<double>(stabilization_process_samples) / 1.0e6 :
       0.0;
+    const double average_sensor_to_host_ms =
+      average_milliseconds(sensor_to_host_ns, sensor_to_host_samples);
+    const double average_host_to_stabilized_ms =
+      average_milliseconds(host_to_stabilized_ns, host_to_stabilized_samples);
+    const double average_sensor_to_stabilized_ms =
+      average_milliseconds(
+      sensor_to_stabilized_ns, sensor_to_stabilized_samples);
     if (imu_stream_enabled_) {
       const auto imu_count = imu_processed_interval_.exchange(0);
       const auto imu_hz = static_cast<double>(imu_count) / elapsed;
@@ -1154,12 +1230,21 @@ private:
           node_.get_logger(),
           "[PERF][CAMERA] capture_fps=%.1f stabilized_fps=%.1f "
           "stabilized_compute_ms(avg/max)=%.3f/%.3f "
+          "latency_ms(depthai_to_host_avg/max=%.2f/%.2f,"
+          "host_to_stabilized_avg/max=%.2f/%.2f,"
+          "depthai_to_stabilized_avg/max=%.2f/%.2f) "
           "imu_fps=%.1f stabilizer=%s warps=%lu misses=%lu dropped=%lu "
           "errors(capture/publish)=%lu/%lu",
           capture_hz,
           published_hz,
           average_stabilization_process_ms,
           static_cast<double>(stabilization_process_ns_max) / 1.0e6,
+          average_sensor_to_host_ms,
+          static_cast<double>(sensor_to_host_ns_max) / 1.0e6,
+          average_host_to_stabilized_ms,
+          static_cast<double>(host_to_stabilized_ns_max) / 1.0e6,
+          average_sensor_to_stabilized_ms,
+          static_cast<double>(sensor_to_stabilized_ns_max) / 1.0e6,
           imu_hz,
           stabilization_state,
           static_cast<unsigned long>(stabilized_frames_total_.load()),
@@ -1352,6 +1437,15 @@ private:
   std::atomic<std::uint64_t> stabilization_process_samples_interval_{0};
   std::atomic<std::uint64_t> stabilization_process_ns_interval_{0};
   std::atomic<std::uint64_t> stabilization_process_ns_max_interval_{0};
+  std::atomic<std::uint64_t> sensor_to_host_samples_interval_{0};
+  std::atomic<std::uint64_t> sensor_to_host_ns_interval_{0};
+  std::atomic<std::uint64_t> sensor_to_host_ns_max_interval_{0};
+  std::atomic<std::uint64_t> host_to_stabilized_samples_interval_{0};
+  std::atomic<std::uint64_t> host_to_stabilized_ns_interval_{0};
+  std::atomic<std::uint64_t> host_to_stabilized_ns_max_interval_{0};
+  std::atomic<std::uint64_t> sensor_to_stabilized_samples_interval_{0};
+  std::atomic<std::uint64_t> sensor_to_stabilized_ns_interval_{0};
+  std::atomic<std::uint64_t> sensor_to_stabilized_ns_max_interval_{0};
 
   std::chrono::steady_clock::time_point started_at_;
   std::chrono::steady_clock::time_point last_status_at_;
