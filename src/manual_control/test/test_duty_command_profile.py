@@ -70,7 +70,7 @@ class DutyCommandProfileTest(unittest.TestCase):
         self.assertAlmostEqual(profile.update(1.0, 0.5, 0.5), 0.0725)
         self.assertEqual(profile.update(0.0, 1.0, 2.0), 0.0)
 
-    def test_y_toggle_changes_to_reverse_only_while_stopped(self) -> None:
+    def test_gear_toggle_changes_to_reverse_only_while_stopped(self) -> None:
         profile = make_profile()
 
         self.assertTrue(profile.toggle_gear())

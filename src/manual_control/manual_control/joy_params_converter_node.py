@@ -183,7 +183,7 @@ class JoyParamsConverterNode(Node):
         accelerator = controller_state["triggers"]["rt"]["value"]
         brake = controller_state["triggers"]["lt"]["value"]
         steering = controller_state["axes"]["left_stick_x"]
-        gear_button_pressed = controller_state["buttons"].get("y", False)
+        gear_button_pressed = controller_state["buttons"].get("rb", False)
 
         self.accelerator_pub.publish(Float32(data=accelerator))
         self.brake_pub.publish(Float32(data=brake))

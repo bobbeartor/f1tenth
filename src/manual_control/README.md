@@ -22,11 +22,11 @@ Current mapping:
 RT trigger axis -> /manual/accelerator
 LT trigger axis -> /manual/brake
 left stick X -> /manual/steering
-Y button -> /manual/gear_toggle
+RB button -> /manual/gear_toggle
 ```
 
 `actuator_commander_node` starts stopped in forward gear. RT increases the
-command duty, LT reduces duty toward zero, and Y toggles forward/reverse while
+command duty, LT reduces duty toward zero, and RB toggles forward/reverse while
 stopped. With the default `immediate_stop_on_accelerator_release: true`,
 releasing RT publishes duty 0 on the next 80 Hz control tick instead of keeping
 an accumulated command alive. Current gear and command duty are
@@ -34,7 +34,7 @@ published on `/manual/gear` and
 `/manual/current_duty`. The VESC node publishes measured ERPM on
 `/vesc/measured_erpm` and logs target duty and measured ERPM together.
 
-Y is converted from a repeated button state into one reliable rising-edge
+RB is converted from a repeated button state into one reliable rising-edge
 event. The first press is handled immediately, holding the button does not
 repeat the gear change, and edges within `button_debounce_sec: 0.20` are
 discarded as contact bounce.
@@ -43,7 +43,7 @@ The manual controller runs at 80 Hz. Its configured duty limits and ramps are:
 
 Controller state and VESC command topics use `KEEP_LAST(1)` best-effort QoS.
 Holding RT or a steering input therefore replaces the pending value instead of
-accumulating old commands. Y uses a separate reliable event QoS so a short press
+accumulating old commands. RB uses a separate reliable event QoS so a short press
 is not overwritten by its release. When serial I/O is temporarily delayed, the
 VESC node processes only the newest waiting duty/ERPM/servo command.
 
