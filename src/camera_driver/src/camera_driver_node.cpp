@@ -483,12 +483,23 @@ private:
       }
     }
 
+    // The host output queue above is already latest-only, but DepthAI creates
+    // a separate implicit XLinkOut input queue on the device. Build first so
+    // that bridge exists, then make its queue latest-only as well.
+    pipeline_->build();
+    const auto xlink_bridge = output->getXLinkBridge();
+    if (!xlink_bridge || !xlink_bridge->xLinkOut) {
+      throw std::runtime_error("DepthAI did not create the camera XLink output bridge");
+    }
+    xlink_bridge->xLinkOut->input.setMaxSize(1);
+    xlink_bridge->xLinkOut->input.setBlocking(false);
+
     pipeline_->start();
 
     RCLCPP_INFO(
       node_.get_logger(),
       "OAK: THE_720_P %dx%d @ %.1f FPS, USB=%s, "
-      "transport=NV12, XLink chunks=off",
+      "transport=NV12, XLink chunks=off, XLink device queue=1/non-blocking",
       width_, height_, sensor_fps_, usb_speed_name(device->getUsbSpeed()));
     RCLCPP_INFO(
       node_.get_logger(),
