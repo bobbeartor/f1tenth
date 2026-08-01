@@ -17,8 +17,8 @@ camera_driver:
     # Runs inside the OAK/DepthAI pipeline, not with host-side cv::remap().
     undistort_enabled: true
 
-    # Eight non-blocking slots sustain 120 FPS without stalling capture.
-    queue_size: 8
+    # Keep only the newest frame to minimize camera-to-host latency.
+    queue_size: 1
     queue_blocking: false
 
     frame_id: "camera_optical_frame"
