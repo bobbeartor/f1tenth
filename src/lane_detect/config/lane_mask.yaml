@@ -1,0 +1,87 @@
+lane_mask:
+  ros__parameters:
+    # camera_driver publishes rectified CAM_A frames in raw NV12 layout.
+    input_topic: "/camera/image_rect"
+
+    # NV12 passthrough for bev_processor: luma plane carries the mask,
+    # chroma plane is neutral so the CUDA BT.601 stage yields grayscale.
+    nv12_topic: "/camera/image_lane"
+    nv12_publish_enabled: true
+
+    # Optional mono8 copy for debugging and for non-BEV consumers.
+    mask_topic: "/lane_mask"
+    mask_publish_enabled: true
+
+    # Processing resolution. The published NV12 is always full input size,
+    # only the internal morphology runs at this width.
+    process_width: 960
+    process_max_fps: 30.0
+
+    # Size-like parameters below are written for this working width and are
+    # rescaled automatically when process_width changes.
+    param_reference_width: 960
+
+    # Stage 1: white top-hat. Kernel must exceed the lane stroke width so
+    # wide bright surfaces are removed and thin bright strokes survive.
+    blur_kernel: 5
+    tophat_kernel: 31
+    # 60 broke the darker-side lane into disconnected fragments across the
+    # 11 tuning photos; 45 keeps it continuous without letting extra noise in.
+    tophat_threshold: 45
+
+    # Stage 2: dark-context gate. Lane tape lies on the black EVA mat.
+    # dark_gate_enabled/dark_ratio only take effect when bilateral_dark_enabled
+    # is false (kept for comparison, see below).
+    dark_gate_enabled: true
+    dark_threshold: 70
+    # 0.20: raising it further (tried up to 0.30) never reduced the number of
+    # false components, it only ate into the lane pixels themselves - this
+    # single-sided ratio can't distinguish a mat edge from real lane tape.
+    dark_ratio: 0.20
+    dark_window: 25
+
+    # Stage 2b: bilateral dark condition (mat-edge rejection). A mat edge is
+    # dark on only one side; lane tape has dark mat on BOTH sides (left+right
+    # for a vertical stroke, up+down for a horizontal one). Takes priority
+    # over dark_gate_enabled above when true. bilateral_span_px is how far
+    # (px, auto-scaled with resolution) to look for dark on each side.
+    bilateral_dark_enabled: true
+    bilateral_span_px: 25
+
+    # Stage 3: connected-component shape filtering.
+    # 400: sharply cuts the number of spurious components while shrinking
+    # lane pixel count by <2% across the tuning photos. 600 was not adopted
+    # because it risked losing the lane entirely in some photos.
+    min_area: 400
+    blob_area: 1200
+    blob_aspect: 2.5
+    blob_fill: 0.45
+    sliver_filter_enabled: true
+    sliver_max_height: 12
+    sliver_top_ratio: 0.35
+
+    # Geometric horizon cut. Rows above the screen row corresponding to
+    # cut_beyond_m of forward distance cannot physically be ground (they are
+    # wall/chair/ceiling/distant floor), so they are zeroed before shape
+    # filtering. cut_beyond_m <= 0 falls back to the horizon (infinite
+    # distance). camera_height_m/camera_pitch_deg/camera_fy/camera_cy come
+    # from bev_config_manual.yaml's measured K_rect and mount geometry;
+    # reference_image_height is the resolution those values were measured at.
+    # 2.0: pixel footprint = d^2/(fy*h) = d^2/95.4, so at 2.5 m one pixel
+    # already covers 6.6 cm of ground - far coarser than the BEV's 1 cm grid,
+    # so it becomes a blur, not information. The real BEV output also shows
+    # blobbing starting around 2.4 m, matching this calculation.
+    cut_beyond_m: 2.0
+    camera_height_m: 0.17
+    camera_pitch_deg: 13.0
+    camera_fy: 561.136352539
+    camera_cy: 352.621124268
+    reference_image_height: 720
+
+    # Bottom cut: the bumper and its white sticker sit at a fixed screen
+    # position and would otherwise pass every earlier stage as "lane tape".
+    bottom_cut_ratio: 0.15
+
+    preview_enabled: false
+    preview_window_name: "lane mask"
+    status_log_interval_sec: 5.0

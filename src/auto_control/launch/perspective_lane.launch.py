@@ -28,10 +28,10 @@ def generate_launch_description():
             DeclareLaunchArgument("drive_enabled", default_value="false"),
             DeclareLaunchArgument("publish_debug", default_value="false"),
             DeclareLaunchArgument(
-                "image_topic", default_value="/camera/image_rect"
+                "image_topic", default_value="/lane_mask"
             ),
             DeclareLaunchArgument(
-                "force_lane_mask_input", default_value="false"
+                "force_lane_mask_input", default_value="true"
             ),
             Node(
                 package="auto_control",

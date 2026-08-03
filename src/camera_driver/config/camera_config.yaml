@@ -61,6 +61,7 @@ camera_driver:
     imu_stabilization_stationary_gyroscope_stddev_maximum_degps: 0.8
     imu_stabilization_pitch_correction_enabled: true
     imu_stabilization_roll_correction_enabled: true
+    # IMU 안정화는 최대 12도까지 보정한다. 이보다 큰 보정은 프레임을 폐기한다.
     imu_stabilization_maximum_correction_deg: 12.0
     imu_stabilization_maximum_frame_imu_wait_sec: 0.001
     imu_stabilization_maximum_frame_imu_age_sec: 0.006

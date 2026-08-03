@@ -1,13 +1,13 @@
 # auto_control
 
-BEV 변환 없이 카메라 원근 영상에서 차로 중심을 추정하고 F1TENTH 차량을
-제어하는 ROS 2 패키지다.
+BEV 변환 없이 C++ 차선 마스크에서 차로 중심을 추정하고 F1TENTH 차량을
+제어하는 ROS 2 패키지다. 통합 실행에서는 `lane_detect`가 카메라
+영상으로부터 생성한 `/lane_mask`를 입력으로 사용한다.
 
 ## 동작 방식
 
-1. `/camera/image_rect`의 `nv12`, `bgr8`, `rgb8` 영상을 받는다. `mono8`이면
-   이미 추출된 차선 마스크로 자동 인식한다.
-2. 원근 영상의 사다리꼴 ROI만 남기고 흰색 차선 마스크를 만든다.
+1. `/lane_mask`의 `mono8` 차선 마스크를 받는다.
+2. 원근 영상의 사다리꼴 ROI만 남긴다.
 3. 네 개 수평 구간에서 좌우 차선 경계 쌍을 고른다. 중앙의 짧은 흰 표시나
    도로 밖 흰 물체를 경계로 선택하지 않도록 예상 차로 폭과 중심 위치를
    함께 평가한다.
@@ -22,11 +22,19 @@ BEV 변환 없이 카메라 원근 영상에서 차로 중심을 추정하고 F1
 
 ## 단독 실행
 
-먼저 카메라 영상 발행과 VESC 노드를 별도로 실행한 뒤, 구동하지 않는
-dry-run으로 결과를 확인한다.
+먼저 카메라, `lane_detect`, VESC 노드를 별도로 실행한 뒤,
+구동하지 않는 dry-run으로 결과를 확인한다. 일반적으로는 아래의
+`vehicle_launcher` 통합 실행을 사용하는 편이 간단하다.
 
 ```bash
 ros2 launch auto_control perspective_lane.launch.py \
+  drive_enabled:=false publish_debug:=true
+```
+
+통합 실행:
+
+```bash
+ros2 launch vehicle_launcher auto_drive.launch.py \
   drive_enabled:=false publish_debug:=true
 ```
 
@@ -51,14 +59,14 @@ ros2 launch auto_control perspective_lane.launch.py drive_enabled:=true
 수동 주행 launch나 다른 `/vesc/duty`, `/vesc/servo_position` 발행 노드와
 동시에 실행하면 안 된다.
 
-## 이미 추출된 차선 마스크 사용
+## 차선 마스크 입력
 
-입력 토픽이 `sensor_msgs/Image`의 `mono8`이면 자동으로 마스크로 처리한다.
-BGR 형식으로 발행되는 마스크라면 다음 옵션을 사용한다.
+기본 입력은 `lane_detect`의 `/lane_mask`다. 다른 `mono8` 마스크를
+사용할 때는 토픽만 교체한다.
 
 ```bash
 ros2 launch auto_control perspective_lane.launch.py \
-  image_topic:=/lane/mask drive_enabled:=false \
+  image_topic:=/custom/lane_mask drive_enabled:=false \
   force_lane_mask_input:=true
 ```
 
@@ -69,7 +77,7 @@ ros2 launch auto_control perspective_lane.launch.py \
 - `roi_*`: 보닛과 도로 밖 물체를 제외하고 실제 도로만 포함시킨다.
 - `lane_width_top_ratio`, `lane_width_bottom_ratio`: ROI 위·아래에서 보이는
   좌우 경계 간격을 영상 폭으로 나눈 값이다.
-- `minimum_brightness`, `tophat_threshold`: 흰색 차선 마스크 품질을 조정한다.
+- C++ 마스크 품질은 `lane_detect/config/lane_mask.yaml`에서 조정한다.
 - `lateral_gain`: 차로 중앙에서 벗어난 오차에 대한 조향 반응이다.
 - `heading_gain`: 전방 차로가 휘는 방향에 대한 선행 조향 반응이다.
 - `base_duty`: 직선 최대 duty다. 초기에는 현재 기본값보다 올리지 않는다.

@@ -35,6 +35,29 @@ def generate_launch_description():
     vesc_config = PathJoinSubstitution(
         [FindPackageShare("vehicle_config"), "config", "vesc_config.yaml"]
     )
+
+    lane_detect_config = PathJoinSubstitution(
+        [
+            FindPackageShare("lane_detect"),
+            "config",
+            "lane_mask.yaml",
+        ]
+    )
+    lane_detect_node = Node(
+        package="lane_detect",
+        executable="lane_detect_node",
+        name="lane_mask",
+        output="screen",
+        parameters=[
+            lane_detect_config,
+            {
+                # The non-BEV controller consumes mono8 directly. Avoid the
+                # extra full-frame NV12 allocation intended for BEV.
+                "nv12_publish_enabled": False,
+            },
+        ],
+    )
+
     vesc_node = Node(
         package="vesc_initializer",
         executable="vesc_initialize_node",
@@ -84,6 +107,7 @@ def generate_launch_description():
                 "vesc_port", default_value="/dev/ttyACM0"
             ),
             camera_launch,
+            lane_detect_node,
             vesc_node,
             lane_node,
         ]

@@ -1,9 +1,10 @@
 perspective_lane_node:
   ros__parameters:
-    # camera_driver의 왜곡 보정·안정화된 NV12 영상. mono8 차선 마스크 토픽도
-    # 입력 가능하며, 이 경우 픽셀값 127 초과를 차선으로 간주한다.
-    image_topic: "/camera/image_rect"
-    force_lane_mask_input: false
+    # lane_detect가 생성한 개선 mono8 마스크를 기본 입력으로 사용한다.
+    image_topic: "/lane_mask"
+    force_lane_mask_input: true
+    # publish_debug=true일 때만 원본 카메라 영상을 추가 구독해 경로를 합성한다.
+    debug_background_topic: "/camera/image_rect"
 
     steering_topic: "/auto/steering"       # -1.0=좌, +1.0=우
     throttle_topic: "/auto/throttle"       # 실제로 적용할 VESC duty
@@ -47,7 +48,7 @@ perspective_lane_node:
     pair_maximum_width_scale: 1.55
     single_boundary_maximum_error_scale: 0.30
 
-    # 검은 노면 위 흰색 차선을 위한 top-hat 기반 내부 차선 마스크 추출.
+    # 외부 mono8 마스크를 사용하지 않을 때만 적용되는 fallback 검출 설정.
     minimum_brightness: 130
     tophat_threshold: 40
     tophat_kernel: 21

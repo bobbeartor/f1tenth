@@ -39,6 +39,9 @@ class PerspectiveLaneNode(Node):
             self.get_parameter("force_lane_mask_input").value
         )
         self.publish_debug = bool(self.get_parameter("publish_debug").value)
+        self.debug_background_topic = str(
+            self.get_parameter("debug_background_topic").value
+        )
         self.image_timeout_sec = max(
             0.05,
             float(self.get_parameter("image_timeout_sec").value),
@@ -186,6 +189,18 @@ class PerspectiveLaneNode(Node):
             self.debug_image_pub = None
             self.debug_mask_pub = None
 
+        self._latest_debug_background: np.ndarray | None = None
+        self._latest_debug_background_stamp_ns: int | None = None
+        if self.publish_debug and self.debug_background_topic:
+            self.debug_background_sub = self.create_subscription(
+                Image,
+                self.debug_background_topic,
+                self._on_debug_background,
+                latest_qos,
+            )
+        else:
+            self.debug_background_sub = None
+
         self.image_sub = self.create_subscription(
             Image,
             image_topic,
@@ -241,6 +256,7 @@ class PerspectiveLaneNode(Node):
     def _declare_parameters(self) -> None:
         self.declare_parameter("image_topic", "/camera/image_rect")
         self.declare_parameter("force_lane_mask_input", False)
+        self.declare_parameter("debug_background_topic", "")
         self.declare_parameter("steering_topic", "/auto/steering")
         self.declare_parameter("throttle_topic", "/auto/throttle")
         self.declare_parameter("confidence_topic", "/auto/lane_confidence")
@@ -318,7 +334,13 @@ class PerspectiveLaneNode(Node):
             self._last_processed_time = now
 
             if self.publish_debug:
-                debug = self.estimator.create_debug_image(image, estimate)
+                debug_source = self._matching_debug_background(msg)
+                if debug_source is None:
+                    debug_source = image
+                debug = self.estimator.create_debug_image(
+                    debug_source,
+                    estimate,
+                )
                 self.debug_image_pub.publish(
                     self._array_to_image(debug, "bgr8", msg)
                 )
@@ -335,6 +357,34 @@ class PerspectiveLaneNode(Node):
                 f"Lane image processing failed: {exc}",
                 throttle_duration_sec=1.0,
             )
+
+    def _on_debug_background(self, msg: Image) -> None:
+        try:
+            image, _ = self._decode_image(msg)
+            self._latest_debug_background = image
+            self._latest_debug_background_stamp_ns = self._stamp_ns(msg)
+        except (ValueError, cv2.error) as exc:
+            self.get_logger().warn(
+                f"Debug background decode failed: {exc}",
+                throttle_duration_sec=1.0,
+            )
+
+    def _matching_debug_background(self, msg: Image) -> np.ndarray | None:
+        if (
+            self._latest_debug_background is None
+            or self._latest_debug_background_stamp_ns is None
+        ):
+            return None
+        maximum_skew_ns = 100_000_000
+        if (
+            abs(
+                self._latest_debug_background_stamp_ns
+                - self._stamp_ns(msg)
+            )
+            > maximum_skew_ns
+        ):
+            return None
+        return self._latest_debug_background
 
     def _on_connection(self, msg: Bool) -> None:
         self._vesc_connected = bool(msg.data)
@@ -450,6 +500,13 @@ class PerspectiveLaneNode(Node):
             return color, False
 
         raise ValueError(f"unsupported image encoding: {msg.encoding}")
+
+    @staticmethod
+    def _stamp_ns(msg: Image) -> int:
+        return (
+            int(msg.header.stamp.sec) * 1_000_000_000
+            + int(msg.header.stamp.nanosec)
+        )
 
     @staticmethod
     def _array_to_image(

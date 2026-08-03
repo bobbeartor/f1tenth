@@ -149,7 +149,10 @@ class PerspectiveLaneEstimator:
     def _prepare_mask(self, image: np.ndarray, image_is_mask: bool) -> np.ndarray:
         if image.size == 0:
             raise ValueError("input image is empty")
-        resized = self._resize_to_processing_width(image)
+        resized = self._resize_to_processing_width(
+            image,
+            preserve_binary=image_is_mask or image.ndim == 2,
+        )
         if image_is_mask or resized.ndim == 2:
             if resized.ndim == 3:
                 gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
@@ -194,12 +197,19 @@ class PerspectiveLaneEstimator:
         )
         return cv2.bitwise_and(candidate, roi_mask)
 
-    def _resize_to_processing_width(self, image: np.ndarray) -> np.ndarray:
+    def _resize_to_processing_width(
+        self,
+        image: np.ndarray,
+        preserve_binary: bool = False,
+    ) -> np.ndarray:
         target_width = self.config.processing_width
         if target_width <= 0 or image.shape[1] == target_width:
             return image.copy()
         scale = target_width / float(image.shape[1])
-        interpolation = cv2.INTER_AREA if scale < 1.0 else cv2.INTER_LINEAR
+        if preserve_binary:
+            interpolation = cv2.INTER_NEAREST
+        else:
+            interpolation = cv2.INTER_AREA if scale < 1.0 else cv2.INTER_LINEAR
         return cv2.resize(image, None, fx=scale, fy=scale, interpolation=interpolation)
 
     def _roi_polygon(self, width: int, height: int) -> np.ndarray:

@@ -55,8 +55,9 @@ RB: 7
 
 ## Perspective-image autonomous lane following
 
-The autonomous launch starts the stabilized camera publisher, VESC serial node,
-and the non-BEV perspective lane follower together. It is disarmed by default:
+The autonomous launch starts the stabilized camera publisher, improved C++
+`lane_detect` mask node, VESC serial node, and non-BEV perspective lane follower.
+It is disarmed by default:
 
 ```bash
 ros2 launch vehicle_launcher auto_drive.launch.py \
