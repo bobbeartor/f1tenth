@@ -81,7 +81,8 @@ ros2 launch vehicle_test_drive vehicle_test_drive.launch.py vesc_port:=/dev/ttyA
 
 camera_driver는 OAK 장치 내부 왜곡 보정을 사용하고
 1280x720 NV12를 수신한다. 카메라 단독 프리뷰를 켜면 표시할 때만 CPU에서
-BGR로 변환한다. 카메라 단독 실행에서는 OAK IMU를 시작하지 않는다.
+BGR로 변환한다. OAK IMU로 시작 pitch/roll 기준을 유지하며 실행 직후
+1초 폐기 + 4초 기준 측정 동안 차량과 카메라를 정지시켜야 한다.
 성능 측정을 위해 ROS 이미지 발행은 기본적으로 꺼져 있다.
 
 cd ~/Desktop/f1tenth_test0724/f1tenth_project_repo
@@ -101,16 +102,18 @@ ros2 launch camera_driver camera_driver.launch.py publish_enabled:=true
 
 src/camera_driver/config/camera_config.yaml
 
-  sensor_fps: 143.0         -> OAK 센서/출력 요청 FPS
+  sensor_fps: 110.0         -> OAK 센서/출력 요청 FPS
   width: 1280
   height: 720
   undistort_enabled: true   -> OAK 내부 캘리브레이션으로 왜곡 보정
   image_topic: /camera/image_rect
-  queue_size: 2
+  queue_size: 1
   queue_blocking: false
   publish_enabled: false
-  publish_fps: 143.0
-  preview_fps: 143.0
+  publish_fps: 120.0
+  preview_fps: 60.0
+  imu_stabilization_enabled: true
+  fixed_view_zoom: 1.25
 
 상태 로그의 capture 값이 실제 센서 수신 FPS다. preview 값은 모니터
 주사율과 OpenCV GUI 성능의 제한을 받으므로 capture보다 낮을 수 있다.
@@ -121,41 +124,7 @@ OpenCV 창을 사용하려면 Jetson 데스크톱 또는 X11 forwarding처럼
 DISPLAY/그래픽 화면을 사용할 수 있어야 한다.
 
 
-[6. NV12 카메라 + CUDA BEV 통합 실행]
-
-카메라와 BEV를 같은 컴포넌트 컨테이너에서 intra-process로 연결한다.
-카메라 원본 프리뷰는 끄고, GPU가 NV12를 바로 120x340 BGR BEV로
-변환한다.
-
-시작 시 OAK stereo 평면으로 높이를 측정하고, 설정에서 선택한 depth 또는
-IMU로 roll/pitch를 1회 측정한다.
-측정 중에는 차량을 정지시키고 중앙에 평평한 노면이 보이게 한다.
-측정이 끝나면 카메라 드라이버가 영상을 안정화하고 BEV LUT는 고정한다.
-
-cd ~/Desktop/f1tenth_test0724/f1tenth_project_repo
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-ros2 launch bev_processor bev_processor.launch.py
-
-SSH 터미널에서 GUI 없이 흔들림 보정 FPS와 BEV 완료 FPS/지연을
-측정하려면:
-
-ros2 launch bev_processor bev_processor.launch.py \
-  performance_measurement_enabled:=true
-
-이 모드에서는 카메라/BEV 프리뷰가 모두 꺼지며, 5초마다
-[PERF][CAMERA]와 [PERF][PIPELINE] 로그가 출력된다.
-
-BEV 프리뷰/토픽/측정 설정은 bev_config.yaml에서 변경한다.
-camera_height_estimator는 별도
-측정 도구이며 BEV 실행에 값을 전달하지 않는다.
-
-CUDA Toolkit 확인:
-
-nvcc --version
-
-
-[7. Jetson 빌드]
+[6. Jetson 빌드]
 
 cd ~/Desktop/f1tenth_test0724/f1tenth_project_repo
 
@@ -163,7 +132,7 @@ source /opt/ros/humble/setup.bash
 colcon build --cmake-clean-cache --packages-select \
   joy_initializer vehicle_config vehicle_launcher manual_control \
   vesc_initializer vehicle_test_drive camera_driver \
-  camera_height_estimator bev_processor \
+  camera_height_estimator \
   --cmake-args -DCMAKE_BUILD_TYPE=Release
 source install/setup.bash
 

@@ -5,15 +5,17 @@ OAK/DepthAI 카메라 영상을 낮은 지연시간으로 받는 ROS 2 C++ 패�
 
 - 센서 모드: OV9782 `THE_720_P`, `1280x720`, `NV12`
 - 기본 프리뷰/ROS 출력: 안정화된 전체 `1280x720` 프레임
-- 요청 센서 FPS: `120`
+- 요청 센서 FPS: `110`
 - USB 최대 속도 요청: `SUPER` (5 Gbps)
 - XLink 청크 분할: 비활성화 (`setXLinkChunkSize(0)`)
 - 렌즈 왜곡 보정: OAK 장치 내부에서 활성화
 - ROS 이미지 발행: 기본 비활성화
 - IMU 브리지: 기본 비활성화, 활성화 시 camera optical frame의
   가속도+각속도 발행
+- 영상 안정화: 기본 활성화, 시작 pitch/roll 기준을 유지하는 고정 초점
+  짐벌 방식
 - QoS: sensor data, best effort, keep-last 1
-- 호스트 큐: 크기 8, non-blocking
+- 호스트 큐: 크기 1, non-blocking
 - 프리뷰: 캡처와 분리된 최신 프레임 방식
 
 센서 모드는 OV9782의 2-lane `THE_720_P`로 명시하며, 이 모드는 센서
@@ -21,8 +23,8 @@ OAK/DepthAI 카메라 영상을 낮은 지연시간으로 받는 ROS 2 C++ 패�
 별도로 측정된 캡처 FPS와 장치 sequence gap을 주기적으로 출력한다.
 
 첫 프레임에는 resize와 장치 내부 왜곡 보정을 반영한 전체 1280x720
-`K_rect`의 `fx`, `fy`, `cx`, `cy`를 출력한다. BEV처럼 투영 기하가
-필요한 후속 처리에서는 이 값을 사용한다.
+`K_rect`의 `fx`, `fy`, `cx`, `cy`를 출력한다. 투영 기하가 필요한 후속
+처리에서는 이 값을 사용한다.
 
 ## 성능 구조
 
@@ -44,12 +46,11 @@ plane 360행이 연속으로 들어간다. 일반 BGR8 구독자가 아니라 NV
 왜곡 보정은 `Camera::requestOutput(..., enableUndistortion=true)`로 요청한다.
 따라서 호스트에서 `cv::remap()`을 수행하지 않는다.
 
-IMU 브리지를 켜면 raw accelerometer와 raw gyroscope를 같은 400 Hz로
-요청하고, factory IMU-to-camera 회전행렬을 두 벡터에 모두 적용해
-`sensor_msgs/Imu`로 발행한다. orientation 자체는 채우지 않는다. 통합
-`bev_processor`는 실시간 IMU 토픽으로 LUT를 갱신하지 않으므로 기본 통합
-launch에서는 IMU 브리지 발행을 끈다. 영상 안정화용 IMU는 드라이버 내부에서
-계속 사용한다.
+IMU 브리지를 켜면 calibrated accelerometer와 calibrated gyroscope를
+400 Hz로 요청한다. DepthAI가 이미 적용한 EEPROM 회전을 다시 곱하지 않고,
+calibrated 출력 좌표계에서 선택 카메라 optical frame으로 가는 상대 회전만
+적용해 `sensor_msgs/Imu`로 발행한다. orientation 자체는 채우지 않는다.
+영상 안정화용 IMU는 브리지 설정과 무관하게 드라이버 내부에서 사용한다.
 
 ROS 발행은 `sensor_msgs/msg/Image`의 `UniquePtr`를 사용한다. 기본 launch는
 컴포넌트 컨테이너에서 intra-process 통신을 활성화한다. 향후 C++ 영상 처리
@@ -134,9 +135,9 @@ colcon build \
     -Ddepthai_DIR=/path/to/depthai-install/lib/cmake/depthai
 ```
 
-DepthAI는 OpenCV 지원을 켜고 빌드되어야 한다. 카메라 단독 프리뷰를 켠
-경우에만 `ImgFrame::getCvFrame()`으로 NV12를 CPU BGR로 변환해 OpenCV
-창에 표시한다. GPU BEV 통합 launch에서는 이 프리뷰를 끈다.
+DepthAI는 OpenCV 지원을 켜고 빌드되어야 한다. 프리뷰를 켠 경우에만
+`ImgFrame::getCvFrame()`으로 NV12를 CPU BGR로 변환해 OpenCV 창에
+표시한다.
 
 ## 빌드
 
@@ -179,27 +180,34 @@ ros2 launch camera_driver camera_driver.launch.py \
   preview_enabled:=true preview_grid_enabled:=false
 ```
 
-OAK IMU로 프리뷰와 ROS NV12 출력의 고주파 roll/pitch 흔들림을
-안정화하려면 다음처럼 실행한다.
+OAK IMU로 프리뷰와 ROS NV12 출력을 시작 pitch/roll 기준에 고정하려면
+다음처럼 실행한다.
 
 ```bash
 ros2 launch camera_driver camera_driver.launch.py \
   preview_enabled:=true imu_stabilization_enabled:=true
 ```
 
-안정화기는 처음 400개 IMU 샘플로 중력 방향과 자이로 bias를 측정하므로
-시작 후 약 1초 동안 차량을 정지시킨다.
-이후 400 Hz IMU 자세에서 느린 카메라 궤적을 분리하고, 영상 timestamp에
-해당하는 고주파 roll/pitch 보정값을 보간한다. 카메라 내부 파라미터로
-회전 homography를 만들어 프리뷰 BGR 또는 발행 NV12의 Y/UV 평면을
-전체 1280x720 크기로 워핑한다. 영상 가장자리에는 보정으로 인한 검은
-영역이 생길 수 있다.
+안정화기는 전원 직후 IMU 샘플을 1초간 폐기한 뒤 4초 정지 구간의 중력
+방향과 자이로 bias를 시작 기준으로 측정한다. 이 5초 동안 차량과 카메라를
+움직이면 기준 측정이 다시 시작된다.
+
+이후 400 Hz calibrated IMU를 quaternion으로 적분한다. 각 RGB 노출 중심을
+둘러싼 자세를 SLERP하고, 미래 IMU가 늦으면 마지막 각속도로 최대 15 ms만
+예측한다. 중력축 주위 yaw와 평행이동은 보정하지 않고 시작 기준에 대한
+pitch/roll 차이만 회전 homography로 되돌린다. 최근 궤적을 따라가는
+평활화가 아니므로 카메라가 천천히 기울어도 초점 방향은 시작 자세에
+고정된다.
+
+주행 중 횡가속을 실제 roll로 오인하지 않도록 roll 가속도 방향 gate는
+4.3도로 제한한다. 강한 중력 기반 roll 복원은 1초 관측 창에서 정지가
+확정된 경우에만 허용한다.
+
+결과 FOV는 광학 중심 기준 1.25배 고정 줌으로 유지한다. 줌 영역으로 원본
+경계를 모두 채울 수 없는 자세, 동기화할 IMU가 없는 프레임, 12도 보정
+한계를 넘은 프레임은 검은 경계를 출력에 섞지 않고 폐기한다.
 워핑은 현재 CPU OpenCV 경로이므로 활성화 후 상태 로그의 실제 capture
 FPS와 누락 프레임 수를 Jetson에서 확인해야 한다.
-
-통합 `bev_processor`는 시작 시 측정한 자세로 LUT를 한 번 만든 뒤 고정한다.
-실시간 roll/pitch 흔들림 보정은 카메라 드라이버에서만 수행하므로 같은
-회전을 BEV에서 중복 보정하지 않는다.
 
 ROS 이미지 발행 없이 캡처와 직접 프리뷰만 측정:
 
@@ -217,12 +225,16 @@ ros2 run camera_driver camera_driver_node \
 
 ## 상태 확인
 
-노드는 기본 5초마다 다음 항목만 간단히 출력한다.
+노드는 기본 1초마다 다음 항목을 출력한다. 시작 직후에는 폐기 구간을
+`[warmup discard]`, 정지 기준 자세와 gyro bias 측정 구간을
+`[calibration]`으로 구분해 진행률을 표시한다.
 
 - `capture`: 실제 DepthAI 프레임 수신 FPS와 요청 FPS
 - `preview`: 실제 프리뷰 갱신 FPS
 - `IMU`: 안정화/ROS 브리지에서 실제 처리한 IMU 샘플 rate
-- `stabilizer`: `off`, `warmup`, `ready` 상태와 누적 warp/miss 수
+- `stabilizer`: `off`, `discarding-startup-imu`,
+  `stationary-calibration`, `fixed-reference-ready` 상태와 누적
+  warp/miss/drop 수
 - `dropped`: 최근 상태 구간의 sequence 누락 프레임 수
 
 예:
@@ -255,16 +267,16 @@ ros2 topic info /camera/image_rect --verbose
 | `publish_enabled` | `false` | ROS 이미지 발행 |
 | `publish_fps` | `120.0` | ROS 발행 목표 최대 FPS |
 | `imu_bridge_enabled` | `false` | 가속도+자이로 ROS 발행 |
-| `imu_rate_hz` | `400.0` | raw accel+gyro 동기 요청/발행 rate |
+| `imu_rate_hz` | `400.0` | calibrated accel+gyro 요청/발행 rate |
+| `imu_max_batch_reports` | `5` | 장치측 IMU 묶음 전송 상한 |
 | `imu_topic` | `/camera/imu` | `sensor_msgs/Imu` 출력 |
-| `imu_stabilization_enabled` | `false` | IMU 영상 안정화 |
-| `imu_stabilization_warmup_samples` | `400` | 초기 bias/중력 평균 샘플 수 |
-| `imu_stabilization_acceleration_time_constant_sec` | `4.0` | 중력 방향 보정 시정수 |
-| `imu_stabilization_acceleration_gate_deg` | `4.0` | 동적 가속도 보정 거부 각도 |
-| `imu_stabilization_smoothing_time_constant_sec` | `0.48` | 느린 카메라 궤적 평활화 시정수 |
-| `imu_stabilization_maximum_correction_deg` | `4.0` | 축별 최대 영상 보정각 |
-| `imu_stabilization_roll_gain` | `1.0` | roll 보정 방향/크기 |
-| `imu_stabilization_pitch_gain` | `0.9` | pitch 보정 방향/크기 |
+| `imu_stabilization_enabled` | `true` | 시작 기준 pitch/roll 안정화 |
+| `imu_stabilization_startup_discard_duration_sec` | `1.0` | 전원 직후 IMU 과도값 폐기 시간 |
+| `imu_stabilization_reference_calibration_duration_sec` | `4.0` | 정지 기준 자세 측정 시간 |
+| `imu_stabilization_maximum_correction_deg` | `12.0` | 축별 최대 영상 보정각 |
+| `imu_stabilization_maximum_prediction_sec` | `0.015` | 마지막 gyro 기반 최대 예측 시간 |
+| `fixed_view_zoom` | `1.25` | 고정 출력 FOV 줌 배율 |
+| `fixed_view_border_margin_px` | `1.5` | 원본 경계 bilinear 안전 여백 |
 | `output_crop_top_px` | `0` | 안정화 후 제거할 상단 행 수 (`0`이면 원본) |
 | `preview_enabled` | `false` | OpenCV 직접 프리뷰 |
 | `preview_fps` | `60.0` | 프리뷰 갱신 목표 최대 FPS |
@@ -273,6 +285,5 @@ ros2 topic info /camera/image_rect --verbose
 
 143 FPS에서 `1280x720 NV12`의 순수 영상 데이터는 약 189 MiB/s다.
 `BGR888i`의 약 377 MiB/s보다 작다. 외부 프로세스 구독자는 DDS 직렬화와
-추가 복사를 사용하므로, 주 영상 처리는
-`bev_processor.launch.py`처럼 같은 프로세스의 intra-process C++
-컴포넌트로 구성하는 것이 좋다.
+추가 복사를 사용하므로, 후속 C++ 영상 처리는 같은 컴포넌트 컨테이너의
+intra-process 통신으로 구성하는 것이 좋다.

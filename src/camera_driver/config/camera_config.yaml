@@ -25,26 +25,51 @@ camera_driver:
     # Raw NV12: Y plane followed by interleaved UV plane.
     image_topic: "/camera/image_rect"
 
-    # IMU 토픽 발행 옵션이다. 통합 BEV launch는 토픽을 사용하지 않아 false로
-    # 유지하지만, 영상 안정화에는 아래 IMU 스트림이 내부적으로 사용된다.
+    # IMU 토픽 발행은 선택 사항이며 영상 안정화는 내부 IMU를 직접 사용한다.
     imu_bridge_enabled: false
     imu_topic: "/camera/imu"
     imu_frame_id: "camera_optical_frame"
-    # Raw accelerometer+gyroscope synchronized output maximum.
+    # BNO086 calibrated accelerometer+gyroscope output.
     imu_rate_hz: 400.0
     imu_queue_size: 80
+    imu_max_batch_reports: 5
+    maximum_accel_gyro_timestamp_skew_sec: 0.003
+    maximum_timestamp_domain_delta_sec: 1.0
 
-    # 호스트 IMU 영상 안정화. 통합 BEV launch가 true로 덮어쓰며 영상 timestamp의
-    # 고주파 roll/pitch 흔들림을 보정한다. BEV LUT는 시작 측정 후 고정된다.
-    imu_stabilization_enabled: false
-    imu_stabilization_warmup_samples: 400
-    imu_stabilization_acceleration_time_constant_sec: 4.3
-    imu_stabilization_acceleration_gate_deg: 4.3
-    imu_stabilization_smoothing_time_constant_sec: 0.48
-    imu_stabilization_maximum_correction_deg: 4.0
-    # Change a gain to -1.0 only if a hardware-axis validation shows inversion.
-    imu_stabilization_roll_gain: 1.0
-    imu_stabilization_pitch_gain: 0.9
+    # stabilized_preview와 동일한 고정 기준 pitch/roll 안정화. 시작 후 총 5초
+    # 동안 카메라를 정지시켜 IMU 과도값 폐기와 기준 자세 측정을 완료한다.
+    imu_stabilization_enabled: true
+    imu_stabilization_startup_discard_duration_sec: 1.0
+    imu_stabilization_reference_calibration_duration_sec: 4.0
+    imu_stabilization_calibration_maximum_angular_speed_degps: 0.5
+    imu_stabilization_gyroscope_bias_enabled: true
+    imu_stabilization_gravity_mps2: 9.80665
+    imu_stabilization_accelerometer_full_trust_deviation_mps2: 0.15
+    imu_stabilization_accelerometer_zero_trust_deviation_mps2: 1.50
+    imu_stabilization_accelerometer_time_constant_sec: 4.3
+    imu_stabilization_accelerometer_direction_gate_deg: 4.3
+    imu_stabilization_roll_accelerometer_time_constant_sec: 6.0
+    imu_stabilization_roll_accelerometer_direction_gate_deg: 4.3
+    imu_stabilization_online_gyroscope_tilt_bias_enabled: true
+    imu_stabilization_online_gyroscope_tilt_bias_time_constant_sec: 10.0
+    imu_stabilization_stationary_detection_window_sec: 1.0
+    imu_stabilization_stationary_accelerometer_norm_tolerance_mps2: 0.20
+    imu_stabilization_stationary_accelerometer_norm_stddev_mps2: 0.08
+    imu_stabilization_stationary_accelerometer_direction_error_deg: 1.5
+    imu_stabilization_stationary_accelerometer_direction_change_deg: 0.15
+    imu_stabilization_stationary_gyroscope_mean_maximum_degps: 0.5
+    imu_stabilization_stationary_gyroscope_stddev_maximum_degps: 0.8
+    imu_stabilization_pitch_correction_enabled: true
+    imu_stabilization_roll_correction_enabled: true
+    imu_stabilization_maximum_correction_deg: 12.0
+    imu_stabilization_maximum_frame_imu_wait_sec: 0.001
+    imu_stabilization_maximum_frame_imu_age_sec: 0.006
+    imu_stabilization_maximum_prediction_sec: 0.015
+
+    # 광학 중심 기준 고정 FOV. 이 crop으로 원본 경계를 채울 수 없는 자세의
+    # 프레임은 검은 영역을 섞지 않고 폐기한다.
+    fixed_view_zoom: 1.25
+    fixed_view_border_margin_px: 1.5
 
     # Keep the full stabilized frame. Optional NV12 cropping requires an even
     # pixel value.
@@ -54,11 +79,10 @@ camera_driver:
     publish_enabled: false
     publish_fps: 120.0
 
-    # 독립 프리뷰는 CPU에서 NV12를 BGR로 바꾼다. 통합 BEV launch에서는 끄고
-    # 작은 GPU BEV 결과만 프리뷰한다.
+    # 독립 프리뷰는 표시할 최신 NV12 프레임만 CPU에서 BGR로 바꾼다.
     preview_enabled: false
     preview_fps: 60.0
-    preview_window_name: "OAK rectified image"
+    preview_window_name: "OAK fixed-reference pitch-roll stabilization"
     preview_max_width: 1280
     preview_max_height: 720
     # Draw a subtle source-image coordinate grid on the standalone preview.
@@ -66,4 +90,4 @@ camera_driver:
     preview_grid_spacing_px: 20
 
     startup_timeout_sec: 5.0
-    status_log_interval_sec: 5.0
+    status_log_interval_sec: 1.0

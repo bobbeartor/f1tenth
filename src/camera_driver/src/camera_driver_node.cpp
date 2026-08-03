@@ -2,7 +2,6 @@
 #include "camera_driver/imu_image_stabilizer.hpp"
 
 #include <algorithm>
-#include <array>
 #include <atomic>
 #include <cctype>
 #include <chrono>
@@ -12,6 +11,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -19,6 +19,7 @@
 #include <string>
 #include <thread>
 #include <utility>
+#include <vector>
 
 #include "depthai/depthai.hpp"
 #include "opencv2/core.hpp"
@@ -128,6 +129,42 @@ dai::ImgResizeMode parse_resize_mode(const std::string & value)
   }
   throw std::invalid_argument(
           "resize_mode must be CROP, STRETCH, or LETTERBOX");
+}
+
+cv::Matx33d matrix3x3_from_calibration(
+  const std::vector<std::vector<float>> & rows,
+  const char * label)
+{
+  if (
+    rows.size() < 3U || rows[0].size() < 3U ||
+    rows[1].size() < 3U || rows[2].size() < 3U)
+  {
+    throw std::runtime_error(
+            std::string(label) + " is missing or smaller than 3x3");
+  }
+  cv::Matx33d result;
+  for (int row = 0; row < 3; ++row) {
+    for (int column = 0; column < 3; ++column) {
+      result(row, column) = static_cast<double>(rows[row][column]);
+    }
+  }
+  return result;
+}
+
+void validate_rotation_matrix(
+  const cv::Matx33d & rotation,
+  const char * label)
+{
+  const double orthogonality_error = cv::norm(
+    rotation * rotation.t() - cv::Matx33d::eye());
+  const double determinant = cv::determinant(cv::Mat(rotation));
+  if (
+    !cv::checkRange(cv::Mat(rotation)) ||
+    !std::isfinite(orthogonality_error) || orthogonality_error > 1.0e-3 ||
+    !std::isfinite(determinant) || std::abs(determinant - 1.0) > 1.0e-3)
+  {
+    throw std::runtime_error(std::string(label) + " is not a proper rotation");
+  }
 }
 
 const char * usb_speed_name(dai::UsbSpeed speed)
@@ -248,6 +285,12 @@ private:
     std::int64_t device_sequence;
   };
 
+  struct StabilizationTransform
+  {
+    std::optional<cv::Matx33d> homography;
+    bool frame_usable{true};
+  };
+
   template<typename IntegerT>
   static void require_positive(IntegerT value, const char * parameter_name)
   {
@@ -284,34 +327,98 @@ private:
       "imu_topic", "/camera/imu");
     imu_frame_id_ = node_.declare_parameter<std::string>(
       "imu_frame_id", "camera_optical_frame");
-    imu_rate_hz_ = node_.declare_parameter<double>("imu_rate_hz", 100.0);
-    imu_queue_size_ = node_.declare_parameter<int>("imu_queue_size", 20);
+    imu_rate_hz_ = node_.declare_parameter<double>("imu_rate_hz", 400.0);
+    imu_queue_size_ = node_.declare_parameter<int>("imu_queue_size", 80);
+    imu_max_batch_reports_ =
+      node_.declare_parameter<int>("imu_max_batch_reports", 5);
+    maximum_imu_pair_skew_sec_ = node_.declare_parameter<double>(
+      "maximum_accel_gyro_timestamp_skew_sec", 0.003);
+    maximum_timestamp_domain_delta_sec_ = node_.declare_parameter<double>(
+      "maximum_timestamp_domain_delta_sec", 1.0);
     imu_stabilization_enabled_ =
-      node_.declare_parameter<bool>("imu_stabilization_enabled", false);
-    const int imu_stabilization_warmup_samples =
-      node_.declare_parameter<int>(
-      "imu_stabilization_warmup_samples", 400);
-    require_positive(
-      imu_stabilization_warmup_samples,
-      "imu_stabilization_warmup_samples");
-    imu_stabilizer_config_.warmup_samples =
-      static_cast<std::size_t>(imu_stabilization_warmup_samples);
+      node_.declare_parameter<bool>("imu_stabilization_enabled", true);
+    imu_stabilizer_config_.startup_discard_duration_sec =
+      node_.declare_parameter<double>(
+      "imu_stabilization_startup_discard_duration_sec", 1.0);
+    imu_stabilizer_config_.reference_calibration_duration_sec =
+      node_.declare_parameter<double>(
+      "imu_stabilization_reference_calibration_duration_sec", 4.0);
+    imu_stabilizer_config_.calibration_maximum_angular_speed_degps =
+      node_.declare_parameter<double>(
+      "imu_stabilization_calibration_maximum_angular_speed_degps", 0.5);
+    imu_stabilizer_config_.gyroscope_bias_enabled =
+      node_.declare_parameter<bool>(
+      "imu_stabilization_gyroscope_bias_enabled", true);
+    imu_stabilizer_config_.gravity_mps2 =
+      node_.declare_parameter<double>(
+      "imu_stabilization_gravity_mps2", 9.80665);
+    imu_stabilizer_config_.accelerometer_full_trust_deviation_mps2 =
+      node_.declare_parameter<double>(
+      "imu_stabilization_accelerometer_full_trust_deviation_mps2", 0.15);
+    imu_stabilizer_config_.accelerometer_zero_trust_deviation_mps2 =
+      node_.declare_parameter<double>(
+      "imu_stabilization_accelerometer_zero_trust_deviation_mps2", 1.50);
     imu_stabilizer_config_.acceleration_correction_time_constant_sec =
       node_.declare_parameter<double>(
-      "imu_stabilization_acceleration_time_constant_sec", 4.0);
+      "imu_stabilization_accelerometer_time_constant_sec", 4.3);
     imu_stabilizer_config_.acceleration_correction_gate_deg =
       node_.declare_parameter<double>(
-      "imu_stabilization_acceleration_gate_deg", 4.0);
-    imu_stabilizer_config_.trajectory_smoothing_time_constant_sec =
+      "imu_stabilization_accelerometer_direction_gate_deg", 4.3);
+    imu_stabilizer_config_.roll_acceleration_correction_time_constant_sec =
       node_.declare_parameter<double>(
-      "imu_stabilization_smoothing_time_constant_sec", 0.48);
+      "imu_stabilization_roll_accelerometer_time_constant_sec", 6.0);
+    imu_stabilizer_config_.roll_acceleration_direction_gate_deg =
+      node_.declare_parameter<double>(
+      "imu_stabilization_roll_accelerometer_direction_gate_deg", 4.3);
+    imu_stabilizer_config_.online_gyroscope_tilt_bias_enabled =
+      node_.declare_parameter<bool>(
+      "imu_stabilization_online_gyroscope_tilt_bias_enabled", true);
+    imu_stabilizer_config_.online_gyroscope_tilt_bias_time_constant_sec =
+      node_.declare_parameter<double>(
+      "imu_stabilization_online_gyroscope_tilt_bias_time_constant_sec", 10.0);
+    imu_stabilizer_config_.stationary_detection_window_sec =
+      node_.declare_parameter<double>(
+      "imu_stabilization_stationary_detection_window_sec", 1.0);
+    imu_stabilizer_config_.stationary_accelerometer_norm_tolerance_mps2 =
+      node_.declare_parameter<double>(
+      "imu_stabilization_stationary_accelerometer_norm_tolerance_mps2", 0.20);
+    imu_stabilizer_config_.stationary_accelerometer_norm_stddev_mps2 =
+      node_.declare_parameter<double>(
+      "imu_stabilization_stationary_accelerometer_norm_stddev_mps2", 0.08);
+    imu_stabilizer_config_.stationary_accelerometer_direction_error_deg =
+      node_.declare_parameter<double>(
+      "imu_stabilization_stationary_accelerometer_direction_error_deg", 1.5);
+    imu_stabilizer_config_.stationary_accelerometer_direction_change_deg =
+      node_.declare_parameter<double>(
+      "imu_stabilization_stationary_accelerometer_direction_change_deg", 0.15);
+    imu_stabilizer_config_.stationary_gyroscope_mean_maximum_degps =
+      node_.declare_parameter<double>(
+      "imu_stabilization_stationary_gyroscope_mean_maximum_degps", 0.5);
+    imu_stabilizer_config_.stationary_gyroscope_stddev_maximum_degps =
+      node_.declare_parameter<double>(
+      "imu_stabilization_stationary_gyroscope_stddev_maximum_degps", 0.8);
+    imu_stabilizer_config_.pitch_correction_enabled =
+      node_.declare_parameter<bool>(
+      "imu_stabilization_pitch_correction_enabled", true);
+    imu_stabilizer_config_.roll_correction_enabled =
+      node_.declare_parameter<bool>(
+      "imu_stabilization_roll_correction_enabled", true);
     imu_stabilizer_config_.maximum_correction_deg =
       node_.declare_parameter<double>(
-      "imu_stabilization_maximum_correction_deg", 4.0);
-    imu_stabilization_roll_gain_ =
-      node_.declare_parameter<double>("imu_stabilization_roll_gain", 1.0);
-    imu_stabilization_pitch_gain_ =
-      node_.declare_parameter<double>("imu_stabilization_pitch_gain", 0.9);
+      "imu_stabilization_maximum_correction_deg", 12.0);
+    imu_stabilizer_config_.maximum_frame_imu_wait_sec =
+      node_.declare_parameter<double>(
+      "imu_stabilization_maximum_frame_imu_wait_sec", 0.001);
+    imu_stabilizer_config_.maximum_frame_imu_age_sec =
+      node_.declare_parameter<double>(
+      "imu_stabilization_maximum_frame_imu_age_sec", 0.006);
+    imu_stabilizer_config_.maximum_frame_imu_prediction_sec =
+      node_.declare_parameter<double>(
+      "imu_stabilization_maximum_prediction_sec", 0.015);
+    fixed_view_zoom_ =
+      node_.declare_parameter<double>("fixed_view_zoom", 1.25);
+    fixed_view_border_margin_px_ = node_.declare_parameter<double>(
+      "fixed_view_border_margin_px", 1.5);
     output_crop_top_px_ =
       node_.declare_parameter<int>("output_crop_top_px", 0);
     publish_enabled_ =
@@ -323,7 +430,7 @@ private:
     preview_fps_ =
       node_.declare_parameter<double>("preview_fps", 60.0);
     preview_window_name_ = node_.declare_parameter<std::string>(
-      "preview_window_name", "OAK rectified image");
+      "preview_window_name", "OAK fixed-reference pitch-roll stabilization");
     preview_max_width_ =
       node_.declare_parameter<int>("preview_max_width", 1280);
     preview_max_height_ =
@@ -335,7 +442,7 @@ private:
     startup_timeout_sec_ =
       node_.declare_parameter<double>("startup_timeout_sec", 5.0);
     status_log_interval_sec_ =
-      node_.declare_parameter<double>("status_log_interval_sec", 5.0);
+      node_.declare_parameter<double>("status_log_interval_sec", 1.0);
 
     if (performance_measurement_enabled_) {
       preview_enabled_ = false;
@@ -365,6 +472,17 @@ private:
       require_positive(imu_rate_hz_, "imu_rate_hz");
       require_positive(imu_queue_size_, "imu_queue_size");
       if (
+        imu_max_batch_reports_ <= 1 ||
+        imu_max_batch_reports_ > imu_queue_size_ ||
+        !std::isfinite(maximum_imu_pair_skew_sec_) ||
+        maximum_imu_pair_skew_sec_ <= 0.0 ||
+        !std::isfinite(maximum_timestamp_domain_delta_sec_) ||
+        maximum_timestamp_domain_delta_sec_ <= 0.0)
+      {
+        throw std::invalid_argument(
+                "invalid IMU batching or accel/gyro timestamp skew limit");
+      }
+      if (
         imu_bridge_enabled_ &&
         (imu_topic_.empty() || imu_frame_id_.empty()))
       {
@@ -374,13 +492,15 @@ private:
       }
     }
     if (
-      !std::isfinite(imu_stabilization_roll_gain_) ||
-      !std::isfinite(imu_stabilization_pitch_gain_) ||
-      std::abs(imu_stabilization_roll_gain_) > 2.0 ||
-      std::abs(imu_stabilization_pitch_gain_) > 2.0)
+      !std::isfinite(fixed_view_zoom_) ||
+      fixed_view_zoom_ < 1.0 || fixed_view_zoom_ > 3.0 ||
+      !std::isfinite(fixed_view_border_margin_px_) ||
+      fixed_view_border_margin_px_ < 0.0 ||
+      fixed_view_border_margin_px_ >=
+      0.25 * static_cast<double>(std::min(width_, height_)))
     {
       throw std::invalid_argument(
-              "IMU stabilization gains must be finite and within [-2, 2]");
+              "invalid fixed-view zoom or source border margin");
     }
     if (publish_enabled_) {
       require_positive(publish_fps_, "publish_fps");
@@ -422,8 +542,8 @@ private:
       std::make_pair(
         static_cast<std::uint32_t>(width_),
         static_cast<std::uint32_t>(height_)),
-      // Keep the full-rate device/USB path compact. The CUDA BEV consumer
-      // samples NV12 directly, so no full-resolution host BGR frame is needed.
+      // Keep the full-rate device/USB path compact. Stabilization warps the
+      // NV12 planes directly, so no full-resolution host BGR frame is needed.
       dai::ImgFrame::Type::NV12,
       resize_mode_,
       static_cast<float>(sensor_fps_),
@@ -439,34 +559,38 @@ private:
           throw std::runtime_error("the OAK device reported no connected IMU");
         }
 
-        const auto calibration = device->readCalibration();
-        const auto imu_to_camera =
-          calibration.getImuToCameraExtrinsics(camera_socket_, false);
-        if (
-          imu_to_camera.size() < 3U ||
-          imu_to_camera[0].size() < 3U ||
-          imu_to_camera[1].size() < 3U ||
-          imu_to_camera[2].size() < 3U)
-        {
-          throw std::runtime_error(
-                  "calibration has no valid IMU-to-camera rotation matrix");
-        }
-        for (std::size_t row = 0; row < 3U; ++row) {
-          for (std::size_t column = 0; column < 3U; ++column) {
-            imu_to_camera_rotation_[row][column] =
-              static_cast<double>(imu_to_camera[row][column]);
-          }
-        }
+        // CALIBRATED reports already contain the EEPROM IMU output rotation.
+        // Apply only the relative rotation from that calibrated output frame
+        // to the selected camera optical frame, avoiding a double rotation.
+        const auto calibration = device->getCalibration();
+        const cv::Matx33d imu_to_camera_rotation =
+          matrix3x3_from_calibration(
+          calibration.getImuToCameraExtrinsics(camera_socket_, false),
+          "IMU-to-camera calibration rotation");
+        validate_rotation_matrix(
+          imu_to_camera_rotation, "IMU-to-camera calibration rotation");
+        const cv::Matx33d imu_to_calibrated_output_rotation =
+          matrix3x3_from_calibration(
+          calibration.getEepromData().imuExtrinsics.rotationMatrix,
+          "runtime calibrated IMU output rotation");
+        validate_rotation_matrix(
+          imu_to_calibrated_output_rotation,
+          "runtime calibrated IMU output rotation");
+        calibrated_imu_output_to_camera_rotation_ =
+          imu_to_camera_rotation * imu_to_calibrated_output_rotation.t();
+        validate_rotation_matrix(
+          calibrated_imu_output_to_camera_rotation_,
+          "calibrated IMU output-to-camera rotation");
 
         auto imu = pipeline_->create<dai::node::IMU>();
         imu->enableIMUSensor(
           {
-            dai::IMUSensor::ACCELEROMETER_RAW,
-            dai::IMUSensor::GYROSCOPE_RAW,
+            dai::IMUSensor::ACCELEROMETER_CALIBRATED,
+            dai::IMUSensor::GYROSCOPE_CALIBRATED,
           },
           static_cast<int>(std::lround(imu_rate_hz_)));
         imu->setBatchReportThreshold(1);
-        imu->setMaxBatchReports(10);
+        imu->setMaxBatchReports(imu_max_batch_reports_);
         imu_queue_ = imu->out.createOutputQueue(
           static_cast<unsigned int>(imu_queue_size_), false);
         imu_name_ = imu_name;
@@ -505,13 +629,14 @@ private:
       node_.get_logger(),
       "Options: undistort=%s, publish=%s, preview=%s, "
       "preview_grid=%s/%dpx, imu_stabilization=%s, "
-      "output_crop=top %dpx -> %dx%d, queue=%d/%s",
+      "fixed_view_zoom=%.2fx, output_crop=top %dpx -> %dx%d, queue=%d/%s",
       undistort_enabled_ ? "on" : "off",
       publish_enabled_ ? "on" : "off",
       preview_enabled_ ? "on" : "off",
       preview_grid_enabled_ ? "on" : "off",
       preview_grid_spacing_px_,
       imu_stabilization_enabled_ ? "on" : "off",
+      fixed_view_zoom_,
       output_crop_top_px_,
       width_,
       height_ - output_crop_top_px_,
@@ -520,12 +645,22 @@ private:
     if (imu_stream_enabled_) {
       RCLCPP_INFO(
         node_.get_logger(),
-        "IMU: %s raw accelerometer+gyroscope @ %.1f Hz, ROS_bridge=%s, "
-        "stabilization=%s, factory IMU-to-%s rotation applied",
+        "IMU: %s calibrated accelerometer+gyroscope @ %.1f Hz, ROS_bridge=%s, "
+        "stabilization=%s, calibrated-output-to-%s relative rotation applied",
         imu_name_.c_str(), imu_rate_hz_,
         imu_bridge_enabled_ ? imu_topic_.c_str() : "off",
         imu_stabilization_enabled_ ? "on" : "off",
         camera_socket_name_.c_str());
+    }
+    if (imu_stabilization_enabled_) {
+      RCLCPP_INFO(
+        node_.get_logger(),
+        "Fixed-reference stabilization: keep camera still for %.1f s "
+        "startup discard + %.1f s stationary calibration; pitch/roll limit "
+        "%.1f deg, crop overflow policy=drop frame",
+        imu_stabilizer_config_.startup_discard_duration_sec,
+        imu_stabilizer_config_.reference_calibration_duration_sec,
+        imu_stabilizer_config_.maximum_correction_deg);
     }
   }
 
@@ -567,7 +702,10 @@ private:
         }
 
         const auto received_at = std::chrono::steady_clock::now();
-        const auto sensor_timestamp = packet->getTimestamp();
+        // Stabilization is synchronized to the middle of RGB exposure, not
+        // host arrival time or the beginning/end of exposure.
+        const auto sensor_timestamp = packet->getTimestamp(
+          dai::CameraExposureOffset::MIDDLE);
         if (performance_measurement_enabled_) {
           record_steady_latency(
             received_at - sensor_timestamp,
@@ -670,18 +808,12 @@ private:
       timestamp.time_since_epoch()).count();
   }
 
-  std::optional<cv::Matx33d> stabilizationHomography(
+  StabilizationTransform stabilizationTransform(
     dai::ImgFrame & packet,
     const std::chrono::steady_clock::time_point & sensor_timestamp)
   {
     if (!imu_stabilization_enabled_ || !imu_stabilizer_) {
-      return std::nullopt;
-    }
-    auto correction = imu_stabilizer_->correctionAt(
-      timestampSeconds(sensor_timestamp));
-    if (!correction) {
-      stabilization_missed_total_.fetch_add(1U);
-      return std::nullopt;
+      return StabilizationTransform{};
     }
 
     const auto & transformation = packet.getTransformation();
@@ -690,20 +822,75 @@ private:
       RCLCPP_WARN_THROTTLE(
         node_.get_logger(), *node_.get_clock(), 5000,
         "IMU stabilization skipped because frame intrinsics are unavailable.");
-      return std::nullopt;
+      return StabilizationTransform{std::nullopt, false};
     }
-    const auto camera_matrix = transformation.getIntrinsicMatrix();
-    correction->roll_deg *= imu_stabilization_roll_gain_;
-    correction->pitch_deg *= imu_stabilization_pitch_gain_;
-    return makeImageStabilizationHomography(
-      static_cast<double>(camera_matrix[0][0]),
-      static_cast<double>(camera_matrix[1][1]),
-      static_cast<double>(camera_matrix[0][2]),
-      static_cast<double>(camera_matrix[1][2]),
-      *correction);
+    const auto intrinsics = transformation.getIntrinsicMatrix();
+    const cv::Matx33d camera_matrix(
+      static_cast<double>(intrinsics[0][0]), 0.0,
+      static_cast<double>(intrinsics[0][2]),
+      0.0, static_cast<double>(intrinsics[1][1]),
+      static_cast<double>(intrinsics[1][2]),
+      0.0, 0.0, 1.0);
+    const cv::Matx33d fixed_view_zoom_homography =
+      makeFixedViewZoomHomography(camera_matrix, fixed_view_zoom_);
+
+    // Match stabilized_preview: calibration frames keep the same fixed FOV,
+    // then initialized frames must have a timestamp-valid absolute attitude.
+    if (!imu_stabilizer_->initialized()) {
+      return StabilizationTransform{
+        fixed_view_zoom_ > 1.0 ?
+        std::optional<cv::Matx33d>(fixed_view_zoom_homography) : std::nullopt,
+        true};
+    }
+
+    const double frame_timestamp_sec = timestampSeconds(sensor_timestamp);
+    const double latest_imu_timestamp_sec = latest_imu_timestamp_sec_.load(
+      std::memory_order_relaxed);
+    if (
+      std::isfinite(latest_imu_timestamp_sec) &&
+      std::abs(frame_timestamp_sec - latest_imu_timestamp_sec) >
+      maximum_timestamp_domain_delta_sec_)
+    {
+      stabilization_missed_total_.fetch_add(1U);
+      RCLCPP_ERROR_THROTTLE(
+        node_.get_logger(), *node_.get_clock(), 5000,
+        "RGB/IMU timestamps are not in the same clock domain.");
+      return StabilizationTransform{std::nullopt, false};
+    }
+
+    const auto correction = imu_stabilizer_->correctionAt(
+      frame_timestamp_sec);
+    if (!correction) {
+      stabilization_missed_total_.fetch_add(1U);
+      return StabilizationTransform{std::nullopt, false};
+    }
+    if (!correction->within_correction_limit) {
+      stabilization_angle_rejections_total_.fetch_add(1U);
+      return StabilizationTransform{std::nullopt, false};
+    }
+
+    const cv::Matx33d stabilization_homography =
+      makeImageStabilizationHomography(
+      camera_matrix(0, 0), camera_matrix(1, 1),
+      camera_matrix(0, 2), camera_matrix(1, 2), *correction);
+    const cv::Matx33d output_homography =
+      fixed_view_zoom_homography * stabilization_homography;
+    if (!outputIsCoveredBySource(
+        output_homography,
+        cv::Size(width_, height_),
+        cv::Size(width_, height_),
+        fixed_view_border_margin_px_))
+    {
+      stabilization_crop_rejections_total_.fetch_add(1U);
+      return StabilizationTransform{std::nullopt, false};
+    }
+    if (correction->predicted) {
+      stabilization_predictions_total_.fetch_add(1U);
+    }
+    return StabilizationTransform{output_homography, true};
   }
 
-  void copy_nv12_to_message(
+  bool copy_nv12_to_message(
     dai::ImgFrame & packet,
     const std::chrono::steady_clock::time_point & sensor_timestamp,
     sensor_msgs::msg::Image & message)
@@ -740,15 +927,19 @@ private:
     cv::Mat processed_y = input_y;
     cv::Mat processed_uv = input_uv;
 
-    const auto homography = stabilizationHomography(
+    const auto transform = stabilizationTransform(
       packet, sensor_timestamp);
-    if (homography) {
+    if (!transform.frame_usable) {
+      stabilization_output_drops_total_.fetch_add(1U);
+      return false;
+    }
+    if (transform.homography) {
       stabilized_y.create(frame_height, frame_width, CV_8UC1);
       stabilized_uv.create(frame_height / 2, frame_width / 2, CV_8UC2);
       cv::warpPerspective(
         input_y,
         stabilized_y,
-        cv::Mat(*homography),
+        cv::Mat(*transform.homography),
         stabilized_y.size(),
         cv::INTER_LINEAR,
         cv::BORDER_CONSTANT,
@@ -763,7 +954,7 @@ private:
         0.0, 2.0, 0.0,
         0.0, 0.0, 1.0);
       const cv::Matx33d uv_homography =
-        half_scale * (*homography) * double_scale;
+        half_scale * (*transform.homography) * double_scale;
       cv::warpPerspective(
         input_uv,
         stabilized_uv,
@@ -811,6 +1002,7 @@ private:
         cropped_uv.ptr(row),
         static_cast<std::size_t>(frame_width));
     }
+    return true;
   }
 
   void imu_loop()
@@ -828,41 +1020,49 @@ private:
         }
 
         for (const auto & packet : data->packets) {
-          const auto & raw = packet.acceleroMeter;
-          const std::array<double, 3> acceleration_imu{
-            static_cast<double>(raw.x),
-            static_cast<double>(raw.y),
-            static_cast<double>(raw.z)};
-          const auto & raw_gyro = packet.gyroscope;
-          const std::array<double, 3> angular_velocity_imu{
-            static_cast<double>(raw_gyro.x),
-            static_cast<double>(raw_gyro.y),
-            static_cast<double>(raw_gyro.z)};
-          std::array<double, 3> acceleration_camera{};
-          std::array<double, 3> angular_velocity_camera{};
-          for (std::size_t row = 0; row < 3U; ++row) {
-            for (std::size_t column = 0; column < 3U; ++column) {
-              acceleration_camera[row] +=
-                imu_to_camera_rotation_[row][column] *
-                acceleration_imu[column];
-              angular_velocity_camera[row] +=
-                imu_to_camera_rotation_[row][column] *
-                angular_velocity_imu[column];
-            }
+          const auto & calibrated_acceleration = packet.acceleroMeter;
+          const auto & calibrated_gyroscope = packet.gyroscope;
+          const double acceleration_timestamp_sec = timestampSeconds(
+            calibrated_acceleration.getTimestamp());
+          const double gyroscope_timestamp_sec = timestampSeconds(
+            calibrated_gyroscope.getTimestamp());
+          const double pair_skew_sec = std::abs(
+            acceleration_timestamp_sec - gyroscope_timestamp_sec);
+          if (std::isfinite(pair_skew_sec)) {
+            update_maximum(
+              maximum_imu_pair_skew_ns_,
+              static_cast<std::uint64_t>(pair_skew_sec * 1.0e9));
+          }
+
+          const cv::Vec3d acceleration_camera =
+            calibrated_imu_output_to_camera_rotation_ * cv::Vec3d(
+            static_cast<double>(calibrated_acceleration.x),
+            static_cast<double>(calibrated_acceleration.y),
+            static_cast<double>(calibrated_acceleration.z));
+          const cv::Vec3d angular_velocity_camera =
+            calibrated_imu_output_to_camera_rotation_ * cv::Vec3d(
+            static_cast<double>(calibrated_gyroscope.x),
+            static_cast<double>(calibrated_gyroscope.y),
+            static_cast<double>(calibrated_gyroscope.z));
+          std::optional<cv::Vec3d> synchronized_acceleration;
+          if (
+            std::isfinite(pair_skew_sec) &&
+            pair_skew_sec <= maximum_imu_pair_skew_sec_)
+          {
+            synchronized_acceleration = acceleration_camera;
+          } else {
+            rejected_acceleration_samples_total_.fetch_add(
+              1U, std::memory_order_relaxed);
           }
 
           if (imu_stabilization_enabled_ && imu_stabilizer_) {
             imu_stabilizer_->update(
-              cv::Vec3d(
-                acceleration_camera[0],
-                acceleration_camera[1],
-                acceleration_camera[2]),
-              cv::Vec3d(
-                angular_velocity_camera[0],
-                angular_velocity_camera[1],
-                angular_velocity_camera[2]),
-              timestampSeconds(raw.getTimestamp()));
+              synchronized_acceleration,
+              angular_velocity_camera,
+              gyroscope_timestamp_sec);
           }
+          latest_imu_timestamp_sec_.store(
+            gyroscope_timestamp_sec, std::memory_order_relaxed);
           imu_processed_total_.fetch_add(1U, std::memory_order_relaxed);
           imu_processed_interval_.fetch_add(1U, std::memory_order_relaxed);
 
@@ -870,11 +1070,11 @@ private:
             continue;
           }
           auto message = std::make_unique<sensor_msgs::msg::Imu>();
-          message->header.stamp = ros_timestamp_for(raw.getTimestamp());
+          message->header.stamp = ros_timestamp_for(
+            calibrated_gyroscope.getTimestamp());
           message->header.frame_id = imu_frame_id_;
-          // Orientation is intentionally left unset. BEV fuses these
-          // camera-frame acceleration and angular-velocity measurements to
-          // track roll/pitch while keeping yaw fixed.
+          // Orientation is intentionally left unset; this bridge exposes the
+          // calibrated camera-frame measurements, not the private estimator.
           message->orientation_covariance[0] = -1.0;
           message->angular_velocity.x = angular_velocity_camera[0];
           message->angular_velocity.y = angular_velocity_camera[1];
@@ -949,11 +1149,12 @@ private:
           message->is_bigendian = false;
           const auto stabilization_started_at =
             std::chrono::steady_clock::now();
-          copy_nv12_to_message(
+          const bool output_available = copy_nv12_to_message(
             *snapshot->packet,
             snapshot->sensor_timestamp,
             *message);
-          if (performance_measurement_enabled_) {
+          published_generation = snapshot->generation;
+          if (output_available && performance_measurement_enabled_) {
             const auto stabilization_finished_at =
               std::chrono::steady_clock::now();
             const auto stabilization_ns = static_cast<std::uint64_t>(
@@ -977,10 +1178,11 @@ private:
               sensor_to_stabilized_ns_max_interval_);
           }
 
-          publisher_->publish(std::move(message));
-          published_generation = snapshot->generation;
-          published_total_.fetch_add(1);
-          published_interval_.fetch_add(1);
+          if (output_available) {
+            publisher_->publish(std::move(message));
+            published_total_.fetch_add(1);
+            published_interval_.fetch_add(1);
+          }
         } catch (const std::exception & exception) {
           publish_errors_total_.fetch_add(1);
           RCLCPP_ERROR_THROTTLE(
@@ -1097,42 +1299,46 @@ private:
         auto snapshot = std::atomic_load_explicit(
           &latest_frame_, std::memory_order_acquire);
         if (snapshot && snapshot->generation != previewed_generation) {
-          auto preview_frame = snapshot->packet->getCvFrame();
-          if (preview_frame.empty() || preview_frame.type() != CV_8UC3) {
-            throw std::runtime_error(
-                    "DepthAI could not convert the NV12 preview to BGR");
-          }
-          const auto homography = stabilizationHomography(
+          const auto transform = stabilizationTransform(
             *snapshot->packet, snapshot->sensor_timestamp);
-          if (homography) {
-            cv::Mat stabilized;
-            cv::warpPerspective(
-              preview_frame,
-              stabilized,
-              cv::Mat(*homography),
-              preview_frame.size(),
-              cv::INTER_LINEAR,
-              cv::BORDER_CONSTANT,
-              cv::Scalar(0, 0, 0));
-            preview_frame = std::move(stabilized);
-            stabilized_frames_total_.fetch_add(1U);
-          }
-          if (output_crop_top_px_ > 0) {
-            preview_frame = preview_frame(
-              cv::Rect(
-                0,
-                output_crop_top_px_,
-                preview_frame.cols,
-                preview_frame.rows - output_crop_top_px_)).clone();
-          }
-          if (preview_grid_enabled_) {
-            draw_preview_grid(preview_frame);
-          }
-          resize_preview_window(preview_frame);
-          cv::imshow(preview_window_name_, preview_frame);
           previewed_generation = snapshot->generation;
-          previewed_total_.fetch_add(1);
-          previewed_interval_.fetch_add(1);
+          if (!transform.frame_usable) {
+            stabilization_output_drops_total_.fetch_add(1U);
+          } else {
+            auto preview_frame = snapshot->packet->getCvFrame();
+            if (preview_frame.empty() || preview_frame.type() != CV_8UC3) {
+              throw std::runtime_error(
+                      "DepthAI could not convert the NV12 preview to BGR");
+            }
+            if (transform.homography) {
+              cv::Mat stabilized;
+              cv::warpPerspective(
+                preview_frame,
+                stabilized,
+                cv::Mat(*transform.homography),
+                preview_frame.size(),
+                cv::INTER_LINEAR,
+                cv::BORDER_CONSTANT,
+                cv::Scalar(0, 0, 0));
+              preview_frame = std::move(stabilized);
+              stabilized_frames_total_.fetch_add(1U);
+            }
+            if (output_crop_top_px_ > 0) {
+              preview_frame = preview_frame(
+                cv::Rect(
+                  0,
+                  output_crop_top_px_,
+                  preview_frame.cols,
+                  preview_frame.rows - output_crop_top_px_)).clone();
+            }
+            if (preview_grid_enabled_) {
+              draw_preview_grid(preview_frame);
+            }
+            resize_preview_window(preview_frame);
+            cv::imshow(preview_window_name_, preview_frame);
+            previewed_total_.fetch_add(1);
+            previewed_interval_.fetch_add(1);
+          }
         }
 
         const auto key = cv::waitKey(1) & 0xff;
@@ -1230,11 +1436,54 @@ private:
     if (imu_stream_enabled_) {
       const auto imu_count = imu_processed_interval_.exchange(0);
       const auto imu_hz = static_cast<double>(imu_count) / elapsed;
-      const char * stabilization_state = "off";
+      std::string stabilization_state = "off";
+      std::optional<ImageStabilizerCalibrationProgress> stabilization_progress;
       if (imu_stabilization_enabled_) {
-        stabilization_state =
-          imu_stabilizer_ && imu_stabilizer_->initialized() ?
-          "ready" : "warmup";
+        if (imu_stabilizer_ && imu_stabilizer_->initialized()) {
+          stabilization_state = "fixed-reference-ready";
+        } else if (imu_stabilizer_) {
+          const auto progress = imu_stabilizer_->calibrationProgress();
+          stabilization_progress = progress;
+          if (progress.discarding_startup_samples) {
+            stabilization_state = "discarding-startup-imu";
+          } else {
+            stabilization_state = "stationary-calibration";
+          }
+        }
+      }
+      if (stabilization_progress.has_value()) {
+        const auto & progress = *stabilization_progress;
+        if (progress.discarding_startup_samples) {
+          RCLCPP_INFO(
+            node_.get_logger(),
+            "[warmup discard] %.2f/%.2f s "
+            "(samples are intentionally not used)",
+            progress.discard_elapsed_sec,
+            progress.discard_target_sec);
+        } else if (progress.last_rejection_reason.empty()) {
+          RCLCPP_INFO(
+            node_.get_logger(),
+            "[calibration] %.2f/%.2f s samples=%lu resets=%lu "
+            "gyro_sample=%.3f deg/s accel_conf=%.3f",
+            progress.calibration_elapsed_sec,
+            progress.calibration_target_sec,
+            static_cast<unsigned long>(progress.accepted_samples),
+            static_cast<unsigned long>(progress.reset_count),
+            progress.last_angular_speed_degps,
+            progress.last_accelerometer_confidence);
+        } else {
+          RCLCPP_INFO(
+            node_.get_logger(),
+            "[calibration] %.2f/%.2f s samples=%lu resets=%lu "
+            "gyro_sample=%.3f deg/s accel_conf=%.3f last_reject=\"%s\"",
+            progress.calibration_elapsed_sec,
+            progress.calibration_target_sec,
+            static_cast<unsigned long>(progress.accepted_samples),
+            static_cast<unsigned long>(progress.reset_count),
+            progress.last_angular_speed_degps,
+            progress.last_accelerometer_confidence,
+            progress.last_rejection_reason.c_str());
+        }
       }
       if (performance_measurement_enabled_) {
         RCLCPP_INFO(
@@ -1244,7 +1493,9 @@ private:
           "latency_ms(depthai_to_host_avg/max=%.2f/%.2f,"
           "host_to_stabilized_avg/max=%.2f/%.2f,"
           "depthai_to_stabilized_avg/max=%.2f/%.2f) "
-          "imu_fps=%.1f stabilizer=%s warps=%lu misses=%lu dropped=%lu "
+          "imu_fps=%.1f stabilizer=%s warps=%lu misses=%lu predicted=%lu "
+          "reject(angle/crop/output/accel)=%lu/%lu/%lu/%lu "
+          "max_imu_pair_skew_ms=%.3f dropped=%lu "
           "errors(capture/publish)=%lu/%lu",
           capture_hz,
           published_hz,
@@ -1257,9 +1508,18 @@ private:
           average_sensor_to_stabilized_ms,
           static_cast<double>(sensor_to_stabilized_ns_max) / 1.0e6,
           imu_hz,
-          stabilization_state,
+          stabilization_state.c_str(),
           static_cast<unsigned long>(stabilized_frames_total_.load()),
           static_cast<unsigned long>(stabilization_missed_total_.load()),
+          static_cast<unsigned long>(stabilization_predictions_total_.load()),
+          static_cast<unsigned long>(
+            stabilization_angle_rejections_total_.load()),
+          static_cast<unsigned long>(
+            stabilization_crop_rejections_total_.load()),
+          static_cast<unsigned long>(stabilization_output_drops_total_.load()),
+          static_cast<unsigned long>(
+            rejected_acceleration_samples_total_.load()),
+          static_cast<double>(maximum_imu_pair_skew_ns_.load()) / 1.0e6,
           static_cast<unsigned long>(dropped_count),
           static_cast<unsigned long>(capture_errors_total_.load()),
           static_cast<unsigned long>(publish_errors_total_.load()));
@@ -1267,11 +1527,13 @@ private:
         RCLCPP_INFO(
           node_.get_logger(),
           "FPS: capture=%.1f/%.1f, preview=%.1f, IMU=%.1f, "
-          "stabilizer=%s (warps=%lu, misses=%lu), dropped=%lu",
+          "stabilizer=%s (warps=%lu, misses=%lu, output_drops=%lu), "
+          "dropped=%lu",
           capture_hz, sensor_fps_, preview_hz, imu_hz,
-          stabilization_state,
+          stabilization_state.c_str(),
           static_cast<unsigned long>(stabilized_frames_total_.load()),
           static_cast<unsigned long>(stabilization_missed_total_.load()),
+          static_cast<unsigned long>(stabilization_output_drops_total_.load()),
           static_cast<unsigned long>(dropped_count));
       }
     } else {
@@ -1376,12 +1638,15 @@ private:
   bool imu_stream_enabled_{false};
   std::string imu_topic_;
   std::string imu_frame_id_;
-  double imu_rate_hz_{100.0};
-  int imu_queue_size_{20};
-  bool imu_stabilization_enabled_{false};
+  double imu_rate_hz_{400.0};
+  int imu_queue_size_{80};
+  int imu_max_batch_reports_{5};
+  double maximum_imu_pair_skew_sec_{0.003};
+  double maximum_timestamp_domain_delta_sec_{1.0};
+  bool imu_stabilization_enabled_{true};
   ImuImageStabilizerConfig imu_stabilizer_config_{};
-  double imu_stabilization_roll_gain_{1.0};
-  double imu_stabilization_pitch_gain_{0.9};
+  double fixed_view_zoom_{1.25};
+  double fixed_view_border_margin_px_{1.5};
   int output_crop_top_px_{0};
   bool publish_enabled_{false};
   double publish_fps_{120.0};
@@ -1393,7 +1658,7 @@ private:
   bool preview_grid_enabled_{true};
   int preview_grid_spacing_px_{20};
   double startup_timeout_sec_{5.0};
-  double status_log_interval_sec_{5.0};
+  double status_log_interval_sec_{1.0};
   dai::CameraBoardSocket camera_socket_{dai::CameraBoardSocket::CAM_A};
   dai::ImgResizeMode resize_mode_{dai::ImgResizeMode::CROP};
 
@@ -1417,10 +1682,8 @@ private:
 
   std::shared_ptr<const FrameSnapshot> latest_frame_;
   std::optional<std::int64_t> last_device_sequence_;
-  std::array<std::array<double, 3>, 3> imu_to_camera_rotation_{{
-    {{1.0, 0.0, 0.0}},
-    {{0.0, 1.0, 0.0}},
-    {{0.0, 0.0, 1.0}}}};
+  cv::Matx33d calibrated_imu_output_to_camera_rotation_{
+    cv::Matx33d::eye()};
   std::string imu_name_;
   bool preview_window_sized_{false};
 
@@ -1445,6 +1708,14 @@ private:
   std::atomic<std::uint64_t> imu_errors_total_{0};
   std::atomic<std::uint64_t> stabilized_frames_total_{0};
   std::atomic<std::uint64_t> stabilization_missed_total_{0};
+  std::atomic<std::uint64_t> stabilization_angle_rejections_total_{0};
+  std::atomic<std::uint64_t> stabilization_crop_rejections_total_{0};
+  std::atomic<std::uint64_t> stabilization_predictions_total_{0};
+  std::atomic<std::uint64_t> stabilization_output_drops_total_{0};
+  std::atomic<std::uint64_t> rejected_acceleration_samples_total_{0};
+  std::atomic<std::uint64_t> maximum_imu_pair_skew_ns_{0};
+  std::atomic<double> latest_imu_timestamp_sec_{
+    std::numeric_limits<double>::quiet_NaN()};
   std::atomic<std::uint64_t> stabilization_process_samples_interval_{0};
   std::atomic<std::uint64_t> stabilization_process_ns_interval_{0};
   std::atomic<std::uint64_t> stabilization_process_ns_max_interval_{0};

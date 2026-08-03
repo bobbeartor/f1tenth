@@ -1,8 +1,8 @@
 # camera_height_estimator
 
 OAK-D Pro W의 높이를 한 번 측정하는 독립 ROS 2 노드다. 기존
-`camera_driver`, `bev_processor`, `/camera/image`, `/camera/imu` 토픽을
-사용하거나 수정하지 않는다.
+`camera_driver`, `/camera/image`, `/camera/imu` 토픽을 사용하거나
+수정하지 않는다.
 
 ## 독립성
 

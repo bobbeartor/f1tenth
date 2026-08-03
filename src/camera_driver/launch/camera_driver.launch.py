@@ -37,8 +37,11 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "imu_stabilization_enabled",
-                default_value="false",
-                description="Stabilize preview/published NV12 with OAK IMU.",
+                default_value="true",
+                description=(
+                    "Hold preview/published NV12 at the startup pitch/roll "
+                    "reference with the OAK IMU."
+                ),
             ),
             DeclareLaunchArgument(
                 "publish_enabled",
