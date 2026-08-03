@@ -65,7 +65,7 @@ perspective_lane_node:
 
     # 저속 초기값. 조향량과 차선 신뢰도에 따라 base_duty에서 자동 감속한다.
     base_duty: 0.055
-    minimum_duty: 0.035
+    minimum_duty: 0.050
     steering_slowdown: 0.55
 
     # 현재 manual_vesc_config.yaml과 동일한 실차 서보 보정값.

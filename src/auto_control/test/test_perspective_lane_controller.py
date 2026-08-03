@@ -54,6 +54,12 @@ class PerspectiveLaneControllerTest(unittest.TestCase):
 
         self.assertLess(curve_command.duty, straight_command.duty)
 
+    def test_valid_tracking_duty_never_drops_below_start_duty(self):
+        sharp_curve = LaneObservation(640, 500.0, 560.0, 1.0, True)
+        command = self.controller.update(sharp_curve, 0.1)
+
+        self.assertGreaterEqual(command.duty, 0.050)
+
     def test_confidence_below_threshold_stops(self):
         observation = LaneObservation(640, 320.0, 320.0, 0.44, True)
         command = self.controller.update(observation, 0.1)

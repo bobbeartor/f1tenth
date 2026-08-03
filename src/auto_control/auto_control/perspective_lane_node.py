@@ -292,7 +292,7 @@ class PerspectiveLaneNode(Node):
         self.declare_parameter("maximum_steering_rate_per_sec", 2.5)
         self.declare_parameter("minimum_confidence", 0.45)
         self.declare_parameter("base_duty", 0.055)
-        self.declare_parameter("minimum_duty", 0.035)
+        self.declare_parameter("minimum_duty", 0.050)
         self.declare_parameter("steering_slowdown", 0.55)
         self.declare_parameter("servo_left", 0.98)
         self.declare_parameter("servo_center", 0.46)

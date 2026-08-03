@@ -73,6 +73,8 @@ ros2 launch auto_control perspective_lane.launch.py \
 - `lateral_gain`: 차로 중앙에서 벗어난 오차에 대한 조향 반응이다.
 - `heading_gain`: 전방 차로가 휘는 방향에 대한 선행 조향 반응이다.
 - `base_duty`: 직선 최대 duty다. 초기에는 현재 기본값보다 올리지 않는다.
+- `minimum_duty`: 정상 차선 추종 중 정지 마찰을 넘기 위한 최소 duty다.
+  차선 소실이나 안전 정지 상태에는 이 값과 무관하게 duty 0을 출력한다.
 - `steering_slowdown`: 조향량에 따른 감속 비율이다.
 
 이 노드는 차선 추종만 담당한다. LiDAR 장애물 검출과 회피는 아직 명령에

@@ -31,7 +31,7 @@ class ControllerConfig:
     maximum_steering_rate_per_sec: float = 2.5
     minimum_confidence: float = 0.45
     base_duty: float = 0.055
-    minimum_duty: float = 0.035
+    minimum_duty: float = 0.050
     steering_slowdown: float = 0.55
 
 
