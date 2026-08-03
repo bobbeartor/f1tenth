@@ -1,0 +1,74 @@
+perspective_lane_node:
+  ros__parameters:
+    # camera_driver의 왜곡 보정·안정화된 NV12 영상. mono8 차선 마스크 토픽도
+    # 입력 가능하며, 이 경우 픽셀값 127 초과를 차선으로 간주한다.
+    image_topic: "/camera/image_rect"
+    force_lane_mask_input: false
+
+    steering_topic: "/auto/steering"       # -1.0=좌, +1.0=우
+    throttle_topic: "/auto/throttle"       # 실제로 적용할 VESC duty
+    confidence_topic: "/auto/lane_confidence"
+    status_topic: "/auto/status"
+    debug_image_topic: "/auto/lane_debug"
+    debug_mask_topic: "/auto/lane_mask"
+
+    duty_topic: "/vesc/duty"
+    servo_position_topic: "/vesc/servo_position"
+    connection_status_topic: "/vesc/connected"
+
+    # 안전을 위해 기본값은 false다. false이면 영상 처리는 수행하지만 VESC
+    # 토픽에는 아무것도 발행하지 않는다.
+    drive_enabled: false
+    publish_to_vesc: true
+    require_vesc_connection: true
+    publish_debug: false
+    control_rate_hz: 30.0
+    status_log_rate_hz: 2.0
+    image_timeout_sec: 0.25
+
+    # 원근 영상에서 사용할 사다리꼴 ROI. warpPerspective/BEV는 수행하지 않는다.
+    processing_width: 640
+    roi_top_ratio: 0.44
+    roi_bottom_ratio: 0.80
+    roi_top_left_ratio: 0.33
+    roi_top_right_ratio: 0.67
+    roi_bottom_left_ratio: 0.04
+    roi_bottom_right_ratio: 0.96
+    scan_y_ratios: [0.50, 0.58, 0.67, 0.76]
+    scan_band_height_ratio: 0.030
+    minimum_band_occupancy: 0.20
+    maximum_segment_width_ratio: 0.16
+
+    # ROI 위/아래에서 예상되는 차로 폭 / 영상 폭. 실제 카메라 영상에서 가장
+    # 먼저 튜닝해야 하는 값이다.
+    lane_width_top_ratio: 0.10
+    lane_width_bottom_ratio: 0.62
+    pair_minimum_width_scale: 0.48
+    pair_maximum_width_scale: 1.55
+    single_boundary_maximum_error_scale: 0.30
+
+    # 검은 노면 위 흰색 차선을 위한 top-hat 기반 내부 차선 마스크 추출.
+    minimum_brightness: 130
+    tophat_threshold: 40
+    tophat_kernel: 21
+    blur_kernel: 5
+    morphology_kernel: 3
+
+    # near 중심의 횡오차 + far 중심의 화면 중앙 편차(진행방향/선행 오차).
+    lateral_gain: 0.90
+    heading_gain: 1.35
+    derivative_gain: 0.04
+    steering_deadband: 0.015
+    steering_filter_alpha: 0.35
+    maximum_steering_rate_per_sec: 2.5
+    minimum_confidence: 0.45
+
+    # 저속 초기값. 조향량과 차선 신뢰도에 따라 base_duty에서 자동 감속한다.
+    base_duty: 0.055
+    minimum_duty: 0.035
+    steering_slowdown: 0.55
+
+    # 현재 manual_vesc_config.yaml과 동일한 실차 서보 보정값.
+    servo_left: 0.98
+    servo_center: 0.46
+    servo_right: 0.02

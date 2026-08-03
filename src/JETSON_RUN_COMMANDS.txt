@@ -124,7 +124,30 @@ OpenCV 창을 사용하려면 Jetson 데스크톱 또는 X11 forwarding처럼
 DISPLAY/그래픽 화면을 사용할 수 있어야 한다.
 
 
-[6. Jetson 빌드]
+[6. BEV 없는 카메라 차선 자율주행]
+
+카메라, VESC 통신, 원근 영상 차선 추종 노드를 함께 dry-run으로 실행:
+
+ros2 launch vehicle_launcher auto_drive.launch.py \
+  drive_enabled:=false publish_debug:=true
+
+dry-run에서는 VESC 명령을 발행하지 않는다. 다음 토픽에서 차로 중심과
+조향 방향을 먼저 확인한다.
+
+ros2 topic echo /auto/status
+ros2 run rqt_image_view rqt_image_view /auto/lane_debug
+ros2 run rqt_image_view rqt_image_view /auto/lane_mask
+
+차량 바퀴를 지면에서 띄우고 차선 소실 시 duty 0 및 조향 방향까지 확인한
+뒤에만 다음처럼 구동을 허용한다.
+
+ros2 launch vehicle_launcher auto_drive.launch.py drive_enabled:=true
+
+수동 주행 launch나 다른 VESC 명령 publisher를 동시에 실행하지 않는다.
+현재 구현에는 장애물 회피가 없으므로 장애물이 없는 폐쇄 트랙에서만 쓴다.
+
+
+[7. Jetson 빌드]
 
 cd ~/Desktop/f1tenth_test0724/f1tenth_project_repo
 
@@ -132,7 +155,7 @@ source /opt/ros/humble/setup.bash
 colcon build --cmake-clean-cache --packages-select \
   joy_initializer vehicle_config vehicle_launcher manual_control \
   vesc_initializer vehicle_test_drive camera_driver \
-  camera_height_estimator \
+  camera_height_estimator auto_control \
   --cmake-args -DCMAKE_BUILD_TYPE=Release
 source install/setup.bash
 

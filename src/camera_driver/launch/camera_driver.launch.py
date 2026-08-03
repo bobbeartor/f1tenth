@@ -4,6 +4,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -17,6 +18,7 @@ def generate_launch_description():
         "imu_stabilization_enabled"
     )
     publish_enabled = LaunchConfiguration("publish_enabled")
+    publish_fps = LaunchConfiguration("publish_fps")
 
     return LaunchDescription(
         [
@@ -48,6 +50,11 @@ def generate_launch_description():
                 default_value="false",
                 description="Publish sensor_msgs/Image frames.",
             ),
+            DeclareLaunchArgument(
+                "publish_fps",
+                default_value="120.0",
+                description="Maximum ROS image publication rate.",
+            ),
             ComposableNodeContainer(
                 name="camera_container",
                 namespace="",
@@ -68,6 +75,9 @@ def generate_launch_description():
                                     imu_stabilization_enabled
                                 ),
                                 "publish_enabled": publish_enabled,
+                                "publish_fps": ParameterValue(
+                                    publish_fps, value_type=float
+                                ),
                                 # Standalone launch does not publish IMU;
                                 # stabilization can still use it internally.
                                 "imu_bridge_enabled": False,

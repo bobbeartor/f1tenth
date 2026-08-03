@@ -52,3 +52,24 @@ Y button: 4
 LB: 6
 RB: 7
 ```
+
+## Perspective-image autonomous lane following
+
+The autonomous launch starts the stabilized camera publisher, VESC serial node,
+and the non-BEV perspective lane follower together. It is disarmed by default:
+
+```bash
+ros2 launch vehicle_launcher auto_drive.launch.py \
+  drive_enabled:=false publish_debug:=true
+```
+
+Inspect `/auto/status`, `/auto/lane_debug`, and `/auto/lane_mask` first. After
+checking the lane centre and steering direction with the wheels lifted, enable
+actuator commands explicitly:
+
+```bash
+ros2 launch vehicle_launcher auto_drive.launch.py drive_enabled:=true
+```
+
+Do not run `manual_drive.launch.py` or any other VESC command publisher at the
+same time. This implementation does not yet include obstacle avoidance.
