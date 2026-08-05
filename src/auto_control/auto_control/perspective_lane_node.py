@@ -265,11 +265,11 @@ class PerspectiveLaneNode(Node):
         self.declare_parameter("image_timeout_sec", 0.25)
 
         self.declare_parameter("processing_width", 640)
-        self.declare_parameter("scan_y_ratios", [0.50, 0.58, 0.67, 0.76])
+        self.declare_parameter("scan_y_ratios", [0.42, 0.50, 0.62, 0.76])
         self.declare_parameter("scan_band_height_ratio", 0.030)
         self.declare_parameter("minimum_band_occupancy", 0.20)
         self.declare_parameter("maximum_segment_width_ratio", 0.16)
-        self.declare_parameter("lane_width_far_ratio", 0.187)
+        self.declare_parameter("lane_width_far_ratio", 0.10)
         self.declare_parameter("lane_width_near_ratio", 0.562)
         self.declare_parameter("pair_minimum_width_scale", 0.48)
         self.declare_parameter("pair_maximum_width_scale", 1.55)

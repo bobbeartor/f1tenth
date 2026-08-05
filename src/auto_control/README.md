@@ -77,6 +77,8 @@ ros2 launch auto_control perspective_lane.launch.py \
 설정은 `config/perspective_lane.yaml`에 있다.
 
 - `scan_y_ratios`: 전체 마스크에서 차선 위치를 측정할 네 개 높이다.
+  첫 값이 작을수록 더 먼 지점을 조향에 반영한다. 현재 첫 값 `0.42`는
+  카메라 장착값 기준 대략 1.2 m 전방을 본다.
 - `lane_width_far_ratio`, `lane_width_near_ratio`: 가장 먼/가까운 측정
   높이에서 보이는 좌우 경계 간격을 영상 폭으로 나눈 값이다. 한쪽 경계만
   검출될 때 중앙선 복원에도 사용된다.

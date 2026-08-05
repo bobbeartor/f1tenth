@@ -14,11 +14,11 @@ from auto_control.perspective_lane_controller import LaneObservation
 @dataclass(frozen=True)
 class LaneEstimatorConfig:
     processing_width: int = 640
-    scan_y_ratios: tuple[float, ...] = (0.50, 0.58, 0.67, 0.76)
+    scan_y_ratios: tuple[float, ...] = (0.42, 0.50, 0.62, 0.76)
     scan_band_height_ratio: float = 0.030
     minimum_band_occupancy: float = 0.20
     maximum_segment_width_ratio: float = 0.16
-    lane_width_far_ratio: float = 0.187
+    lane_width_far_ratio: float = 0.10
     lane_width_near_ratio: float = 0.562
     pair_minimum_width_scale: float = 0.48
     pair_maximum_width_scale: float = 1.55
