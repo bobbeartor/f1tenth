@@ -124,6 +124,25 @@ OpenCV 창을 사용하려면 Jetson 데스크톱 또는 X11 forwarding처럼
 DISPLAY/그래픽 화면을 사용할 수 있어야 한다.
 
 
+[5-1. 조향 서보값 고정 및 바퀴 각도 측정]
+
+다른 VESC, 수동주행, 자율주행 노드를 모두 종료한다. 이 도구가 VESC
+시리얼 포트를 직접 단독 사용하며 모터 duty는 계속 0으로 유지한다.
+
+colcon build --packages-select vesc_initializer vehicle_test_drive
+source install/setup.bash
+ros2 run vehicle_test_drive servo_angle_calibrator --ros-args \
+  -p servo_value:=0.46
+
+실행 후 같은 터미널의 servo_value> 입력창에 0.40, 0.52처럼 값을 입력한다.
+q 또는 Ctrl+C로 종료하면 center_servo_value 기본값 0.46으로 복귀한다.
+
+다른 터미널에서 변경할 수도 있다.
+
+ros2 param set /servo_angle_calibrator servo_value 0.40
+ros2 param get /servo_angle_calibrator servo_value
+
+
 [6. BEV 없는 카메라 차선 자율주행]
 
 카메라, C++ 차선 마스크, VESC 통신, 원근 영상 차선 추종 노드를 함께

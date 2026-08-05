@@ -23,6 +23,8 @@ setup(
     license="TODO",
     entry_points={
         "console_scripts": [
+            "servo_angle_calibrator = "
+            "vehicle_test_drive.servo_angle_calibrator_node:main",
             "vehicle_test_drive = vehicle_test_drive.vehicle_test_drive_node:main",
             "vehicle_test_drive_node = vehicle_test_drive.vehicle_test_drive_node:main",
         ],

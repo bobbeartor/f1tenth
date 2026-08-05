@@ -24,3 +24,38 @@ Use a different serial port when needed:
 ```bash
 ros2 launch vehicle_test_drive vehicle_test_drive.launch.py vesc_port:=/dev/ttyACM1
 ```
+
+## Fixed servo value for angle calibration
+
+`servo_angle_calibrator` opens the VESC serial port directly, holds motor duty
+at zero, and repeatedly applies one servo value. Do not run `vesc_initializer`,
+manual control, autonomous control, or the launch above at the same time.
+
+Build and run only the calibrator executable:
+
+```bash
+colcon build --packages-select vesc_initializer vehicle_test_drive
+source install/setup.bash
+ros2 run vehicle_test_drive servo_angle_calibrator --ros-args \
+  -p servo_value:=0.46
+```
+
+Enter values such as `0.40` or `0.52` at the `servo_value>` prompt. Enter `q`
+to return to `center_servo_value` and exit. The value can also be changed from
+another terminal:
+
+```bash
+ros2 param set /servo_angle_calibrator servo_value 0.40
+ros2 param get /servo_angle_calibrator servo_value
+```
+
+Use a different VESC port or center value when needed:
+
+```bash
+ros2 run vehicle_test_drive servo_angle_calibrator --ros-args \
+  -p port:=/dev/ttyACM1 -p servo_value:=0.46 \
+  -p center_servo_value:=0.46
+```
+
+On normal exit and Ctrl+C, duty remains zero and the servo returns to the
+configured center value.

@@ -481,7 +481,10 @@ private:
     const int width,
     const int height)
   {
-    auto output = nv12_publisher_->create_ros_message_unique_ptr();
+    // create_ros_message_unique_ptr() is a protected rclcpp::Publisher helper
+    // in ROS 2 Humble. Allocate the message through the public message API so
+    // this code builds on Humble as well as newer ROS 2 distributions.
+    auto output = std::make_unique<sensor_msgs::msg::Image>();
     output->header = source.header;
     output->height = static_cast<std::uint32_t>(height);
     output->width = static_cast<std::uint32_t>(width);
@@ -516,7 +519,7 @@ private:
     const int width,
     const int height)
   {
-    auto output = mask_publisher_->create_ros_message_unique_ptr();
+    auto output = std::make_unique<sensor_msgs::msg::Image>();
     output->header = source.header;
     output->height = static_cast<std::uint32_t>(height);
     output->width = static_cast<std::uint32_t>(width);
