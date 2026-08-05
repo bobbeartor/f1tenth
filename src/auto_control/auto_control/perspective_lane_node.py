@@ -15,7 +15,11 @@ from std_msgs.msg import Bool, Float32, String
 from auto_control.perspective_lane_controller import (
     ControlCommand,
     ControllerConfig,
+    DEFAULT_SERVO_CENTER,
+    DEFAULT_SERVO_LEFT,
+    DEFAULT_SERVO_RIGHT,
     PerspectiveLaneController,
+    steering_to_servo,
 )
 from auto_control.perspective_lane_estimator import (
     LaneEstimatorConfig,
@@ -58,22 +62,6 @@ class PerspectiveLaneNode(Node):
             processing_width=int(
                 self.get_parameter("processing_width").value
             ),
-            roi_top_ratio=float(self.get_parameter("roi_top_ratio").value),
-            roi_bottom_ratio=float(
-                self.get_parameter("roi_bottom_ratio").value
-            ),
-            roi_top_left_ratio=float(
-                self.get_parameter("roi_top_left_ratio").value
-            ),
-            roi_top_right_ratio=float(
-                self.get_parameter("roi_top_right_ratio").value
-            ),
-            roi_bottom_left_ratio=float(
-                self.get_parameter("roi_bottom_left_ratio").value
-            ),
-            roi_bottom_right_ratio=float(
-                self.get_parameter("roi_bottom_right_ratio").value
-            ),
             scan_y_ratios=scan_y_ratios,
             scan_band_height_ratio=float(
                 self.get_parameter("scan_band_height_ratio").value
@@ -84,11 +72,11 @@ class PerspectiveLaneNode(Node):
             maximum_segment_width_ratio=float(
                 self.get_parameter("maximum_segment_width_ratio").value
             ),
-            lane_width_top_ratio=float(
-                self.get_parameter("lane_width_top_ratio").value
+            lane_width_far_ratio=float(
+                self.get_parameter("lane_width_far_ratio").value
             ),
-            lane_width_bottom_ratio=float(
-                self.get_parameter("lane_width_bottom_ratio").value
+            lane_width_near_ratio=float(
+                self.get_parameter("lane_width_near_ratio").value
             ),
             pair_minimum_width_scale=float(
                 self.get_parameter("pair_minimum_width_scale").value
@@ -277,18 +265,12 @@ class PerspectiveLaneNode(Node):
         self.declare_parameter("image_timeout_sec", 0.25)
 
         self.declare_parameter("processing_width", 640)
-        self.declare_parameter("roi_top_ratio", 0.44)
-        self.declare_parameter("roi_bottom_ratio", 0.80)
-        self.declare_parameter("roi_top_left_ratio", 0.33)
-        self.declare_parameter("roi_top_right_ratio", 0.67)
-        self.declare_parameter("roi_bottom_left_ratio", 0.04)
-        self.declare_parameter("roi_bottom_right_ratio", 0.96)
         self.declare_parameter("scan_y_ratios", [0.50, 0.58, 0.67, 0.76])
         self.declare_parameter("scan_band_height_ratio", 0.030)
         self.declare_parameter("minimum_band_occupancy", 0.20)
         self.declare_parameter("maximum_segment_width_ratio", 0.16)
-        self.declare_parameter("lane_width_top_ratio", 0.10)
-        self.declare_parameter("lane_width_bottom_ratio", 0.62)
+        self.declare_parameter("lane_width_far_ratio", 0.187)
+        self.declare_parameter("lane_width_near_ratio", 0.562)
         self.declare_parameter("pair_minimum_width_scale", 0.48)
         self.declare_parameter("pair_maximum_width_scale", 1.55)
         self.declare_parameter(
@@ -310,9 +292,9 @@ class PerspectiveLaneNode(Node):
         self.declare_parameter("base_duty", 0.055)
         self.declare_parameter("minimum_duty", 0.050)
         self.declare_parameter("steering_slowdown", 0.55)
-        self.declare_parameter("servo_left", 0.98)
-        self.declare_parameter("servo_center", 0.46)
-        self.declare_parameter("servo_right", 0.02)
+        self.declare_parameter("servo_left", DEFAULT_SERVO_LEFT)
+        self.declare_parameter("servo_center", DEFAULT_SERVO_CENTER)
+        self.declare_parameter("servo_right", DEFAULT_SERVO_RIGHT)
 
     def _on_image(self, msg: Image) -> None:
         now = self.get_clock().now()
@@ -526,14 +508,12 @@ class PerspectiveLaneNode(Node):
         return output
 
     def _steering_to_servo(self, steering: float) -> float:
-        steering = max(-1.0, min(1.0, steering))
-        if steering < 0.0:
-            return self.servo_center + (
-                self.servo_left - self.servo_center
-            ) * -steering
-        return self.servo_center + (
-            self.servo_right - self.servo_center
-        ) * steering
+        return steering_to_servo(
+            steering,
+            self.servo_left,
+            self.servo_center,
+            self.servo_right,
+        )
 
     def stop_actuators(self) -> None:
         if not (self.publish_to_vesc and self.drive_enabled):

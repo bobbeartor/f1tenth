@@ -10,6 +10,24 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
+DEFAULT_SERVO_LEFT = 0.02
+DEFAULT_SERVO_CENTER = 0.46
+DEFAULT_SERVO_RIGHT = 0.98
+
+
+def steering_to_servo(
+    steering: float,
+    servo_left: float = DEFAULT_SERVO_LEFT,
+    servo_center: float = DEFAULT_SERVO_CENTER,
+    servo_right: float = DEFAULT_SERVO_RIGHT,
+) -> float:
+    """Convert conventional -left/+right steering to a VESC servo value."""
+    steering = max(-1.0, min(1.0, steering))
+    if steering < 0.0:
+        return servo_center + (servo_left - servo_center) * -steering
+    return servo_center + (servo_right - servo_center) * steering
+
+
 @dataclass(frozen=True)
 class LaneObservation:
     """Lane centre measured directly in a perspective camera image."""

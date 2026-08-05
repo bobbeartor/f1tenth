@@ -14,18 +14,12 @@ from auto_control.perspective_lane_controller import LaneObservation
 @dataclass(frozen=True)
 class LaneEstimatorConfig:
     processing_width: int = 640
-    roi_top_ratio: float = 0.44
-    roi_bottom_ratio: float = 0.80
-    roi_top_left_ratio: float = 0.33
-    roi_top_right_ratio: float = 0.67
-    roi_bottom_left_ratio: float = 0.04
-    roi_bottom_right_ratio: float = 0.96
     scan_y_ratios: tuple[float, ...] = (0.50, 0.58, 0.67, 0.76)
     scan_band_height_ratio: float = 0.030
     minimum_band_occupancy: float = 0.20
     maximum_segment_width_ratio: float = 0.16
-    lane_width_top_ratio: float = 0.10
-    lane_width_bottom_ratio: float = 0.62
+    lane_width_far_ratio: float = 0.187
+    lane_width_near_ratio: float = 0.562
     pair_minimum_width_scale: float = 0.48
     pair_maximum_width_scale: float = 1.55
     single_boundary_maximum_error_scale: float = 0.30
@@ -58,6 +52,7 @@ class PerspectiveLaneEstimator:
     def __init__(self, config: LaneEstimatorConfig) -> None:
         self.config = config
         self._previous_centers: dict[int, float] = {}
+        self._previous_lane_widths: dict[int, float] = {}
 
     def estimate(
         self,
@@ -78,10 +73,25 @@ class PerspectiveLaneEstimator:
                 width,
                 height,
                 center_hint,
+                self._previous_lane_widths.get(level),
             )
             if measurement is not None:
                 measurements.append(measurement)
                 self._previous_centers[level] = measurement.center_x
+                if (
+                    measurement.left_x is not None
+                    and measurement.right_x is not None
+                ):
+                    measured_width = (
+                        measurement.right_x - measurement.left_x
+                    )
+                    previous_width = self._previous_lane_widths.get(level)
+                    if previous_width is None:
+                        self._previous_lane_widths[level] = measured_width
+                    else:
+                        self._previous_lane_widths[level] = (
+                            0.80 * previous_width + 0.20 * measured_width
+                        )
 
         observation = self._make_observation(measurements, width, height)
         return LaneEstimate(observation, mask, tuple(measurements))
@@ -101,12 +111,13 @@ class PerspectiveLaneEstimator:
         green[:, :, 1] = estimate.mask
         debug = cv2.addWeighted(debug, 0.78, green, 0.35, 0.0)
         height, width = estimate.mask.shape
-        polygon = self._roi_polygon(width, height)
-        cv2.polylines(debug, [polygon], True, (0, 180, 255), 2)
+        for y_ratio in self.config.scan_y_ratios:
+            y = int(round(y_ratio * (height - 1)))
+            cv2.line(debug, (0, y), (width - 1, y), (0, 180, 255), 1)
         cv2.line(
             debug,
-            (width // 2, int(self.config.roi_top_ratio * height)),
-            (width // 2, int(self.config.roi_bottom_ratio * height)),
+            (width // 2, 0),
+            (width // 2, height - 1),
             (255, 0, 255),
             1,
         )
@@ -188,14 +199,10 @@ class PerspectiveLaneEstimator:
             cv2.MORPH_RECT,
             (morphology_kernel, morphology_kernel),
         )
-        candidate = cv2.morphologyEx(candidate, cv2.MORPH_CLOSE, element)
-        roi_mask = np.zeros_like(candidate)
-        cv2.fillPoly(
-            roi_mask,
-            [self._roi_polygon(candidate.shape[1], candidate.shape[0])],
-            255,
-        )
-        return cv2.bitwise_and(candidate, roi_mask)
+        # lane_detect has already removed non-lane pixels. Keep the complete
+        # extracted mask here. The old fixed trapezoid discarded a boundary
+        # whenever the camera or vehicle was significantly off-centre.
+        return cv2.morphologyEx(candidate, cv2.MORPH_CLOSE, element)
 
     def _resize_to_processing_width(
         self,
@@ -211,29 +218,6 @@ class PerspectiveLaneEstimator:
         else:
             interpolation = cv2.INTER_AREA if scale < 1.0 else cv2.INTER_LINEAR
         return cv2.resize(image, None, fx=scale, fy=scale, interpolation=interpolation)
-
-    def _roi_polygon(self, width: int, height: int) -> np.ndarray:
-        return np.array(
-            [
-                [
-                    int(self.config.roi_top_left_ratio * width),
-                    int(self.config.roi_top_ratio * height),
-                ],
-                [
-                    int(self.config.roi_top_right_ratio * width),
-                    int(self.config.roi_top_ratio * height),
-                ],
-                [
-                    int(self.config.roi_bottom_right_ratio * width),
-                    int(self.config.roi_bottom_ratio * height),
-                ],
-                [
-                    int(self.config.roi_bottom_left_ratio * width),
-                    int(self.config.roi_bottom_ratio * height),
-                ],
-            ],
-            dtype=np.int32,
-        )
 
     def _band_candidates(
         self,
@@ -283,10 +267,15 @@ class PerspectiveLaneEstimator:
         width: int,
         height: int,
         center_hint: float,
+        lane_width_hint: float | None = None,
     ) -> BandMeasurement | None:
         if not candidates:
             return None
-        expected_width = self._expected_lane_width(y, width, height)
+        expected_width = (
+            lane_width_hint
+            if lane_width_hint is not None and lane_width_hint > 0.0
+            else self._expected_lane_width(y, width, height)
+        )
         minimum_width = expected_width * self.config.pair_minimum_width_scale
         maximum_width = expected_width * self.config.pair_maximum_width_scale
         best: tuple[float, float, float, float] | None = None
@@ -329,7 +318,7 @@ class PerspectiveLaneEstimator:
                             candidate_x + expected_width * 0.5,
                             candidate_x,
                             None,
-                            0.40 + 0.10 * strength,
+                            0.50 + 0.10 * strength,
                         ),
                     )
                 )
@@ -343,7 +332,7 @@ class PerspectiveLaneEstimator:
                             candidate_x - expected_width * 0.5,
                             None,
                             candidate_x,
-                            0.40 + 0.10 * strength,
+                            0.50 + 0.10 * strength,
                         ),
                     )
                 )
@@ -352,13 +341,13 @@ class PerspectiveLaneEstimator:
         return min(single_options, key=lambda item: item[0])[1]
 
     def _expected_lane_width(self, y: int, width: int, height: int) -> float:
-        top_y = self.config.roi_top_ratio * height
-        bottom_y = self.config.roi_bottom_ratio * height
-        progress = (y - top_y) / max(1.0, bottom_y - top_y)
+        far_y = min(self.config.scan_y_ratios) * height
+        near_y = max(self.config.scan_y_ratios) * height
+        progress = (y - far_y) / max(1.0, near_y - far_y)
         progress = max(0.0, min(1.0, progress))
         width_ratio = (
-            self.config.lane_width_top_ratio
-            + (self.config.lane_width_bottom_ratio - self.config.lane_width_top_ratio)
+            self.config.lane_width_far_ratio
+            + (self.config.lane_width_near_ratio - self.config.lane_width_far_ratio)
             * progress
         )
         return max(4.0, width * width_ratio)

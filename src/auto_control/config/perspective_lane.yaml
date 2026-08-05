@@ -27,23 +27,18 @@ perspective_lane_node:
     status_log_rate_hz: 2.0
     image_timeout_sec: 0.25
 
-    # 원근 영상에서 사용할 사다리꼴 ROI. warpPerspective/BEV는 수행하지 않는다.
+    # lane_detect가 만든 전체 마스크를 사용한다. 고정 사다리꼴 ROI는 적용하지
+    # 않으며, 아래 수평 측정 높이에서 영상 전체 폭을 검색한다.
     processing_width: 640
-    roi_top_ratio: 0.44
-    roi_bottom_ratio: 0.80
-    roi_top_left_ratio: 0.33
-    roi_top_right_ratio: 0.67
-    roi_bottom_left_ratio: 0.04
-    roi_bottom_right_ratio: 0.96
     scan_y_ratios: [0.50, 0.58, 0.67, 0.76]
     scan_band_height_ratio: 0.030
     minimum_band_occupancy: 0.20
     maximum_segment_width_ratio: 0.16
 
-    # ROI 위/아래에서 예상되는 차로 폭 / 영상 폭. 실제 카메라 영상에서 가장
-    # 먼저 튜닝해야 하는 값이다.
-    lane_width_top_ratio: 0.10
-    lane_width_bottom_ratio: 0.62
+    # 가장 먼/가까운 scan_y 위치에서 예상되는 차로 폭 / 영상 폭. 한쪽
+    # 차선만 보이면 이 폭의 절반만큼 이동해 중앙선을 복원한다.
+    lane_width_far_ratio: 0.187
+    lane_width_near_ratio: 0.562
     pair_minimum_width_scale: 0.48
     pair_maximum_width_scale: 1.55
     single_boundary_maximum_error_scale: 0.30
@@ -69,7 +64,7 @@ perspective_lane_node:
     minimum_duty: 0.050
     steering_slowdown: 0.55
 
-    # 현재 manual_vesc_config.yaml과 동일한 실차 서보 보정값.
-    servo_left: 0.98
+    # 실차 확인 결과 기존 매핑이 반대였으므로 좌/우 끝점을 교환했다.
+    servo_left: 0.02
     servo_center: 0.46
-    servo_right: 0.02
+    servo_right: 0.98

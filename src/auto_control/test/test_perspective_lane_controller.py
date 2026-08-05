@@ -2,8 +2,12 @@ import unittest
 
 from auto_control.perspective_lane_controller import (
     ControllerConfig,
+    DEFAULT_SERVO_CENTER,
+    DEFAULT_SERVO_LEFT,
+    DEFAULT_SERVO_RIGHT,
     LaneObservation,
     PerspectiveLaneController,
+    steering_to_servo,
 )
 
 
@@ -31,6 +35,12 @@ class PerspectiveLaneControllerTest(unittest.TestCase):
         command = self.controller.update(observation, 0.1)
 
         self.assertGreater(command.steering, 0.0)
+
+    def test_vehicle_right_of_lane_commands_left_steering(self):
+        observation = LaneObservation(640, 260.0, 260.0, 1.0, True)
+        command = self.controller.update(observation, 0.1)
+
+        self.assertLess(command.steering, 0.0)
 
     def test_perspective_convergence_does_not_reverse_lateral_correction(self):
         # The near centre is right of the car while the far centre converges
@@ -66,6 +76,13 @@ class PerspectiveLaneControllerTest(unittest.TestCase):
 
         self.assertEqual(command.state, "LANE_LOST")
         self.assertEqual(command.duty, 0.0)
+
+    def test_default_servo_mapping_matches_physical_directions(self):
+        self.assertLess(DEFAULT_SERVO_LEFT, DEFAULT_SERVO_CENTER)
+        self.assertGreater(DEFAULT_SERVO_RIGHT, DEFAULT_SERVO_CENTER)
+        self.assertAlmostEqual(steering_to_servo(-1.0), DEFAULT_SERVO_LEFT)
+        self.assertAlmostEqual(steering_to_servo(0.0), DEFAULT_SERVO_CENTER)
+        self.assertAlmostEqual(steering_to_servo(1.0), DEFAULT_SERVO_RIGHT)
 
 
 if __name__ == "__main__":
