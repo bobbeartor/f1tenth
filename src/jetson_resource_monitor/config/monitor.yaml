@@ -1,0 +1,16 @@
+jetson_resource_monitor:
+  ros__parameters:
+    # Sampling faster than 0.5 s can add noticeable monitoring overhead.
+    interval_sec: 1.0
+    console_output: true
+    console_every_n: 1
+
+    # Empty means no CSV. Example: /tmp/jetson_metrics.csv
+    csv_path: ""
+
+    # Optional regular expression matched against node/package/command.
+    process_filter: ""
+
+    # false: only processes identified as ROS 2; true: every visible process.
+    include_non_ros_processes: false
+
