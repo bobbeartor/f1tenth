@@ -30,21 +30,25 @@ perspective_lane_node:
     # lane_detect가 만든 전체 마스크를 사용한다. 고정 사다리꼴 ROI는 적용하지
     # 않으며, 아래 수평 측정 높이에서 영상 전체 폭을 검색한다.
     processing_width: 640
-    # 첫 측정점을 0.50에서 0.42로 올려 더 먼 차로 방향을 조향에 반영한다.
-    # 현재 카메라 높이/피치 기준으로 0.42는 대략 1.2 m 전방이며, 차선
-    # 마스크의 2.0 m 지평선 제거선(약 0.38)보다 아래라 유효 픽셀이 남는다.
-    scan_y_ratios: [0.42, 0.50, 0.62, 0.76]
+    # 실제 경계 선택은 차선이 충분히 분리되어 보이는 네 높이에서 한다.
+    # 더 먼 0.42 지점은 측정 밴드로 쓰지 않고, 중심 곡선을 외삽한 조향
+    # 목표점으로만 사용한다.
+    scan_y_ratios: [0.50, 0.58, 0.67, 0.76]
+    lookahead_y_ratio: 0.42
     scan_band_height_ratio: 0.030
     minimum_band_occupancy: 0.20
     maximum_segment_width_ratio: 0.16
 
     # 가장 먼/가까운 scan_y 위치에서 예상되는 차로 폭 / 영상 폭. 한쪽
     # 차선만 보이면 이 폭의 절반만큼 이동해 중앙선을 복원한다.
-    lane_width_far_ratio: 0.10
-    lane_width_near_ratio: 0.562
-    pair_minimum_width_scale: 0.48
-    pair_maximum_width_scale: 1.55
+    lane_width_far_ratio: 0.30
+    lane_width_near_ratio: 0.83
+    pair_minimum_width_scale: 0.75
+    pair_maximum_width_scale: 1.25
     single_boundary_maximum_error_scale: 0.30
+    # 이 프레임 수만큼 현재 영상의 좌우 차선 쌍을 찾지 못하면 이전
+    # 중심/폭 기억을 지워, 잘못된 분류가 계속 이어지지 않게 한다.
+    reset_after_missed_frames: 5
 
     # 외부 mono8 마스크를 사용하지 않을 때만 적용되는 fallback 검출 설정.
     minimum_brightness: 130

@@ -14,15 +14,17 @@ from auto_control.perspective_lane_controller import LaneObservation
 @dataclass(frozen=True)
 class LaneEstimatorConfig:
     processing_width: int = 640
-    scan_y_ratios: tuple[float, ...] = (0.42, 0.50, 0.62, 0.76)
+    scan_y_ratios: tuple[float, ...] = (0.50, 0.58, 0.67, 0.76)
+    lookahead_y_ratio: float = 0.42
     scan_band_height_ratio: float = 0.030
     minimum_band_occupancy: float = 0.20
     maximum_segment_width_ratio: float = 0.16
-    lane_width_far_ratio: float = 0.10
-    lane_width_near_ratio: float = 0.562
-    pair_minimum_width_scale: float = 0.48
-    pair_maximum_width_scale: float = 1.55
+    lane_width_far_ratio: float = 0.30
+    lane_width_near_ratio: float = 0.83
+    pair_minimum_width_scale: float = 0.75
+    pair_maximum_width_scale: float = 1.25
     single_boundary_maximum_error_scale: float = 0.30
+    reset_after_missed_frames: int = 5
     minimum_brightness: int = 130
     tophat_threshold: int = 40
     tophat_kernel: int = 21
@@ -53,6 +55,13 @@ class PerspectiveLaneEstimator:
         self.config = config
         self._previous_centers: dict[int, float] = {}
         self._previous_lane_widths: dict[int, float] = {}
+        self._missed_frame_count = 0
+
+    def reset(self) -> None:
+        """Forget geometry learned from earlier frames."""
+        self._previous_centers.clear()
+        self._previous_lane_widths.clear()
+        self._missed_frame_count = 0
 
     def estimate(
         self,
@@ -61,39 +70,73 @@ class PerspectiveLaneEstimator:
     ) -> LaneEstimate:
         mask = self._prepare_mask(image, image_is_mask)
         height, width = mask.shape
-        measurements: list[BandMeasurement] = []
-
+        band_data: list[
+            tuple[int, int, list[tuple[float, float]], float, float]
+        ] = []
         for level, y_ratio in enumerate(self.config.scan_y_ratios):
             y = int(round(y_ratio * (height - 1)))
             candidates = self._band_candidates(mask, y)
+            configured_width = self._expected_lane_width(y, width, height)
+            learned_width = self._previous_lane_widths.get(
+                level,
+                configured_width,
+            )
+            learned_width = max(
+                configured_width * self.config.pair_minimum_width_scale,
+                min(
+                    configured_width * self.config.pair_maximum_width_scale,
+                    learned_width,
+                ),
+            )
+            band_data.append(
+                (level, y, candidates, configured_width, learned_width)
+            )
+
+        # Select complete lane pairs first. A pair measured in the current
+        # frame is a much safer centre reference than a stale per-band hint.
+        pair_measurements: dict[int, BandMeasurement] = {}
+        for level, y, candidates, configured_width, learned_width in band_data:
             center_hint = self._previous_centers.get(level, width * 0.5)
-            measurement = self._select_boundaries(
+            measurement = self._select_pair(
                 candidates,
                 y,
                 width,
-                height,
                 center_hint,
-                self._previous_lane_widths.get(level),
+                configured_width,
+                learned_width,
             )
             if measurement is not None:
+                pair_measurements[level] = measurement
+
+        current_center_hints = self._center_hints_from_pairs(
+            pair_measurements,
+            {level: y for level, y, _, _, _ in band_data},
+            width,
+        )
+        measurements: list[BandMeasurement] = []
+        for level, y, candidates, _, learned_width in band_data:
+            measurement = pair_measurements.get(level)
+            if measurement is None:
+                center_hint = current_center_hints.get(
+                    level,
+                    self._previous_centers.get(level, width * 0.5),
+                )
+                measurement = self._select_single_boundary(
+                    candidates,
+                    y,
+                    center_hint,
+                    learned_width,
+                )
+            if measurement is not None:
                 measurements.append(measurement)
-                self._previous_centers[level] = measurement.center_x
-                if (
-                    measurement.left_x is not None
-                    and measurement.right_x is not None
-                ):
-                    measured_width = (
-                        measurement.right_x - measurement.left_x
-                    )
-                    previous_width = self._previous_lane_widths.get(level)
-                    if previous_width is None:
-                        self._previous_lane_widths[level] = measured_width
-                    else:
-                        self._previous_lane_widths[level] = (
-                            0.80 * previous_width + 0.20 * measured_width
-                        )
 
         observation = self._make_observation(measurements, width, height)
+        self._update_tracking_state(
+            band_data,
+            pair_measurements,
+            measurements,
+            observation.valid,
+        )
         return LaneEstimate(observation, mask, tuple(measurements))
 
     def create_debug_image(
@@ -132,8 +175,10 @@ class PerspectiveLaneEstimator:
 
         observation = estimate.observation
         if observation.valid:
-            far_y = int(min(self.config.scan_y_ratios) * height)
-            near_y = int(max(self.config.scan_y_ratios) * height)
+            far_y = int(round(self.config.lookahead_y_ratio * (height - 1)))
+            near_y = int(
+                round(max(self.config.scan_y_ratios) * (height - 1))
+            )
             cv2.line(
                 debug,
                 (int(observation.far_center_x), far_y),
@@ -141,9 +186,33 @@ class PerspectiveLaneEstimator:
                 (0, 255, 255),
                 3,
             )
+            cv2.circle(
+                debug,
+                (int(observation.far_center_x), far_y),
+                8,
+                (0, 255, 255),
+                2,
+            )
+            cv2.putText(
+                debug,
+                "LOOKAHEAD",
+                (
+                    min(width - 120, int(observation.far_center_x) + 10),
+                    max(20, far_y - 10),
+                ),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.45,
+                (0, 255, 255),
+                1,
+                cv2.LINE_AA,
+            )
+        pair_count = sum(
+            item.left_x is not None and item.right_x is not None
+            for item in estimate.measurements
+        )
         text = (
             f"confidence={observation.confidence:.2f} "
-            f"bands={len(estimate.measurements)}"
+            f"bands={len(estimate.measurements)} pairs={pair_count}"
         )
         cv2.putText(
             debug,
@@ -260,24 +329,29 @@ class PerspectiveLaneEstimator:
                 start = None
         return candidates
 
-    def _select_boundaries(
+    def _select_pair(
         self,
         candidates: Sequence[tuple[float, float]],
         y: int,
         width: int,
-        height: int,
         center_hint: float,
-        lane_width_hint: float | None = None,
+        configured_width: float,
+        learned_width: float,
     ) -> BandMeasurement | None:
         if not candidates:
             return None
-        expected_width = (
-            lane_width_hint
-            if lane_width_hint is not None and lane_width_hint > 0.0
-            else self._expected_lane_width(y, width, height)
+        expected_width = learned_width
+        # Never let an accidentally learned narrow width relax the configured
+        # hard gate. This rejects two fragments of one physical boundary and
+        # centre-marker-to-boundary pairs.
+        minimum_width = max(
+            expected_width * self.config.pair_minimum_width_scale,
+            configured_width * self.config.pair_minimum_width_scale,
         )
-        minimum_width = expected_width * self.config.pair_minimum_width_scale
-        maximum_width = expected_width * self.config.pair_maximum_width_scale
+        maximum_width = min(
+            expected_width * self.config.pair_maximum_width_scale,
+            configured_width * self.config.pair_maximum_width_scale,
+        )
         best: tuple[float, float, float, float] | None = None
         best_cost = float("inf")
 
@@ -300,7 +374,18 @@ class PerspectiveLaneEstimator:
             left_x, right_x, center, strength = best
             quality = max(0.75, min(1.0, 0.85 + 0.15 * strength))
             return BandMeasurement(y, center, left_x, right_x, quality)
+        return None
 
+    def _select_single_boundary(
+        self,
+        candidates: Sequence[tuple[float, float]],
+        y: int,
+        center_hint: float,
+        expected_width: float,
+    ) -> BandMeasurement | None:
+        if not candidates:
+            return None
+        ordered = sorted(candidates)
         expected_left = center_hint - expected_width * 0.5
         expected_right = center_hint + expected_width * 0.5
         maximum_error = (
@@ -340,9 +425,117 @@ class PerspectiveLaneEstimator:
             return None
         return min(single_options, key=lambda item: item[0])[1]
 
+    def _center_hints_from_pairs(
+        self,
+        pair_measurements: dict[int, BandMeasurement],
+        band_y_by_level: dict[int, int],
+        width: int,
+    ) -> dict[int, float]:
+        if not pair_measurements:
+            return {}
+        ordered_pairs = sorted(pair_measurements.items())
+        result: dict[int, float] = {}
+        if len(ordered_pairs) >= 2:
+            y_values = np.asarray(
+                [measurement.y for _, measurement in ordered_pairs],
+                dtype=np.float64,
+            )
+            centers = np.asarray(
+                [measurement.center_x for _, measurement in ordered_pairs],
+                dtype=np.float64,
+            )
+            degree = 2 if len(ordered_pairs) >= 3 else 1
+            coefficients = np.polyfit(y_values, centers, degree)
+            for level, pixel_y in band_y_by_level.items():
+                center = float(np.polyval(coefficients, pixel_y))
+                result[level] = max(0.0, min(float(width - 1), center))
+            return result
+
+        anchor_level, anchor = ordered_pairs[0]
+        previous_anchor = self._previous_centers.get(anchor_level)
+        for level in range(len(self.config.scan_y_ratios)):
+            previous = self._previous_centers.get(level)
+            if previous is not None and previous_anchor is not None:
+                center = anchor.center_x + previous - previous_anchor
+            else:
+                center = anchor.center_x
+            result[level] = max(0.0, min(float(width - 1), center))
+        return result
+
+    def _update_tracking_state(
+        self,
+        band_data: Sequence[
+            tuple[int, int, list[tuple[float, float]], float, float]
+        ],
+        pair_measurements: dict[int, BandMeasurement],
+        measurements: Sequence[BandMeasurement],
+        observation_valid: bool,
+    ) -> None:
+        # Single-boundary estimates remain usable, but they are not strong
+        # enough to keep old tracking state forever. Reset after several
+        # frames without a current left/right pair.
+        if not observation_valid or not pair_measurements:
+            self._missed_frame_count += 1
+            if self._missed_frame_count >= max(
+                1,
+                self.config.reset_after_missed_frames,
+            ):
+                self.reset()
+            return
+        self._missed_frame_count = 0
+
+        configured_widths = {
+            level: configured_width
+            for level, _, _, configured_width, _ in band_data
+        }
+        measurement_levels = {y: level for level, y, _, _, _ in band_data}
+        for level, measurement in pair_measurements.items():
+            previous_center = self._previous_centers.get(level)
+            if previous_center is None:
+                self._previous_centers[level] = measurement.center_x
+            else:
+                self._previous_centers[level] = (
+                    0.65 * previous_center + 0.35 * measurement.center_x
+                )
+
+            if measurement.left_x is None or measurement.right_x is None:
+                continue
+            measured_width = measurement.right_x - measurement.left_x
+            configured_width = configured_widths[level]
+            measured_width = max(
+                configured_width * self.config.pair_minimum_width_scale,
+                min(
+                    configured_width * self.config.pair_maximum_width_scale,
+                    measured_width,
+                ),
+            )
+            previous_width = self._previous_lane_widths.get(level)
+            if previous_width is None:
+                self._previous_lane_widths[level] = measured_width
+            else:
+                self._previous_lane_widths[level] = (
+                    0.90 * previous_width + 0.10 * measured_width
+                )
+
+        # A single boundary may refine an already pair-anchored level, but it
+        # must never create a new persistent centre by itself.
+        if pair_measurements:
+            for measurement in measurements:
+                level = measurement_levels.get(measurement.y)
+                if level is None or level in pair_measurements:
+                    continue
+                previous_center = self._previous_centers.get(level)
+                if previous_center is None:
+                    self._previous_centers[level] = measurement.center_x
+                else:
+                    self._previous_centers[level] = (
+                        0.85 * previous_center + 0.15 * measurement.center_x
+                    )
+
     def _expected_lane_width(self, y: int, width: int, height: int) -> float:
-        far_y = min(self.config.scan_y_ratios) * height
-        near_y = max(self.config.scan_y_ratios) * height
+        image_bottom = max(0, height - 1)
+        far_y = min(self.config.scan_y_ratios) * image_bottom
+        near_y = max(self.config.scan_y_ratios) * image_bottom
         progress = (y - far_y) / max(1.0, near_y - far_y)
         progress = max(0.0, min(1.0, progress))
         width_ratio = (
@@ -365,8 +558,9 @@ class PerspectiveLaneEstimator:
         qualities = np.array([item.quality for item in measurements], dtype=np.float64)
         degree = 2 if len(measurements) >= 3 else 1
         coefficients = np.polyfit(y_values, centers, degree, w=qualities)
-        far_y = min(self.config.scan_y_ratios) * height
-        near_y = max(self.config.scan_y_ratios) * height
+        image_bottom = max(0, height - 1)
+        far_y = self.config.lookahead_y_ratio * image_bottom
+        near_y = max(self.config.scan_y_ratios) * image_bottom
         far_center = float(np.polyval(coefficients, far_y))
         near_center = float(np.polyval(coefficients, near_y))
         far_center = max(0.0, min(float(width - 1), far_center))

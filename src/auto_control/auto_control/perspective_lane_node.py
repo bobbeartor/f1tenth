@@ -63,6 +63,9 @@ class PerspectiveLaneNode(Node):
                 self.get_parameter("processing_width").value
             ),
             scan_y_ratios=scan_y_ratios,
+            lookahead_y_ratio=float(
+                self.get_parameter("lookahead_y_ratio").value
+            ),
             scan_band_height_ratio=float(
                 self.get_parameter("scan_band_height_ratio").value
             ),
@@ -88,6 +91,9 @@ class PerspectiveLaneNode(Node):
                 self.get_parameter(
                     "single_boundary_maximum_error_scale"
                 ).value
+            ),
+            reset_after_missed_frames=int(
+                self.get_parameter("reset_after_missed_frames").value
             ),
             minimum_brightness=int(
                 self.get_parameter("minimum_brightness").value
@@ -265,17 +271,19 @@ class PerspectiveLaneNode(Node):
         self.declare_parameter("image_timeout_sec", 0.25)
 
         self.declare_parameter("processing_width", 640)
-        self.declare_parameter("scan_y_ratios", [0.42, 0.50, 0.62, 0.76])
+        self.declare_parameter("scan_y_ratios", [0.50, 0.58, 0.67, 0.76])
+        self.declare_parameter("lookahead_y_ratio", 0.42)
         self.declare_parameter("scan_band_height_ratio", 0.030)
         self.declare_parameter("minimum_band_occupancy", 0.20)
         self.declare_parameter("maximum_segment_width_ratio", 0.16)
-        self.declare_parameter("lane_width_far_ratio", 0.10)
-        self.declare_parameter("lane_width_near_ratio", 0.562)
-        self.declare_parameter("pair_minimum_width_scale", 0.48)
-        self.declare_parameter("pair_maximum_width_scale", 1.55)
+        self.declare_parameter("lane_width_far_ratio", 0.30)
+        self.declare_parameter("lane_width_near_ratio", 0.83)
+        self.declare_parameter("pair_minimum_width_scale", 0.75)
+        self.declare_parameter("pair_maximum_width_scale", 1.25)
         self.declare_parameter(
             "single_boundary_maximum_error_scale", 0.30
         )
+        self.declare_parameter("reset_after_missed_frames", 5)
         self.declare_parameter("minimum_brightness", 130)
         self.declare_parameter("tophat_threshold", 40)
         self.declare_parameter("tophat_kernel", 21)
