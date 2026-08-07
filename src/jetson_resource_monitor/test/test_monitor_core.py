@@ -1,9 +1,11 @@
 import re
+from unittest.mock import patch
 
 from jetson_resource_monitor.monitor_core import (
     extract_remap,
     merge_jetson_metrics,
     parse_installed_executable,
+    SystemMonitor,
     TegrastatsReader,
 )
 
@@ -59,3 +61,35 @@ def test_filter_example():
     pattern = re.compile("camera|bev")
     assert pattern.search("/camera_driver_node camera_driver")
     assert not pattern.search("/joy_node joy")
+
+
+def test_temperature_read_error_skips_only_the_failed_zone():
+    zones = [
+        "/sys/class/thermal/thermal_zone0",
+        "/sys/class/thermal/thermal_zone1",
+    ]
+
+    def fake_read_text(path, encoding="utf-8"):
+        del encoding
+        text_path = str(path)
+        if text_path.endswith("thermal_zone0/type"):
+            return "cpu-thermal\n"
+        if text_path.endswith("thermal_zone0/temp"):
+            raise TypeError("can't concat NoneType to bytes")
+        if text_path.endswith("thermal_zone1/type"):
+            return "gpu-thermal\n"
+        if text_path.endswith("thermal_zone1/temp"):
+            return "45000\n"
+        raise AssertionError(text_path)
+
+    with patch(
+        "jetson_resource_monitor.monitor_core.glob.glob",
+        return_value=zones,
+    ), patch(
+        "jetson_resource_monitor.monitor_core.Path.read_text",
+        autospec=True,
+        side_effect=fake_read_text,
+    ):
+        result = SystemMonitor._temperatures()
+
+    assert result == {"gpu-thermal": 45.0}

@@ -16,6 +16,10 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 _NODE_REMAP_PATTERN = re.compile(r"(?:^|:)__node:=(.+)$")
 _NAMESPACE_REMAP_PATTERN = re.compile(r"(?:^|:)__ns:=(.+)$")
+# Some Jetson sysfs attributes can transiently behave like non-blocking files
+# and make TextIOWrapper raise TypeError while decoding. Treat that the same as
+# any other unavailable optional metric and retry on the next sample.
+METRIC_READ_ERRORS = (OSError, TypeError, UnicodeError, ValueError)
 
 
 @dataclass(frozen=True)
@@ -73,7 +77,7 @@ def read_cmdline(pid: int) -> List[str]:
 def read_environ(pid: int) -> Dict[str, str]:
     try:
         raw = Path(f"/proc/{pid}/environ").read_bytes()
-    except (FileNotFoundError, PermissionError, ProcessLookupError):
+    except METRIC_READ_ERRORS:
         return {}
     result = {}
     for item in raw.rstrip(b"\0").split(b"\0"):
@@ -116,7 +120,7 @@ def identify_ros_process(
     try:
         cmdline = read_cmdline(pid)
         exe_path = os.readlink(f"/proc/{pid}/exe")
-    except (FileNotFoundError, PermissionError, ProcessLookupError):
+    except METRIC_READ_ERRORS:
         return None
     if not cmdline:
         return None
@@ -199,7 +203,7 @@ class ProcessMonitor:
                 continue
             try:
                 stat = read_proc_stat(pid)
-            except (FileNotFoundError, PermissionError, ProcessLookupError, ValueError):
+            except METRIC_READ_ERRORS:
                 continue
 
             key = (pid, stat.start_ticks)
@@ -295,7 +299,7 @@ class SystemMonitor:
         for path in candidates:
             try:
                 value = float(Path(path).read_text(encoding="utf-8").strip())
-            except (FileNotFoundError, PermissionError, ValueError):
+            except METRIC_READ_ERRORS:
                 continue
             return round(value / 10.0 if value > 100.0 else value, 2)
         return None
@@ -309,7 +313,7 @@ class SystemMonitor:
                 value = float(
                     Path(zone_path, "temp").read_text(encoding="utf-8").strip()
                 )
-            except (FileNotFoundError, PermissionError, ValueError):
+            except METRIC_READ_ERRORS:
                 continue
             if abs(value) > 1000.0:
                 value /= 1000.0
@@ -326,7 +330,7 @@ class SystemMonitor:
                 frequencies.append(
                     float(Path(path).read_text(encoding="utf-8").strip()) / 1000.0
                 )
-            except (FileNotFoundError, PermissionError, ValueError):
+            except METRIC_READ_ERRORS:
                 continue
         return round(sum(frequencies) / len(frequencies), 1) if frequencies else None
 

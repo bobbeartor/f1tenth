@@ -15,6 +15,7 @@ from rclpy.node import Node
 from std_msgs.msg import String
 
 from .monitor_core import (
+    METRIC_READ_ERRORS,
     merge_jetson_metrics,
     ProcessMonitor,
     SystemMonitor,
@@ -113,14 +114,21 @@ class ResourceMonitorNode(Node):
 
     def _collect(self) -> None:
         timestamp = datetime.now(timezone.utc).isoformat()
-        system = merge_jetson_metrics(
-            self._system_monitor.sample(), self._tegrastats.sample()
-        )
-        processes = self._process_monitor.sample(
-            exclude_pids=(os.getpid(),),
-            include_non_ros=self._include_non_ros,
-            name_pattern=self._name_pattern,
-        )
+        try:
+            system = merge_jetson_metrics(
+                self._system_monitor.sample(), self._tegrastats.sample()
+            )
+            processes = self._process_monitor.sample(
+                exclude_pids=(os.getpid(),),
+                include_non_ros=self._include_non_ros,
+                name_pattern=self._name_pattern,
+            )
+        except METRIC_READ_ERRORS as error:
+            self.get_logger().warning(
+                "리소스 파일을 일시적으로 읽지 못해 이번 측정을 "
+                f"건너뜁니다: {error}"
+            )
+            return
 
         graph_names = {
             f"{namespace.rstrip('/')}/{name}"
