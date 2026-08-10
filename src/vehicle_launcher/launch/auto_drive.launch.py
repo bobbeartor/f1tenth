@@ -51,9 +51,14 @@ def generate_launch_description():
         parameters=[
             lane_detect_config,
             {
-                # The non-BEV controller consumes mono8 directly. Avoid the
-                # extra full-frame NV12 allocation intended for BEV.
+                # The centerline controller consumes mono8 directly. Process
+                # every 60 Hz camera frame (0 disables the second rate gate)
+                # and retain source rows through normalized y=98 before the
+                # centerline model applies its exact ROI. Avoid the extra
+                # NV12 allocation intended for BEV.
                 "nv12_publish_enabled": False,
+                "process_max_fps": 0.0,
+                "bottom_cut_ratio": 0.0,
             },
         ],
     )
@@ -67,12 +72,12 @@ def generate_launch_description():
     )
 
     auto_config = PathJoinSubstitution(
-        [FindPackageShare("auto_control"), "config", "perspective_lane.yaml"]
+        [FindPackageShare("auto_control"), "config", "centerline.yaml"]
     )
     lane_node = Node(
         package="auto_control",
-        executable="perspective_lane_node",
-        name="perspective_lane_node",
+        executable="centerline_node",
+        name="centerline_node",
         output="screen",
         parameters=[
             auto_config,
@@ -101,7 +106,7 @@ def generate_launch_description():
                 "camera_preview_enabled", default_value="false"
             ),
             DeclareLaunchArgument(
-                "camera_publish_fps", default_value="30.0"
+                "camera_publish_fps", default_value="60.0"
             ),
             DeclareLaunchArgument(
                 "vesc_port", default_value="/dev/ttyACM0"

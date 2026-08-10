@@ -20,11 +20,11 @@ setup(
     zip_safe=True,
     maintainer="ohslo",
     maintainer_email="ohslo@example.com",
-    description="Perspective-image lane tracking and autonomous control.",
+    description="60 Hz curved-centerline lane following control.",
     license="TODO",
     entry_points={
         "console_scripts": [
-            "perspective_lane_node = auto_control.perspective_lane_node:main",
+            "centerline_node = auto_control.centerline_node:main",
         ],
     },
 )

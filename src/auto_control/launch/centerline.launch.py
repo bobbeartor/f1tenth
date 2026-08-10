@@ -11,7 +11,6 @@ def generate_launch_description():
     drive_enabled = LaunchConfiguration("drive_enabled")
     publish_debug = LaunchConfiguration("publish_debug")
     image_topic = LaunchConfiguration("image_topic")
-    force_lane_mask_input = LaunchConfiguration("force_lane_mask_input")
 
     return LaunchDescription(
         [
@@ -21,36 +20,30 @@ def generate_launch_description():
                     [
                         FindPackageShare("auto_control"),
                         "config",
-                        "perspective_lane.yaml",
+                        "centerline.yaml",
                     ]
                 ),
             ),
             DeclareLaunchArgument("drive_enabled", default_value="false"),
             DeclareLaunchArgument("publish_debug", default_value="false"),
-            DeclareLaunchArgument(
-                "image_topic", default_value="/lane_mask"
-            ),
-            DeclareLaunchArgument(
-                "force_lane_mask_input", default_value="true"
-            ),
+            DeclareLaunchArgument("image_topic", default_value="/lane_mask"),
             Node(
                 package="auto_control",
-                executable="perspective_lane_node",
-                name="perspective_lane_node",
+                executable="centerline_node",
+                name="centerline_node",
                 output="screen",
                 parameters=[
                     params_file,
                     {
                         "drive_enabled": ParameterValue(
-                            drive_enabled, value_type=bool
+                            drive_enabled,
+                            value_type=bool,
                         ),
                         "publish_debug": ParameterValue(
-                            publish_debug, value_type=bool
+                            publish_debug,
+                            value_type=bool,
                         ),
                         "image_topic": image_topic,
-                        "force_lane_mask_input": ParameterValue(
-                            force_lane_mask_input, value_type=bool
-                        ),
                     },
                 ],
             ),

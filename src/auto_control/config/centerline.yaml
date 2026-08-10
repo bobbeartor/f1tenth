@@ -1,0 +1,64 @@
+centerline_node:
+  ros__parameters:
+    image_topic: "/lane_mask"
+    force_lane_mask_input: true
+    debug_background_topic: "/camera/image_rect"
+
+    steering_topic: "/auto/steering"       # -1.0=left, +1.0=right
+    throttle_topic: "/auto/throttle"
+    confidence_topic: "/auto/lane_confidence"
+    status_topic: "/auto/status"
+    debug_image_topic: "/auto/lane_debug"
+    debug_mask_topic: "/auto/lane_mask"
+    duty_topic: "/vesc/duty"
+    servo_position_topic: "/vesc/servo_position"
+    connection_status_topic: "/vesc/connected"
+
+    # VESC output stays disabled until explicitly armed.
+    drive_enabled: false
+    publish_to_vesc: true
+    require_vesc_connection: true
+    publish_debug: false
+    control_rate_hz: 60.0
+    status_log_rate_hz: 2.0
+    image_timeout_sec: 0.15
+
+    # Every input is normalized to this fixed coordinate system. Lane pixels
+    # outside the inclusive y=60..98 interval are zeroed before fitting.
+    processing_width: 160
+    processing_height: 100
+    roi_y_min: 60
+    roi_y_max: 98
+    white_threshold: 127
+    morphology_kernel: 3
+    maximum_line_width_px: 12
+    minimum_points_per_boundary: 8
+    tracking_margin_px: 22.0
+
+    # Expected full lane width at the top/bottom of the ROI. When only one
+    # boundary exists, half of this width profile reconstructs the centerline.
+    # Width learned from valid two-boundary frames is used on later frames.
+    expected_lane_width_top_px: 60.0
+    expected_lane_width_bottom_px: 120.0
+    lane_width_minimum_scale: 0.55
+    lane_width_maximum_scale: 1.45
+    maximum_fit_residual_px: 3.5
+    lane_width_learning_alpha: 0.15
+    single_lane_confidence_scale: 0.78
+
+    # Steering uses only the fitted quadratic centerline x(y).
+    lookahead_y: 68
+    cross_track_gain: 0.75
+    preview_gain: 1.25
+    derivative_gain: 0.025
+    steering_deadband: 0.015
+    steering_filter_alpha: 0.45
+    maximum_steering_rate_per_sec: 3.0
+    minimum_confidence: 0.45
+
+    base_duty: 0.055
+    minimum_duty: 0.050
+    steering_slowdown: 0.55
+    servo_left: 0.02
+    servo_center: 0.46
+    servo_right: 0.98

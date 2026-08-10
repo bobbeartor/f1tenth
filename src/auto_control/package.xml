@@ -3,7 +3,7 @@
 <package format="3">
   <name>auto_control</name>
   <version>0.0.0</version>
-  <description>Perspective-image lane tracking and autonomous control.</description>
+  <description>60 Hz curved-centerline lane following control.</description>
   <maintainer email="ohslo@example.com">ohslo</maintainer>
   <license>TODO</license>
 
