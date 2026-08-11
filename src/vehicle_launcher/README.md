@@ -59,7 +59,8 @@ The autonomous launch starts the stabilized camera publisher, improved C++
 `lane_detect` mask node, VESC serial node, and quadratic centerline follower.
 Camera publication, lane-mask processing, and steering output run at 60 Hz.
 The controller normalizes the mask to 160x100 and uses only inclusive rows
-`y=60..98`; the integrated mask stage retains that same interval. It is
+`y=60..83`; the integrated mask stage removes the wheel-filled bottom sixth.
+It is
 disarmed by default:
 
 ```bash

@@ -23,12 +23,12 @@ centerline_node:
     status_log_rate_hz: 2.0
     image_timeout_sec: 0.15
 
-    # Every input is normalized to this fixed coordinate system. Lane pixels
-    # outside the inclusive y=60..98 interval are zeroed before fitting.
+    # Every input is normalized to this fixed coordinate system. The bottom
+    # sixth (y=84..99) contains the wheels and is excluded from lane fitting.
     processing_width: 160
     processing_height: 100
     roi_y_min: 60
-    roi_y_max: 98
+    roi_y_max: 83
     white_threshold: 127
     morphology_kernel: 3
     maximum_line_width_px: 12

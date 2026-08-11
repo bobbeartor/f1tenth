@@ -70,9 +70,9 @@ lane_mask:
     camera_cy: 352.621124268
     reference_image_height: 720
 
-    # Bottom cut: the bumper and its white sticker sit at a fixed screen
-    # position and would otherwise pass every earlier stage as "lane tape".
-    bottom_cut_ratio: 0.15
+    # Bottom cut: exclude the lowest one-sixth, where the wheels/body can be
+    # mistaken for lane tape.
+    bottom_cut_ratio: 0.1666667
 
     preview_enabled: false
     preview_window_name: "lane mask"

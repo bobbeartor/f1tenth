@@ -53,10 +53,8 @@ def generate_launch_description():
             {
                 # The centerline controller consumes mono8 directly. Process
                 # every 60 Hz camera frame (0 disables the second rate gate)
-                # and retain source rows through normalized y=98 before the
-                # centerline model applies its exact ROI.
+                # while lane_mask.yaml removes the wheel-filled bottom sixth.
                 "process_max_fps": 0.0,
-                "bottom_cut_ratio": 0.0,
             },
         ],
     )

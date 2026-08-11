@@ -16,7 +16,7 @@ class LaneModelConfig:
     processing_width: int = 160
     processing_height: int = 100
     roi_y_min: int = 60
-    roi_y_max: int = 98
+    roi_y_max: int = 83
     white_threshold: int = 127
     morphology_kernel: int = 3
     maximum_line_width_px: int = 12
@@ -59,7 +59,7 @@ class LaneModelEstimate:
 
 
 class LaneModel:
-    """Fit curved boundaries only inside rows 60..98 of a 160x100 mask."""
+    """Fit boundaries in rows 60..83, excluding the bottom image sixth."""
 
     def __init__(self, config: LaneModelConfig) -> None:
         self.config = config
