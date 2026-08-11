@@ -1,6 +1,6 @@
 vesc_initialize_node:
   ros__parameters:
-    port: "/dev/ttyACM0"      # VESC가 연결된 시리얼 장치 경로
+    port: "/dev/ttyTHS1"      # VESC가 연결된 시리얼 장치 경로
     baudrate: 115200          # VESC와 통신할 시리얼 속도
     serial_timeout: 0.1       # 시리얼 읽기 대기 시간(초)
     write_timeout: 2.0        # 시리얼 쓰기 대기 시간(초)

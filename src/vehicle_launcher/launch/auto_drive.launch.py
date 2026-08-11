@@ -109,7 +109,7 @@ def generate_launch_description():
                 "camera_publish_fps", default_value="60.0"
             ),
             DeclareLaunchArgument(
-                "vesc_port", default_value="/dev/ttyACM0"
+                "vesc_port", default_value="/dev/ttyTHS1"
             ),
             camera_launch,
             lane_detect_node,
