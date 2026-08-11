@@ -21,7 +21,6 @@ namespace lane_mask
 namespace
 {
 
-constexpr std::uint8_t kNeutralChroma = 128U;
 constexpr double kPi = 3.14159265358979323846;
 
 int makeOdd(const int value, const int minimum)
@@ -48,14 +47,8 @@ public:
 
     const auto image_qos = rclcpp::SensorDataQoS().keep_last(1);
 
-    if (nv12_publish_enabled_) {
-      nv12_publisher_ = node_.create_publisher<sensor_msgs::msg::Image>(
-        nv12_topic_, image_qos);
-    }
-    if (mask_publish_enabled_) {
-      mask_publisher_ = node_.create_publisher<sensor_msgs::msg::Image>(
-        mask_topic_, image_qos);
-    }
+    mask_publisher_ = node_.create_publisher<sensor_msgs::msg::Image>(
+      mask_topic_, image_qos);
 
     subscription_ = node_.create_subscription<sensor_msgs::msg::Image>(
       input_topic_,
@@ -77,12 +70,11 @@ public:
 
     RCLCPP_INFO(
       node_.get_logger(),
-      "lane_mask started: in=%s, nv12=%s, mono8=%s, process_width=%d, "
+      "lane_mask started: in=%s, out=%s, process_width=%d, "
       "tophat_k=%d, tophat_thresh=%d, dark=%d/%.2f, "
       "cut_row=%d (est. work_rows=%d)",
       input_topic_.c_str(),
-      nv12_publish_enabled_ ? nv12_topic_.c_str() : "disabled",
-      mask_publish_enabled_ ? mask_topic_.c_str() : "disabled",
+      mask_topic_.c_str(),
       process_width_,
       tophat_kernel_,
       tophat_threshold_,
@@ -106,10 +98,7 @@ private:
   void declareParameters()
   {
     node_.declare_parameter<std::string>("input_topic", "/camera/image_rect");
-    node_.declare_parameter<std::string>("nv12_topic", "/camera/image_lane");
     node_.declare_parameter<std::string>("mask_topic", "/lane_mask");
-    node_.declare_parameter<bool>("nv12_publish_enabled", true);
-    node_.declare_parameter<bool>("mask_publish_enabled", true);
 
     // 0 keeps the native input width. Smaller values trade detail for speed.
     node_.declare_parameter<int>("process_width", 960);
@@ -170,12 +159,7 @@ private:
   void readParameters()
   {
     input_topic_ = node_.get_parameter("input_topic").as_string();
-    nv12_topic_ = node_.get_parameter("nv12_topic").as_string();
     mask_topic_ = node_.get_parameter("mask_topic").as_string();
-    nv12_publish_enabled_ =
-      node_.get_parameter("nv12_publish_enabled").as_bool();
-    mask_publish_enabled_ =
-      node_.get_parameter("mask_publish_enabled").as_bool();
 
     process_width_ = static_cast<int>(
       node_.get_parameter("process_width").as_int());
@@ -274,12 +258,7 @@ private:
       const_cast<std::uint8_t *>(message->data.data()), step);
 
     const cv::Mat mask = computeMask(luma);
-    if (nv12_publisher_) {
-      publishNv12(*message, mask, width, height);
-    }
-    if (mask_publisher_) {
-      publishMono8(*message, mask, width, height);
-    }
+    publishMono8(*message, mask, width, height);
     if (preview_enabled_) {
       cv::imshow(preview_window_name_, mask);
       cv::waitKey(1);
@@ -475,44 +454,6 @@ private:
     return filtered;
   }
 
-  void publishNv12(
-    const sensor_msgs::msg::Image & source,
-    const cv::Mat & mask,
-    const int width,
-    const int height)
-  {
-    // create_ros_message_unique_ptr() is a protected rclcpp::Publisher helper
-    // in ROS 2 Humble. Allocate the message through the public message API so
-    // this code builds on Humble as well as newer ROS 2 distributions.
-    auto output = std::make_unique<sensor_msgs::msg::Image>();
-    output->header = source.header;
-    output->height = static_cast<std::uint32_t>(height);
-    output->width = static_cast<std::uint32_t>(width);
-    output->encoding = "nv12";
-    output->is_bigendian = source.is_bigendian;
-    output->step = static_cast<std::uint32_t>(width);
-
-    const std::size_t luma_bytes =
-      static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
-    const std::size_t chroma_bytes = luma_bytes / 2U;
-    output->data.resize(luma_bytes + chroma_bytes);
-
-    for (int row = 0; row < height; ++row) {
-      std::copy(
-        mask.ptr<std::uint8_t>(row),
-        mask.ptr<std::uint8_t>(row) + width,
-        output->data.begin() + static_cast<std::ptrdiff_t>(row) * width);
-    }
-    // Neutral chroma: the downstream BT.601 conversion turns the luma-only
-    // frame into a plain grayscale image, so the mask survives unchanged.
-    std::fill(
-      output->data.begin() + static_cast<std::ptrdiff_t>(luma_bytes),
-      output->data.end(),
-      kNeutralChroma);
-
-    nv12_publisher_->publish(std::move(output));
-  }
-
   void publishMono8(
     const sensor_msgs::msg::Image & source,
     const cv::Mat & mask,
@@ -554,10 +495,7 @@ private:
   rclcpp::Node & node_;
 
   std::string input_topic_;
-  std::string nv12_topic_;
   std::string mask_topic_;
-  bool nv12_publish_enabled_{true};
-  bool mask_publish_enabled_{true};
 
   int process_width_{960};
   int param_reference_width_{960};
@@ -602,7 +540,6 @@ private:
   std::atomic<unsigned> rejected_{0U};
 
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr nv12_publisher_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr mask_publisher_;
   rclcpp::TimerBase::SharedPtr status_timer_;
 };

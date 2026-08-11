@@ -38,6 +38,21 @@ class LaneModelTest(unittest.TestCase):
                 delta=2.0,
             )
 
+    def test_configured_width_matches_new_camera_calibration(self):
+        model = LaneModel(self.config)
+
+        for y_ratio, width_ratio in zip(
+            self.config.expected_lane_width_y_ratios,
+            self.config.expected_lane_width_ratios,
+        ):
+            self.assertAlmostEqual(
+                model._configured_width_at(
+                    y_ratio * self.config.processing_height
+                ),
+                width_ratio * self.config.processing_width,
+                places=6,
+            )
+
     def test_left_boundary_alone_reconstructs_centerline(self):
         model = LaneModel(self.config)
 
@@ -147,9 +162,8 @@ class LaneModelTest(unittest.TestCase):
     def _center_x(y: float) -> float:
         return 80.0 + 0.015 * (y - 98.0) ** 2
 
-    @staticmethod
-    def _lane_width(y: float) -> float:
-        return 60.0 + (y - 60.0) * 60.0 / 38.0
+    def _lane_width(self, y: float) -> float:
+        return LaneModel(self.config)._configured_width_at(y)
 
 
 if __name__ == "__main__":

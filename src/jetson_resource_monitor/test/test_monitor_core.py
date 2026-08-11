@@ -58,8 +58,9 @@ def test_parse_legacy_tegrastats_power():
 
 
 def test_filter_example():
-    pattern = re.compile("camera|bev")
+    pattern = re.compile("camera|lane")
     assert pattern.search("/camera_driver_node camera_driver")
+    assert pattern.search("/lane_mask lane_detect")
     assert not pattern.search("/joy_node joy")
 
 

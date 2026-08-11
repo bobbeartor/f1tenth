@@ -35,11 +35,12 @@ centerline_node:
     minimum_points_per_boundary: 8
     tracking_margin_px: 22.0
 
-    # Expected full lane width at the top/bottom of the ROI. When only one
-    # boundary exists, half of this width profile reconstructs the centerline.
-    # Width learned from valid two-boundary frames is used on later frames.
-    expected_lane_width_top_px: 60.0
-    expected_lane_width_bottom_px: 120.0
+    # New camera calibration: expected full lane width at three screen rows.
+    # Values are normalized by image height/width and are fitted as a quadratic
+    # perspective profile. When only one boundary exists, half of this profile
+    # reconstructs the centerline. Valid two-boundary frames refine it online.
+    expected_lane_width_y_ratios: [0.55, 0.65, 0.75]
+    expected_lane_width_ratios: [0.383, 0.563, 0.711]
     lane_width_minimum_scale: 0.55
     lane_width_maximum_scale: 1.45
     maximum_fit_residual_px: 3.5

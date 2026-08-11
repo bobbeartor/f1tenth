@@ -9,7 +9,6 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     params_file = LaunchConfiguration("params_file")
     preview_enabled = LaunchConfiguration("preview_enabled")
-    nv12_publish_enabled = LaunchConfiguration("nv12_publish_enabled")
 
     return LaunchDescription(
         [
@@ -24,9 +23,6 @@ def generate_launch_description():
                 ),
             ),
             DeclareLaunchArgument("preview_enabled", default_value="false"),
-            DeclareLaunchArgument(
-                "nv12_publish_enabled", default_value="false"
-            ),
             Node(
                 package="lane_detect",
                 executable="lane_detect_node",
@@ -37,9 +33,6 @@ def generate_launch_description():
                     {
                         "preview_enabled": ParameterValue(
                             preview_enabled, value_type=bool
-                        ),
-                        "nv12_publish_enabled": ParameterValue(
-                            nv12_publish_enabled, value_type=bool
                         ),
                     },
                 ],

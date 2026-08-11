@@ -18,7 +18,7 @@ ros2 launch jetson_resource_monitor jetson_resource_monitor.launch.py
 ```text
 [Jetson] CPU 34.2% | RAM 3120/7620MB (40.9%) | GPU 71.0% | Power 12890mW
     PID     CPU%   RAM(MB)   THR  PACKAGE                 NODE/PROCESS
-  15422    186.3     742.1    18  bev_processor           /bev_processor
+  15422    186.3     742.1    18  lane_detect             /lane_mask
   15381     42.7     218.5    12  camera_driver           /camera_driver
 ```
 
@@ -45,12 +45,12 @@ JSON의 프로세스 항목에는 `cpu_percent`와 함께 사용 중인 CPU 코�
 
 ## 설정
 
-기본값은 `config/monitor.yaml`에 있습니다. 실행 중인 카메라/BEV 프로세스만
+기본값은 `config/monitor.yaml`에 있습니다. 실행 중인 카메라/차선 프로세스만
 보려면 다음처럼 정규식 필터를 줄 수 있습니다.
 
 ```bash
 ros2 run jetson_resource_monitor resource_monitor_node --ros-args \
-  -p process_filter:='camera|bev' \
+  -p process_filter:='camera|lane' \
   -p interval_sec:=0.5
 ```
 

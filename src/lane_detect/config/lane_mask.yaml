@@ -3,17 +3,10 @@ lane_mask:
     # camera_driver publishes rectified CAM_A frames in raw NV12 layout.
     input_topic: "/camera/image_rect"
 
-    # NV12 passthrough for bev_processor: luma plane carries the mask,
-    # chroma plane is neutral so the CUDA BT.601 stage yields grayscale.
-    nv12_topic: "/camera/image_lane"
-    nv12_publish_enabled: true
-
-    # Optional mono8 copy for debugging and for non-BEV consumers.
+    # mono8 lane mask consumed by auto_control.
     mask_topic: "/lane_mask"
-    mask_publish_enabled: true
 
-    # Processing resolution. The published NV12 is always full input size,
-    # only the internal morphology runs at this width.
+    # Internal morphology processing resolution.
     process_width: 960
     process_max_fps: 30.0
 
@@ -65,12 +58,11 @@ lane_mask:
     # wall/chair/ceiling/distant floor), so they are zeroed before shape
     # filtering. cut_beyond_m <= 0 falls back to the horizon (infinite
     # distance). camera_height_m/camera_pitch_deg/camera_fy/camera_cy come
-    # from bev_config_manual.yaml's measured K_rect and mount geometry;
+    # from the measured rectified intrinsics and mount geometry;
     # reference_image_height is the resolution those values were measured at.
     # 2.0: pixel footprint = d^2/(fy*h) = d^2/95.4, so at 2.5 m one pixel
-    # already covers 6.6 cm of ground - far coarser than the BEV's 1 cm grid,
-    # so it becomes a blur, not information. The real BEV output also shows
-    # blobbing starting around 2.4 m, matching this calculation.
+    # already covers 6.6 cm of ground and becomes blur rather than useful
+    # lane information.
     cut_beyond_m: 2.0
     camera_height_m: 0.17
     camera_pitch_deg: 13.0

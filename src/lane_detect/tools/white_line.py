@@ -79,7 +79,7 @@ def horizon_ratio(cut_beyond_m, fy=561.14, cy=352.62, cam_h=0.17,
                   pitch_deg=13.0, img_h=720):
     """전방 cut_beyond_m 미터에 해당하는 화면 행을 비율(%)로 반환.
 
-    bev_config_manual.yaml 기본값을 그대로 사용한다.
+    lane_mask.yaml의 카메라 보정 기본값을 그대로 사용한다.
     v(d) = cy + fy * tan( atan(h/d) - pitch )
     cut_beyond_m <= 0 이면 수평선(무한대) 기준.
     """

@@ -22,8 +22,16 @@ class LaneModelConfig:
     maximum_line_width_px: int = 12
     minimum_points_per_boundary: int = 8
     tracking_margin_px: float = 22.0
-    expected_lane_width_top_px: float = 60.0
-    expected_lane_width_bottom_px: float = 120.0
+    expected_lane_width_y_ratios: tuple[float, float, float] = (
+        0.55,
+        0.65,
+        0.75,
+    )
+    expected_lane_width_ratios: tuple[float, float, float] = (
+        0.383,
+        0.563,
+        0.711,
+    )
     lane_width_minimum_scale: float = 0.55
     lane_width_maximum_scale: float = 1.45
     maximum_fit_residual_px: float = 3.5
@@ -57,11 +65,18 @@ class LaneModel:
         self.config = config
         self._validate_config()
         self._previous_center_coefficients: np.ndarray | None = None
-        self._lane_width_coefficients = self._configured_width_coefficients()
+        self._configured_lane_width_coefficients = (
+            self._make_configured_width_coefficients()
+        )
+        self._lane_width_coefficients = (
+            self._configured_lane_width_coefficients.copy()
+        )
 
     def reset(self) -> None:
         self._previous_center_coefficients = None
-        self._lane_width_coefficients = self._configured_width_coefficients()
+        self._lane_width_coefficients = (
+            self._configured_lane_width_coefficients.copy()
+        )
 
     def estimate(
         self,
@@ -416,20 +431,27 @@ class LaneModel:
             confidence *= self.config.single_lane_confidence_scale
         return max(0.0, min(1.0, confidence))
 
-    def _configured_width_coefficients(self) -> np.ndarray:
-        y_span = self.config.roi_y_max - self.config.roi_y_min
-        slope = (
-            self.config.expected_lane_width_bottom_px
-            - self.config.expected_lane_width_top_px
-        ) / y_span
-        intercept = (
-            self.config.expected_lane_width_top_px
-            - slope * self.config.roi_y_min
+    def _make_configured_width_coefficients(self) -> np.ndarray:
+        calibration_y = (
+            np.asarray(
+                self.config.expected_lane_width_y_ratios,
+                dtype=np.float64,
+            )
+            * self.config.processing_height
         )
-        return np.asarray((0.0, slope, intercept), dtype=np.float64)
+        calibration_width = (
+            np.asarray(
+                self.config.expected_lane_width_ratios,
+                dtype=np.float64,
+            )
+            * self.config.processing_width
+        )
+        return np.polyfit(calibration_y, calibration_width, 2)
 
     def _configured_width_at(self, y: float) -> float:
-        return float(np.polyval(self._configured_width_coefficients(), y))
+        return float(
+            np.polyval(self._configured_lane_width_coefficients, y)
+        )
 
     def _width_at(self, y: float) -> float:
         learned = float(np.polyval(self._lane_width_coefficients, y))
@@ -499,11 +521,26 @@ class LaneModel:
             < self.config.processing_height
         ):
             raise ValueError("ROI must satisfy 0 <= y_min < y_max < height")
-        if (
-            self.config.expected_lane_width_top_px <= 0.0
-            or self.config.expected_lane_width_bottom_px <= 0.0
+        y_ratios = np.asarray(
+            self.config.expected_lane_width_y_ratios,
+            dtype=np.float64,
+        )
+        width_ratios = np.asarray(
+            self.config.expected_lane_width_ratios,
+            dtype=np.float64,
+        )
+        if y_ratios.shape != (3,) or width_ratios.shape != (3,):
+            raise ValueError("lane width calibration requires exactly 3 points")
+        if not np.all(np.isfinite(y_ratios)) or not np.all(
+            np.isfinite(width_ratios)
         ):
-            raise ValueError("expected lane widths must be positive")
+            raise ValueError("lane width calibration values must be finite")
+        if np.any(y_ratios < 0.0) or np.any(y_ratios > 1.0):
+            raise ValueError("lane width y ratios must be between 0 and 1")
+        if len(np.unique(y_ratios)) != 3:
+            raise ValueError("lane width y ratios must be distinct")
+        if np.any(width_ratios <= 0.0):
+            raise ValueError("expected lane width ratios must be positive")
 
     @staticmethod
     def _odd(value: int) -> int:

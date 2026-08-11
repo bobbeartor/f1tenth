@@ -4,15 +4,13 @@
   <name>lane_detect</name>
   <version>0.1.0</version>
   <description>
-    Improved perspective lane mask and optional BEV lane fitting.
+    Perspective-image lane mask generation for non-BEV lane following.
   </description>
   <maintainer email="ohslo@example.com">ohslo</maintainer>
   <license>TODO</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>geometry_msgs</depend>
-  <depend>nav_msgs</depend>
   <depend>opencv4</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>

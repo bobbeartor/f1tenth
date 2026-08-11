@@ -76,11 +76,17 @@ class CenterlineNode(Node):
             tracking_margin_px=float(
                 self.get_parameter("tracking_margin_px").value
             ),
-            expected_lane_width_top_px=float(
-                self.get_parameter("expected_lane_width_top_px").value
+            expected_lane_width_y_ratios=tuple(
+                float(value)
+                for value in self.get_parameter(
+                    "expected_lane_width_y_ratios"
+                ).value
             ),
-            expected_lane_width_bottom_px=float(
-                self.get_parameter("expected_lane_width_bottom_px").value
+            expected_lane_width_ratios=tuple(
+                float(value)
+                for value in self.get_parameter(
+                    "expected_lane_width_ratios"
+                ).value
             ),
             lane_width_minimum_scale=float(
                 self.get_parameter("lane_width_minimum_scale").value
@@ -285,8 +291,12 @@ class CenterlineNode(Node):
         self.declare_parameter("maximum_line_width_px", 12)
         self.declare_parameter("minimum_points_per_boundary", 8)
         self.declare_parameter("tracking_margin_px", 22.0)
-        self.declare_parameter("expected_lane_width_top_px", 60.0)
-        self.declare_parameter("expected_lane_width_bottom_px", 120.0)
+        self.declare_parameter(
+            "expected_lane_width_y_ratios", [0.55, 0.65, 0.75]
+        )
+        self.declare_parameter(
+            "expected_lane_width_ratios", [0.383, 0.563, 0.711]
+        )
         self.declare_parameter("lane_width_minimum_scale", 0.55)
         self.declare_parameter("lane_width_maximum_scale", 1.45)
         self.declare_parameter("maximum_fit_residual_px", 3.5)
