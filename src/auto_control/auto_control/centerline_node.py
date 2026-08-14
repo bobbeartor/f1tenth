@@ -103,6 +103,20 @@ class CenterlineNode(Node):
             single_lane_confidence_scale=float(
                 self.get_parameter("single_lane_confidence_scale").value
             ),
+            maximum_boundary_step_px=float(
+                self.get_parameter("maximum_boundary_step_px").value
+            ),
+            maximum_extrapolation_rows=int(
+                self.get_parameter("maximum_extrapolation_rows").value
+            ),
+            single_lane_curvature_gain=float(
+                self.get_parameter("single_lane_curvature_gain").value
+            ),
+            single_lane_maximum_offset_scale=float(
+                self.get_parameter(
+                    "single_lane_maximum_offset_scale"
+                ).value
+            ),
         )
         controller_config = ControllerConfig(
             lookahead_y=int(self.get_parameter("lookahead_y").value),
@@ -302,6 +316,10 @@ class CenterlineNode(Node):
         self.declare_parameter("maximum_fit_residual_px", 3.5)
         self.declare_parameter("lane_width_learning_alpha", 0.15)
         self.declare_parameter("single_lane_confidence_scale", 0.78)
+        self.declare_parameter("maximum_boundary_step_px", 5.0)
+        self.declare_parameter("maximum_extrapolation_rows", 5)
+        self.declare_parameter("single_lane_curvature_gain", 6.0)
+        self.declare_parameter("single_lane_maximum_offset_scale", 1.30)
 
         self.declare_parameter("lookahead_y", 68)
         self.declare_parameter("cross_track_gain", 0.75)

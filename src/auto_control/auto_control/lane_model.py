@@ -37,6 +37,10 @@ class LaneModelConfig:
     maximum_fit_residual_px: float = 3.5
     lane_width_learning_alpha: float = 0.15
     single_lane_confidence_scale: float = 0.78
+    maximum_boundary_step_px: float = 5.0
+    maximum_extrapolation_rows: int = 5
+    single_lane_curvature_gain: float = 6.0
+    single_lane_maximum_offset_scale: float = 1.30
 
 
 @dataclass(frozen=True)
@@ -56,6 +60,10 @@ class LaneModelEstimate:
     mask: np.ndarray
     left: BoundaryFit | None
     right: BoundaryFit | None
+    observed_y_min: int | None = None
+    observed_y_max: int | None = None
+    single_lane_curvature: float = 0.0
+    single_lane_offset_scale: float = 1.0
 
 
 class LaneModel:
@@ -87,6 +95,8 @@ class LaneModel:
         left_points, right_points = self._collect_boundary_points(mask)
         left = self._fit_boundary(left_points)
         right = self._fit_boundary(right_points)
+        single_lane_curvature = 0.0
+        single_lane_offset_scale = 1.0
 
         if left is not None and right is not None:
             left, right = self._validate_pair(left, right)
@@ -109,16 +119,24 @@ class LaneModel:
             mode = "BOTH"
             confidence = self._confidence(left, right, single=False)
         elif left is not None:
-            center_coefficients = (
-                np.asarray(left.coefficients, dtype=np.float64)
-                + 0.5 * self._lane_width_coefficients
+            (
+                center_coefficients,
+                single_lane_curvature,
+                single_lane_offset_scale,
+            ) = self._single_boundary_center(
+                left,
+                side="left",
             )
             mode = "LEFT_ONLY"
             confidence = self._confidence(left, None, single=True)
         elif right is not None:
-            center_coefficients = (
-                np.asarray(right.coefficients, dtype=np.float64)
-                - 0.5 * self._lane_width_coefficients
+            (
+                center_coefficients,
+                single_lane_curvature,
+                single_lane_offset_scale,
+            ) = self._single_boundary_center(
+                right,
+                side="right",
             )
             mode = "RIGHT_ONLY"
             confidence = self._confidence(None, right, single=True)
@@ -135,18 +153,36 @@ class LaneModel:
                 right=None,
             )
 
-        center_coefficients = self._clip_path(center_coefficients)
+        observed_y_min, observed_y_max = self._observed_range(left, right)
+        path_y_min, path_y_max = self._path_range(
+            observed_y_min,
+            observed_y_max,
+        )
+        center_coefficients = self._clip_path(
+            center_coefficients,
+            path_y_min,
+            path_y_max,
+        )
         self._previous_center_coefficients = center_coefficients.copy()
         path = CenterlinePath(
             image_width=self.config.processing_width,
-            roi_y_min=self.config.roi_y_min,
-            roi_y_max=self.config.roi_y_max,
+            roi_y_min=path_y_min,
+            roi_y_max=path_y_max,
             coefficients=tuple(float(value) for value in center_coefficients),
             confidence=confidence,
             valid=True,
             mode=mode,
         )
-        return LaneModelEstimate(path, mask, left, right)
+        return LaneModelEstimate(
+            path,
+            mask,
+            left,
+            right,
+            observed_y_min,
+            observed_y_max,
+            single_lane_curvature,
+            single_lane_offset_scale,
+        )
 
     def create_debug_image(
         self,
@@ -171,7 +207,11 @@ class LaneModel:
         self._draw_fit(debug, estimate.right, (0, 0, 255), 1)
 
         if estimate.path.valid:
-            points = self._curve_points(estimate.path.coefficients)
+            points = self._curve_points(
+                estimate.path.coefficients,
+                estimate.path.roi_y_min,
+                estimate.path.roi_y_max,
+            )
             cv2.polylines(debug, [points], False, (0, 255, 255), 2)
         cv2.line(
             debug,
@@ -190,6 +230,21 @@ class LaneModel:
             1,
             cv2.LINE_AA,
         )
+        if estimate.observed_y_min is not None:
+            cv2.putText(
+                debug,
+                (
+                    f"y={estimate.observed_y_min}-{estimate.observed_y_max} "
+                    f"k={estimate.single_lane_curvature:.3f} "
+                    f"off={estimate.single_lane_offset_scale:.2f}x"
+                ),
+                (3, 24),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.28,
+                (0, 255, 255),
+                1,
+                cv2.LINE_AA,
+            )
         return debug
 
     def _prepare_mask(self, image: np.ndarray, image_is_mask: bool) -> np.ndarray:
@@ -252,6 +307,8 @@ class LaneModel:
         left_points: list[tuple[float, float]] = []
         right_points: list[tuple[float, float]] = []
         center_hint = self.config.processing_width * 0.5
+        last_left: tuple[int, float] | None = None
+        last_right: tuple[int, float] | None = None
 
         for y in range(self.config.roi_y_max, self.config.roi_y_min - 1, -1):
             if self._previous_center_coefficients is not None:
@@ -264,11 +321,16 @@ class LaneModel:
                 candidates,
                 center_hint,
                 expected_width,
+                y,
+                last_left,
+                last_right,
             )
             if left_x is not None:
                 left_points.append((float(y), left_x))
+                last_left = (y, left_x)
             if right_x is not None:
                 right_points.append((float(y), right_x))
+                last_right = (y, right_x)
             if left_x is not None and right_x is not None:
                 center_hint = 0.5 * (left_x + right_x)
             elif left_x is not None:
@@ -299,6 +361,9 @@ class LaneModel:
         candidates: Sequence[float],
         center_hint: float,
         expected_width: float,
+        y: int,
+        last_left: tuple[int, float] | None,
+        last_right: tuple[int, float] | None,
     ) -> tuple[float | None, float | None]:
         expected_left = center_hint - 0.5 * expected_width
         expected_right = center_hint + 0.5 * expected_width
@@ -307,6 +372,10 @@ class LaneModel:
         ordered = sorted(candidates)
         for index, left_x in enumerate(ordered):
             for right_x in ordered[index + 1 :]:
+                if not self._is_continuous(left_x, y, last_left):
+                    continue
+                if not self._is_continuous(right_x, y, last_right):
+                    continue
                 measured_width = right_x - left_x
                 if not (
                     expected_width * self.config.lane_width_minimum_scale
@@ -330,11 +399,13 @@ class LaneModel:
             (abs(x - expected_left), x)
             for x in ordered
             if abs(x - expected_left) <= margin
+            and self._is_continuous(x, y, last_left)
         ]
         right_options = [
             (abs(x - expected_right), x)
             for x in ordered
             if abs(x - expected_right) <= margin
+            and self._is_continuous(x, y, last_right)
         ]
         left = min(left_options)[1] if left_options else None
         right = min(right_options)[1] if right_options else None
@@ -346,6 +417,19 @@ class LaneModel:
         if left is not None and right is not None and left >= right:
             return None, None
         return left, right
+
+    def _is_continuous(
+        self,
+        x: float,
+        y: int,
+        previous: tuple[int, float] | None,
+    ) -> bool:
+        if previous is None:
+            return True
+        previous_y, previous_x = previous
+        row_gap = max(1, abs(y - previous_y))
+        allowed_step = self.config.maximum_boundary_step_px * np.sqrt(row_gap)
+        return abs(x - previous_x) <= allowed_step
 
     def _fit_boundary(
         self,
@@ -391,11 +475,15 @@ class LaneModel:
         left: BoundaryFit,
         right: BoundaryFit,
     ) -> tuple[BoundaryFit | None, BoundaryFit | None]:
-        for y in np.linspace(
-            self.config.roi_y_min,
-            self.config.roi_y_max,
-            7,
-        ):
+        left_y = [point[0] for point in left.points]
+        right_y = [point[0] for point in right.points]
+        y_min = max(min(left_y), min(right_y))
+        y_max = min(max(left_y), max(right_y))
+        if y_min >= y_max:
+            if len(left.points) >= len(right.points):
+                return left, None
+            return None, right
+        for y in np.linspace(y_min, y_max, 7):
             expected_width = self._configured_width_at(float(y))
             measured_width = right.x_at(float(y)) - left.x_at(float(y))
             if not (
@@ -416,9 +504,17 @@ class LaneModel:
     ) -> float:
         fits = [fit for fit in (left, right) if fit is not None]
         roi_rows = self.config.roi_y_max - self.config.roi_y_min + 1
+        fit_coverages = []
+        for fit in fits:
+            fit_y = [point[0] for point in fit.points]
+            point_coverage = len(fit.points) / max(1.0, roi_rows)
+            span_coverage = (
+                max(fit_y) - min(fit_y) + 1.0
+            ) / max(1.0, roi_rows)
+            fit_coverages.append(min(point_coverage, span_coverage))
         coverage = min(
             1.0,
-            min(len(fit.points) for fit in fits) / max(1.0, roi_rows),
+            min(fit_coverages),
         )
         residual_score = max(
             0.0,
@@ -430,6 +526,103 @@ class LaneModel:
         if single:
             confidence *= self.config.single_lane_confidence_scale
         return max(0.0, min(1.0, confidence))
+
+    def _single_boundary_center(
+        self,
+        boundary: BoundaryFit,
+        side: str,
+    ) -> tuple[np.ndarray, float, float]:
+        """Reconstruct a center at equal y using a bounded normal distance.
+
+        Perspective calibration supplies a horizontal half-width. Converting it
+        to a local normal distance and projecting it back to the same image row
+        makes the center offset grow when the observed curve turns more sharply.
+        """
+        sign = 1.0 if side == "left" else -1.0
+        boundary_coefficients = np.asarray(
+            boundary.coefficients,
+            dtype=np.float64,
+        )
+        naive_center = boundary_coefficients + sign * (
+            0.5 * self._lane_width_coefficients
+        )
+        y_min, y_max = self._observed_range(boundary)
+        path_y_min, path_y_max = self._path_range(y_min, y_max)
+        y_values = np.linspace(path_y_min, path_y_max, 25)
+
+        boundary_slopes = np.polyval(
+            np.polyder(boundary_coefficients),
+            y_values,
+        )
+        width_slopes = np.polyval(
+            np.polyder(self._lane_width_coefficients),
+            y_values,
+        )
+        reference_slopes = -sign * 0.5 * width_slopes
+        normal_projection_scale = np.sqrt(1.0 + boundary_slopes**2) / np.sqrt(
+            1.0 + reference_slopes**2
+        )
+
+        center_slopes = np.polyval(np.polyder(naive_center), y_values)
+        center_second_derivative = float(2.0 * naive_center[0])
+        curvatures = np.abs(center_second_derivative) / np.power(
+            1.0 + center_slopes**2,
+            1.5,
+        )
+        curvature_scale = 1.0 + (
+            self.config.single_lane_curvature_gain * curvatures
+        )
+        offset_scale = np.clip(
+            normal_projection_scale * curvature_scale,
+            1.0,
+            self.config.single_lane_maximum_offset_scale,
+        )
+        half_widths = 0.5 * np.polyval(
+            self._lane_width_coefficients,
+            y_values,
+        )
+        boundary_x = np.polyval(boundary_coefficients, y_values)
+        center_x = boundary_x + sign * half_widths * offset_scale
+        center_coefficients = np.polyfit(y_values, center_x, 2)
+
+        # A quadratic approximation of the varying offset can overshoot between
+        # curved samples. Shift it inward so it never becomes closer to the
+        # boundary than the original calibrated half-width at sampled rows.
+        naive_center_x = np.polyval(naive_center, y_values)
+        fitted_center_x = np.polyval(center_coefficients, y_values)
+        minimum_inward_offset = float(
+            np.min(sign * (fitted_center_x - naive_center_x))
+        )
+        if minimum_inward_offset < 0.0:
+            center_coefficients[2] += sign * -minimum_inward_offset
+        return (
+            center_coefficients,
+            float(np.max(curvatures)),
+            float(np.max(offset_scale)),
+        )
+
+    def _observed_range(
+        self,
+        *fits: BoundaryFit | None,
+    ) -> tuple[int, int]:
+        valid_fits = [fit for fit in fits if fit is not None]
+        y_values = [
+            point[0]
+            for fit in valid_fits
+            for point in fit.points
+        ]
+        return int(np.floor(min(y_values))), int(np.ceil(max(y_values)))
+
+    def _path_range(
+        self,
+        observed_y_min: int,
+        observed_y_max: int,
+    ) -> tuple[int, int]:
+        extension = max(0, int(self.config.maximum_extrapolation_rows))
+        return (
+            max(self.config.roi_y_min, observed_y_min - extension),
+            min(self.config.roi_y_max, observed_y_max + extension),
+        )
 
     def _make_configured_width_coefficients(self) -> np.ndarray:
         calibration_y = (
@@ -464,10 +657,15 @@ class LaneModel:
             ),
         )
 
-    def _clip_path(self, coefficients: np.ndarray) -> np.ndarray:
+    def _clip_path(
+        self,
+        coefficients: np.ndarray,
+        y_min: int,
+        y_max: int,
+    ) -> np.ndarray:
         y_values = np.linspace(
-            self.config.roi_y_min,
-            self.config.roi_y_max,
+            y_min,
+            y_max,
             9,
         )
         x_values = np.polyval(coefficients, y_values)
@@ -489,9 +687,16 @@ class LaneModel:
     ) -> None:
         if fit is None:
             return
+        y_values = [point[0] for point in fit.points]
         cv2.polylines(
             image,
-            [self._curve_points(fit.coefficients)],
+            [
+                self._curve_points(
+                    fit.coefficients,
+                    int(np.floor(min(y_values))),
+                    int(np.ceil(max(y_values))),
+                )
+            ],
             False,
             color,
             thickness,
@@ -500,10 +705,12 @@ class LaneModel:
     def _curve_points(
         self,
         coefficients: Sequence[float],
+        y_min: int,
+        y_max: int,
     ) -> np.ndarray:
         y_values = np.arange(
-            self.config.roi_y_min,
-            self.config.roi_y_max + 1,
+            y_min,
+            y_max + 1,
         )
         x_values = np.polyval(coefficients, y_values)
         x_values = np.clip(
@@ -541,6 +748,14 @@ class LaneModel:
             raise ValueError("lane width y ratios must be distinct")
         if np.any(width_ratios <= 0.0):
             raise ValueError("expected lane width ratios must be positive")
+        if self.config.maximum_boundary_step_px <= 0.0:
+            raise ValueError("maximum boundary step must be positive")
+        if self.config.maximum_extrapolation_rows < 0:
+            raise ValueError("maximum extrapolation rows cannot be negative")
+        if self.config.single_lane_curvature_gain < 0.0:
+            raise ValueError("single-lane curvature gain cannot be negative")
+        if self.config.single_lane_maximum_offset_scale < 1.0:
+            raise ValueError("single-lane maximum offset scale must be at least 1")
 
     @staticmethod
     def _odd(value: int) -> int:

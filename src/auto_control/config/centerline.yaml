@@ -47,6 +47,17 @@ centerline_node:
     lane_width_learning_alpha: 0.15
     single_lane_confidence_scale: 0.78
 
+    # Reject abrupt row-to-row jumps toward white floor tiles. A centerline is
+    # extrapolated at most five rows beyond the actually observed boundary.
+    maximum_boundary_step_px: 5.0
+    maximum_extrapolation_rows: 5
+
+    # With one visible boundary, reconstruct the center using the boundary's
+    # local normal projection. Curvature can enlarge the calibrated half-width,
+    # but the total enlargement is capped for steering stability.
+    single_lane_curvature_gain: 6.0
+    single_lane_maximum_offset_scale: 1.30
+
     # Steering uses only the fitted quadratic centerline x(y).
     lookahead_y: 68
     cross_track_gain: 0.75
