@@ -47,9 +47,9 @@ class CenterlineControllerTest(unittest.TestCase):
         self.assertLess(command.steering, 0.0)
 
     def test_curved_centerline_uses_lookahead(self):
-        # x(83)=80 but x(68)=50: centered at the car and curving left ahead.
+        # x(90)=80 but x(68)=47: centered at the car and curving left ahead.
         command = self.controller.update(
-            self._path(coefficients=(0.0, 2.0, -86.0)),
+            self._path(coefficients=(0.0, 1.5, -55.0)),
             1.0 / 60.0,
         )
 
@@ -83,7 +83,7 @@ class CenterlineControllerTest(unittest.TestCase):
         return CenterlinePath(
             image_width=160,
             roi_y_min=60,
-            roi_y_max=83,
+            roi_y_max=90,
             coefficients=coefficients,
             confidence=confidence,
             valid=valid,

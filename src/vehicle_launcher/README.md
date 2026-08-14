@@ -62,7 +62,7 @@ is bounded by camera capture and lane-mask processing throughput.
 The camera and C++ mask run in one multi-threaded component container with
 intra-process transport, and the mask stays at its 640x360 working resolution.
 The controller normalizes the mask to 160x100 and uses only inclusive rows
-`y=60..83`; the integrated mask stage removes the wheel-filled bottom sixth.
+`y=60..90`; the integrated mask stage removes the wheel-filled bottom 10%.
 It is
 disarmed by default:
 
