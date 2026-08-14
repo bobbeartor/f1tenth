@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ROS 2 node for 60 Hz centerline-following vehicle control."""
+"""ROS 2 node for high-rate centerline-following vehicle control."""
 
 from __future__ import annotations
 
@@ -278,7 +278,7 @@ class CenterlineNode(Node):
         self.declare_parameter("publish_to_vesc", True)
         self.declare_parameter("require_vesc_connection", True)
         self.declare_parameter("publish_debug", False)
-        self.declare_parameter("control_rate_hz", 60.0)
+        self.declare_parameter("control_rate_hz", 100.0)
         self.declare_parameter("status_log_rate_hz", 2.0)
         self.declare_parameter("image_timeout_sec", 0.15)
 

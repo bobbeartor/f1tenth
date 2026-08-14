@@ -10,7 +10,9 @@
 4. 카메라 높이·피치 기반 원거리 영역 및 범퍼 영역 제거
 5. connected-component 면적·형상 필터 적용
 
-입력은 `/camera/image_rect`의 `nv12`, 출력은 `/lane_mask`의 `mono8`이다.
+입력은 `/camera/image_rect`의 `nv12`이고 출력은 `/lane_mask`의 `mono8`이다.
+출력 마스크는 불필요한 확대와 DDS 전송량을 줄이기 위해 내부 처리 해상도
+(기본 640x360)를 유지하며, `auto_control`이 이를 160x100으로 정규화한다.
 
 ```bash
 ros2 launch lane_detect lane_detect.launch.py

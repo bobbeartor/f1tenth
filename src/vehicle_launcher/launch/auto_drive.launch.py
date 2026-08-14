@@ -1,8 +1,8 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
-from launch_ros.actions import Node
+from launch_ros.actions import ComposableNodeContainer, Node
+from launch_ros.descriptions import ComposableNode
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
@@ -11,31 +11,20 @@ def generate_launch_description():
     drive_enabled = LaunchConfiguration("drive_enabled")
     publish_debug = LaunchConfiguration("publish_debug")
     camera_preview_enabled = LaunchConfiguration("camera_preview_enabled")
+    camera_performance_measurement_enabled = LaunchConfiguration(
+        "camera_performance_measurement_enabled"
+    )
+    camera_imu_stabilization_enabled = LaunchConfiguration(
+        "camera_imu_stabilization_enabled"
+    )
     camera_publish_fps = LaunchConfiguration("camera_publish_fps")
+    lane_process_width = LaunchConfiguration("lane_process_width")
+    control_rate_hz = LaunchConfiguration("control_rate_hz")
     vesc_port = LaunchConfiguration("vesc_port")
 
-    camera_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            PathJoinSubstitution(
-                [
-                    FindPackageShare("camera_driver"),
-                    "launch",
-                    "camera_driver.launch.py",
-                ]
-            )
-        ),
-        launch_arguments={
-            "preview_enabled": camera_preview_enabled,
-            "publish_enabled": "true",
-            "publish_fps": camera_publish_fps,
-            "imu_stabilization_enabled": "true",
-        }.items(),
+    camera_config = PathJoinSubstitution(
+        [FindPackageShare("camera_driver"), "config", "camera_config.yaml"]
     )
-
-    vesc_config = PathJoinSubstitution(
-        [FindPackageShare("vehicle_config"), "config", "vesc_config.yaml"]
-    )
-
     lane_detect_config = PathJoinSubstitution(
         [
             FindPackageShare("lane_detect"),
@@ -43,20 +32,62 @@ def generate_launch_description():
             "lane_mask.yaml",
         ]
     )
-    lane_detect_node = Node(
-        package="lane_detect",
-        executable="lane_detect_node",
-        name="lane_mask",
+    camera_lane_container = ComposableNodeContainer(
+        name="camera_lane_container",
+        namespace="",
+        package="rclcpp_components",
+        executable="component_container_mt",
         output="screen",
-        parameters=[
-            lane_detect_config,
-            {
-                # The centerline controller consumes mono8 directly. Process
-                # every 60 Hz camera frame (0 disables the second rate gate)
-                # while lane_mask.yaml removes the wheel-filled bottom sixth.
-                "process_max_fps": 0.0,
-            },
+        composable_node_descriptions=[
+            ComposableNode(
+                package="camera_driver",
+                plugin="camera_driver::CameraDriverNode",
+                name="camera_driver",
+                parameters=[
+                    camera_config,
+                    {
+                        "preview_enabled": ParameterValue(
+                            camera_preview_enabled, value_type=bool
+                        ),
+                        "performance_measurement_enabled": ParameterValue(
+                            camera_performance_measurement_enabled,
+                            value_type=bool,
+                        ),
+                        "publish_enabled": True,
+                        "publish_fps": ParameterValue(
+                            camera_publish_fps, value_type=float
+                        ),
+                        "imu_stabilization_enabled": ParameterValue(
+                            camera_imu_stabilization_enabled,
+                            value_type=bool,
+                        ),
+                        "imu_bridge_enabled": False,
+                    },
+                ],
+                extra_arguments=[{"use_intra_process_comms": True}],
+            ),
+            ComposableNode(
+                package="lane_detect",
+                plugin="lane_mask::LaneMaskNode",
+                name="lane_mask",
+                parameters=[
+                    lane_detect_config,
+                    {
+                        # Process every camera frame and publish the working
+                        # resolution instead of a full-size upscaled mask.
+                        "process_width": ParameterValue(
+                            lane_process_width, value_type=int
+                        ),
+                        "process_max_fps": 0.0,
+                    },
+                ],
+                extra_arguments=[{"use_intra_process_comms": True}],
+            ),
         ],
+    )
+
+    vesc_config = PathJoinSubstitution(
+        [FindPackageShare("vehicle_config"), "config", "vesc_config.yaml"]
     )
 
     vesc_node = Node(
@@ -84,6 +115,9 @@ def generate_launch_description():
                 "publish_debug": ParameterValue(
                     publish_debug, value_type=bool
                 ),
+                "control_rate_hz": ParameterValue(
+                    control_rate_hz, value_type=float
+                ),
             },
         ],
     )
@@ -102,13 +136,26 @@ def generate_launch_description():
                 "camera_preview_enabled", default_value="false"
             ),
             DeclareLaunchArgument(
-                "camera_publish_fps", default_value="60.0"
+                "camera_performance_measurement_enabled",
+                default_value="false",
+            ),
+            DeclareLaunchArgument(
+                "camera_imu_stabilization_enabled",
+                default_value="true",
+            ),
+            DeclareLaunchArgument(
+                "camera_publish_fps", default_value="100.0"
+            ),
+            DeclareLaunchArgument(
+                "lane_process_width", default_value="640"
+            ),
+            DeclareLaunchArgument(
+                "control_rate_hz", default_value="100.0"
             ),
             DeclareLaunchArgument(
                 "vesc_port", default_value="/dev/ttyTHS1"
             ),
-            camera_launch,
-            lane_detect_node,
+            camera_lane_container,
             vesc_node,
             lane_node,
         ]

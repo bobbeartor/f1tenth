@@ -19,7 +19,7 @@ centerline_node:
     publish_to_vesc: true
     require_vesc_connection: true
     publish_debug: false
-    control_rate_hz: 60.0
+    control_rate_hz: 100.0
     status_log_rate_hz: 2.0
     image_timeout_sec: 0.15
 

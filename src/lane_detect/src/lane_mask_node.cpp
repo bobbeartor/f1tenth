@@ -101,7 +101,7 @@ private:
     node_.declare_parameter<std::string>("mask_topic", "/lane_mask");
 
     // 0 keeps the native input width. Smaller values trade detail for speed.
-    node_.declare_parameter<int>("process_width", 960);
+    node_.declare_parameter<int>("process_width", 640);
     node_.declare_parameter<double>("process_max_fps", 30.0);
 
     // Size-like parameters below are written for this working width and are
@@ -258,7 +258,7 @@ private:
       const_cast<std::uint8_t *>(message->data.data()), step);
 
     const cv::Mat mask = computeMask(luma);
-    publishMono8(*message, mask, width, height);
+    publishMono8(*message, mask);
     if (preview_enabled_) {
       cv::imshow(preview_window_name_, mask);
       cv::waitKey(1);
@@ -445,21 +445,15 @@ private:
       filtered.setTo(255, labels == index);
     }
 
-    if (downscale) {
-      cv::Mat upscaled;
-      cv::resize(
-        filtered, upscaled, luma.size(), 0.0, 0.0, cv::INTER_NEAREST);
-      return upscaled;
-    }
     return filtered;
   }
 
   void publishMono8(
     const sensor_msgs::msg::Image & source,
-    const cv::Mat & mask,
-    const int width,
-    const int height)
+    const cv::Mat & mask)
   {
+    const int width = mask.cols;
+    const int height = mask.rows;
     auto output = std::make_unique<sensor_msgs::msg::Image>();
     output->header = source.header;
     output->height = static_cast<std::uint32_t>(height);
@@ -497,7 +491,7 @@ private:
   std::string input_topic_;
   std::string mask_topic_;
 
-  int process_width_{960};
+  int process_width_{640};
   int param_reference_width_{960};
   double process_max_fps_{30.0};
 

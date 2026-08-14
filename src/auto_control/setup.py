@@ -20,7 +20,7 @@ setup(
     zip_safe=True,
     maintainer="ohslo",
     maintainer_email="ohslo@example.com",
-    description="60 Hz curved-centerline lane following control.",
+    description="High-rate curved-centerline lane following control.",
     license="TODO",
     entry_points={
         "console_scripts": [

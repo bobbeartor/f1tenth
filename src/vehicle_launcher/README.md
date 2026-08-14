@@ -53,11 +53,14 @@ LB: 6
 RB: 7
 ```
 
-## 60 Hz curved-centerline autonomous lane following
+## High-rate curved-centerline autonomous lane following
 
 The autonomous launch starts the stabilized camera publisher, improved C++
 `lane_detect` mask node, VESC serial node, and quadratic centerline follower.
-Camera publication, lane-mask processing, and steering output run at 60 Hz.
+Camera publication and steering output target 100 Hz. Actual perception rate
+is bounded by camera capture and lane-mask processing throughput.
+The camera and C++ mask run in one multi-threaded component container with
+intra-process transport, and the mask stays at its 640x360 working resolution.
 The controller normalizes the mask to 160x100 and uses only inclusive rows
 `y=60..83`; the integrated mask stage removes the wheel-filled bottom sixth.
 It is
