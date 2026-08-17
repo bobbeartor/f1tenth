@@ -63,9 +63,41 @@ def compute_mask(luma, a):
                                  cv2.THRESH_BINARY)
     stage_tophat = candidate.copy()
 
-    # ② 어두움-문맥 게이트: 차선 테이프는 검은 매트 위에만 있다
+    # ② 주변 문맥 게이트: 후보가 양쪽 주변보다 상대적으로 밝아야 한다.
     gate = np.full_like(candidate, 255)
-    if a.bilateral_dark_enabled:
+    if a.bilateral_contrast_enabled:
+        kh = cv2.getStructuringElement(
+            cv2.MORPH_RECT, (bilateral_span, 1))
+        kv = cv2.getStructuringElement(
+            cv2.MORPH_RECT, (1, bilateral_span))
+        left_min = cv2.erode(
+            blurred, kh, anchor=(bilateral_span - 1, 0),
+            borderType=cv2.BORDER_CONSTANT, borderValue=255)
+        right_min = cv2.erode(
+            blurred, kh, anchor=(0, 0),
+            borderType=cv2.BORDER_CONSTANT, borderValue=255)
+        up_min = cv2.erode(
+            blurred, kv, anchor=(0, bilateral_span - 1),
+            borderType=cv2.BORDER_CONSTANT, borderValue=255)
+        down_min = cv2.erode(
+            blurred, kv, anchor=(0, 0),
+            borderType=cv2.BORDER_CONSTANT, borderValue=255)
+        blurred16 = blurred.astype(np.int16)
+        horizontal_reference = np.maximum(left_min, right_min)
+        vertical_reference = np.maximum(up_min, down_min)
+        vertical_stroke = (
+            blurred16 - horizontal_reference >=
+            a.bilateral_contrast_threshold)
+        horizontal_stroke = (
+            blurred16 - vertical_reference >=
+            a.bilateral_contrast_threshold)
+        vertical_stroke &= (
+            horizontal_reference <= a.bilateral_background_max)
+        horizontal_stroke &= (
+            vertical_reference <= a.bilateral_background_max)
+        gate = (vertical_stroke | horizontal_stroke).astype(np.uint8) * 255
+        candidate = cv2.bitwise_and(candidate, gate)
+    elif a.bilateral_dark_enabled:
         _, dark = cv2.threshold(blurred, a.dark_threshold, 1,
                                 cv2.THRESH_BINARY_INV)
         kh = cv2.getStructuringElement(
@@ -208,7 +240,10 @@ def build_parser():
     p.add_argument("--dark-threshold", type=int, default=70)
     p.add_argument("--dark-ratio", type=float, default=0.20)
     p.add_argument("--dark-window", type=int, default=25)
-    p.add_argument("--bilateral-dark-enabled", type=int, default=1)
+    p.add_argument("--bilateral-contrast-enabled", type=int, default=1)
+    p.add_argument("--bilateral-contrast-threshold", type=int, default=30)
+    p.add_argument("--bilateral-background-max", type=int, default=90)
+    p.add_argument("--bilateral-dark-enabled", type=int, default=0)
     p.add_argument("--bilateral-span-px", type=int, default=45)
     p.add_argument("--min-area", type=int, default=200)
     p.add_argument("--blob-area", type=int, default=1200)
@@ -230,6 +265,8 @@ def build_parser():
 def main():
     args = build_parser().parse_args()
     args.dark_gate_enabled = bool(args.dark_gate_enabled)
+    args.bilateral_contrast_enabled = bool(
+        args.bilateral_contrast_enabled)
     args.bilateral_dark_enabled = bool(args.bilateral_dark_enabled)
     args.sliver_filter_enabled = bool(args.sliver_filter_enabled)
 

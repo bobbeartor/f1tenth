@@ -22,9 +22,8 @@ lane_mask:
     # 11 tuning photos; 45 keeps it continuous without letting extra noise in.
     tophat_threshold: 45
 
-    # Stage 2: dark-context gate. Lane tape lies on the black EVA mat.
-    # dark_gate_enabled/dark_ratio only take effect when bilateral_dark_enabled
-    # is false (kept for comparison, see below).
+    # Stage 2 fallback: absolute dark-context gate, kept for comparison.
+    # It runs only when both bilateral modes below are disabled.
     dark_gate_enabled: true
     dark_threshold: 70
     # 0.20: raising it further (tried up to 0.30) never reduced the number of
@@ -33,14 +32,16 @@ lane_mask:
     dark_ratio: 0.20
     dark_window: 25
 
-    # Stage 2b: bilateral dark condition (mat-edge rejection). A mat edge is
-    # dark on only one side; lane tape has dark mat on BOTH sides (left+right
-    # for a vertical stroke, up+down for a horizontal one). Takes priority
-    # over dark_gate_enabled above when true. bilateral_span_px is how far
-    # (px, auto-scaled with resolution) to look for dark on each side.
-    bilateral_dark_enabled: true
-    # Look farther across thick tape or a locally bright tile while retaining
-    # the original requirement for dark pavement on both sides.
+    # Stage 2b: require BOTH an upper bound on surrounding brightness and a
+    # sufficient candidate-to-surrounding contrast. This admits gray track
+    # tiles while rejecting bright exterior floor/background regions.
+    bilateral_contrast_enabled: true
+    bilateral_contrast_threshold: 30
+    bilateral_background_max: 90
+
+    # Legacy absolute-dark bilateral mode, disabled but retained for A/B tests.
+    bilateral_dark_enabled: false
+    # Reference-resolution search span; about 30 px at process_width=640.
     bilateral_span_px: 45
 
     # Stage 3: connected-component shape filtering.

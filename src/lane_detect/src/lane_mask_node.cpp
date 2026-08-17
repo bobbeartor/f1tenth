@@ -71,15 +71,17 @@ public:
     RCLCPP_INFO(
       node_.get_logger(),
       "lane_mask started: in=%s, out=%s, process_width=%d, "
-      "tophat_k=%d, tophat_thresh=%d, dark=%d/%.2f, "
+      "tophat_k=%d, tophat_thresh=%d, contrast=%s/%d bg_max=%d span=%d, "
       "cut_row=%d (est. work_rows=%d)",
       input_topic_.c_str(),
       mask_topic_.c_str(),
       process_width_,
       tophat_kernel_,
       tophat_threshold_,
-      dark_threshold_,
-      dark_ratio_,
+      bilateral_contrast_enabled_ ? "relative" : "off",
+      bilateral_contrast_threshold_,
+      bilateral_background_max_,
+      bilateral_span_px_,
       startup_cut_row,
       assumed_work_rows);
   }
@@ -120,13 +122,16 @@ private:
     node_.declare_parameter<int>("dark_window", 25);
     node_.declare_parameter<bool>("dark_gate_enabled", true);
 
-    // Stage 2b: bilateral dark condition. Lane tape has dark mat on BOTH
-    // sides (left+right for a vertical stroke, or above+below for a
-    // horizontal one); a mat edge is dark on only one side. Takes priority
-    // over the ratio-based dark gate above when enabled, so both methods
-    // can be compared on the real car.
-    node_.declare_parameter<bool>("bilateral_dark_enabled", true);
-    node_.declare_parameter<int>("bilateral_span_px", 25);
+    // Stage 2b: relative bilateral contrast. Compare each bright candidate
+    // with its own surroundings instead of requiring an absolute black level,
+    // so the same lane tape works on both gray and black floor tiles.
+    node_.declare_parameter<bool>("bilateral_contrast_enabled", true);
+    node_.declare_parameter<int>("bilateral_contrast_threshold", 30);
+    node_.declare_parameter<int>("bilateral_background_max", 90);
+
+    // Legacy absolute-dark bilateral mode, retained for comparison only.
+    node_.declare_parameter<bool>("bilateral_dark_enabled", false);
+    node_.declare_parameter<int>("bilateral_span_px", 45);
 
     // Stage 3: shape filtering on connected components.
     node_.declare_parameter<int>("min_area", 200);
@@ -182,6 +187,16 @@ private:
       static_cast<int>(node_.get_parameter("dark_window").as_int()), 3);
     dark_gate_enabled_ = node_.get_parameter("dark_gate_enabled").as_bool();
 
+    bilateral_contrast_enabled_ =
+      node_.get_parameter("bilateral_contrast_enabled").as_bool();
+    bilateral_contrast_threshold_ = std::clamp(
+      static_cast<int>(
+        node_.get_parameter("bilateral_contrast_threshold").as_int()),
+      0, 255);
+    bilateral_background_max_ = std::clamp(
+      static_cast<int>(
+        node_.get_parameter("bilateral_background_max").as_int()),
+      0, 255);
     bilateral_dark_enabled_ =
       node_.get_parameter("bilateral_dark_enabled").as_bool();
     bilateral_span_px_ = std::max(
@@ -333,9 +348,68 @@ private:
     cv::threshold(
       tophat, candidate, tophat_threshold_, 255, cv::THRESH_BINARY);
 
-    // Stage 2: contextual gate. Lane tape sits on the dark mat, terrazzo
-    // speckles do not.
-    if (bilateral_dark_enabled_) {
+    // Stage 2: contextual gate. Real lane tape has locally darker pavement
+    // on both sides; isolated floor/tile highlights generally do not.
+    if (bilateral_contrast_enabled_) {
+      // Directional erosion returns the darkest nearby pixel independently
+      // on each side. A valid lane must be brighter than both horizontal
+      // sides or both vertical sides by the configured contrast amount.
+      const cv::Mat kh = cv::getStructuringElement(
+        cv::MORPH_RECT, {bilateral_span, 1});
+      const cv::Mat kv = cv::getStructuringElement(
+        cv::MORPH_RECT, {1, bilateral_span});
+      cv::Mat left_min;
+      cv::Mat right_min;
+      cv::Mat up_min;
+      cv::Mat down_min;
+      cv::erode(
+        blurred, left_min, kh, {bilateral_span - 1, 0}, 1,
+        cv::BORDER_CONSTANT, cv::Scalar(255));
+      cv::erode(
+        blurred, right_min, kh, {0, 0}, 1,
+        cv::BORDER_CONSTANT, cv::Scalar(255));
+      cv::erode(
+        blurred, up_min, kv, {0, bilateral_span - 1}, 1,
+        cv::BORDER_CONSTANT, cv::Scalar(255));
+      cv::erode(
+        blurred, down_min, kv, {0, 0}, 1,
+        cv::BORDER_CONSTANT, cv::Scalar(255));
+
+      // The larger of the two side minima is the stricter reference: passing
+      // it guarantees that the center is brighter than both sides.
+      cv::Mat horizontal_reference;
+      cv::Mat vertical_reference;
+      cv::max(left_min, right_min, horizontal_reference);
+      cv::max(up_min, down_min, vertical_reference);
+      cv::Mat horizontal_delta;
+      cv::Mat vertical_delta;
+      cv::subtract(blurred, horizontal_reference, horizontal_delta);
+      cv::subtract(blurred, vertical_reference, vertical_delta);
+
+      cv::Mat vertical_stroke;
+      cv::Mat horizontal_stroke;
+      cv::compare(
+        horizontal_delta, cv::Scalar(bilateral_contrast_threshold_),
+        vertical_stroke, cv::CMP_GE);
+      cv::compare(
+        vertical_delta, cv::Scalar(bilateral_contrast_threshold_),
+        horizontal_stroke, cv::CMP_GE);
+      cv::Mat horizontal_background_ok;
+      cv::Mat vertical_background_ok;
+      cv::compare(
+        horizontal_reference, cv::Scalar(bilateral_background_max_),
+        horizontal_background_ok, cv::CMP_LE);
+      cv::compare(
+        vertical_reference, cv::Scalar(bilateral_background_max_),
+        vertical_background_ok, cv::CMP_LE);
+      cv::bitwise_and(
+        vertical_stroke, horizontal_background_ok, vertical_stroke);
+      cv::bitwise_and(
+        horizontal_stroke, vertical_background_ok, horizontal_stroke);
+      cv::Mat gate;
+      cv::bitwise_or(vertical_stroke, horizontal_stroke, gate);
+      cv::bitwise_and(candidate, gate, candidate);
+    } else if (bilateral_dark_enabled_) {
       // Bilateral dark condition: a mat edge is dark on only one side, but
       // lane tape has dark mat on BOTH sides (left+right for a vertical
       // stroke, or above+below for a horizontal one). Directional dilation
@@ -504,8 +578,11 @@ private:
   int dark_window_{25};
   bool dark_gate_enabled_{true};
 
-  bool bilateral_dark_enabled_{true};
-  int bilateral_span_px_{25};
+  bool bilateral_contrast_enabled_{true};
+  int bilateral_contrast_threshold_{30};
+  int bilateral_background_max_{90};
+  bool bilateral_dark_enabled_{false};
+  int bilateral_span_px_{45};
 
   int min_area_{200};
   int blob_area_{1200};
