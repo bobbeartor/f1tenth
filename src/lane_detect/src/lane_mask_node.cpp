@@ -149,7 +149,7 @@ private:
 
     // Bottom cut: the bumper and its white sticker sit at a fixed screen
     // position and are otherwise indistinguishable from lane tape.
-    node_.declare_parameter<double>("bottom_cut_ratio", 0.10);
+    node_.declare_parameter<double>("bottom_cut_ratio", 0.25);
 
     node_.declare_parameter<bool>("preview_enabled", false);
     node_.declare_parameter<std::string>("preview_window_name", "lane mask");
@@ -521,7 +521,7 @@ private:
   double camera_fy_{561.136352539};
   double camera_cy_{352.621124268};
   int reference_image_height_{720};
-  double bottom_cut_ratio_{0.10};
+  double bottom_cut_ratio_{0.25};
 
   bool preview_enabled_{false};
   std::string preview_window_name_{"lane mask"};

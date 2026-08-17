@@ -10,15 +10,15 @@ class LaneModelTest(unittest.TestCase):
     def setUp(self):
         self.config = LaneModelConfig()
 
-    def test_pixels_outside_y_60_through_90_are_removed(self):
+    def test_pixels_outside_y_60_through_74_are_removed(self):
         model = LaneModel(self.config)
         mask = np.full((100, 160), 255, dtype=np.uint8)
 
         prepared = model._prepare_mask(mask, image_is_mask=True)
 
         self.assertEqual(np.count_nonzero(prepared[:60]), 0)
-        self.assertGreater(np.count_nonzero(prepared[60:91]), 0)
-        self.assertEqual(np.count_nonzero(prepared[91:]), 0)
+        self.assertGreater(np.count_nonzero(prepared[60:75]), 0)
+        self.assertEqual(np.count_nonzero(prepared[75:]), 0)
 
     def test_two_curved_boundaries_create_quadratic_centerline(self):
         model = LaneModel(self.config)
@@ -31,7 +31,7 @@ class LaneModelTest(unittest.TestCase):
         self.assertIsNotNone(estimate.left)
         self.assertIsNotNone(estimate.right)
         self.assertGreater(abs(estimate.path.coefficients[0]), 0.005)
-        for y in (60, 75, 90):
+        for y in (60, 67, 74):
             self.assertAlmostEqual(
                 estimate.path.x_at(y),
                 self._center_x(y),
@@ -64,7 +64,7 @@ class LaneModelTest(unittest.TestCase):
         self.assertTrue(estimate.path.valid)
         self.assertEqual(estimate.path.mode, "LEFT_ONLY")
         self.assertGreaterEqual(estimate.path.confidence, 0.45)
-        for y in (60, 75, 90):
+        for y in (60, 67, 74):
             self.assertAlmostEqual(
                 estimate.path.x_at(y),
                 80.0,
@@ -82,7 +82,7 @@ class LaneModelTest(unittest.TestCase):
         self.assertTrue(estimate.path.valid)
         self.assertEqual(estimate.path.mode, "RIGHT_ONLY")
         self.assertGreaterEqual(estimate.path.confidence, 0.45)
-        for y in (60, 75, 90):
+        for y in (60, 67, 74):
             self.assertAlmostEqual(
                 estimate.path.x_at(y),
                 80.0,
@@ -111,7 +111,7 @@ class LaneModelTest(unittest.TestCase):
         )
 
         self.assertEqual(estimate.path.mode, "LEFT_ONLY")
-        for y in (60, 75, 90):
+        for y in (60, 67, 74):
             self.assertAlmostEqual(
                 estimate.path.x_at(y),
                 80.0,
@@ -129,7 +129,7 @@ class LaneModelTest(unittest.TestCase):
         self.assertEqual(estimate.path.mode, "LEFT_ONLY")
         self.assertGreater(estimate.single_lane_curvature, 0.0)
         self.assertGreater(estimate.single_lane_offset_scale, 1.0)
-        y = 75.0
+        y = 70.0
         simple_half_width_center = (
             estimate.left.x_at(y) + 0.5 * model._width_at(y)
         )
@@ -151,7 +151,7 @@ class LaneModelTest(unittest.TestCase):
         )
 
         self.assertEqual(estimate.path.mode, "RIGHT_ONLY")
-        y = 75.0
+        y = 70.0
         simple_half_width_center = (
             estimate.right.x_at(y) - 0.5 * model._width_at(y)
         )
@@ -160,11 +160,15 @@ class LaneModelTest(unittest.TestCase):
             simple_half_width_center - 0.5,
         )
 
-    def test_path_extrapolation_is_limited_to_five_rows(self):
-        model = LaneModel(self.config)
+    def test_path_extrapolation_is_limited_to_configured_rows(self):
+        config = LaneModelConfig(
+            minimum_points_per_boundary=5,
+            maximum_extrapolation_rows=2,
+        )
+        model = LaneModel(config)
         mask = np.zeros((100, 160), dtype=np.uint8)
         points = []
-        for y in range(70, 81):
+        for y in range(65, 71):
             x = 80.0 - 0.5 * self._lane_width(y)
             points.append((int(round(x)), y))
         cv2.polylines(
@@ -178,22 +182,22 @@ class LaneModelTest(unittest.TestCase):
         estimate = model.estimate(mask, image_is_mask=True)
 
         self.assertTrue(estimate.path.valid)
-        self.assertGreater(estimate.path.roi_y_min, self.config.roi_y_min)
-        self.assertLess(estimate.path.roi_y_max, self.config.roi_y_max)
+        self.assertGreater(estimate.path.roi_y_min, config.roi_y_min)
+        self.assertLess(estimate.path.roi_y_max, config.roi_y_max)
         self.assertLessEqual(
             estimate.observed_y_min - estimate.path.roi_y_min,
-            self.config.maximum_extrapolation_rows,
+            config.maximum_extrapolation_rows,
         )
         self.assertLessEqual(
             estimate.path.roi_y_max - estimate.observed_y_max,
-            self.config.maximum_extrapolation_rows,
+            config.maximum_extrapolation_rows,
         )
 
     def test_abrupt_white_tile_branch_is_not_joined_to_lane(self):
         model = LaneModel(self.config)
         mask = np.zeros((100, 160), dtype=np.uint8)
         lane_points = []
-        for y in range(75, 91):
+        for y in range(68, 75):
             x = 80.0 - 0.5 * self._lane_width(y)
             lane_points.append((int(round(x)), y))
         cv2.polylines(
@@ -203,7 +207,7 @@ class LaneModelTest(unittest.TestCase):
             255,
             2,
         )
-        cv2.line(mask, (50, 74), (50, 60), 255, 2)
+        cv2.line(mask, (50, 67), (50, 60), 255, 2)
 
         prepared = model._prepare_mask(mask, image_is_mask=True)
         left_points, _ = model._collect_boundary_points(prepared)
@@ -211,8 +215,8 @@ class LaneModelTest(unittest.TestCase):
         self.assertTrue(left_points)
         # The 2 px lane stroke can occupy one row above its endpoint, but the
         # disconnected tile at x=50 must never become the tracked boundary.
-        self.assertGreaterEqual(min(y for y, _ in left_points), 74.0)
-        self.assertLess(max(x for _, x in left_points), 30.0)
+        self.assertGreaterEqual(min(y for y, _ in left_points), 67.0)
+        self.assertLess(max(x for _, x in left_points), 40.0)
 
     def test_only_roi_pixels_affect_the_curve(self):
         model = LaneModel(self.config)
@@ -224,8 +228,8 @@ class LaneModelTest(unittest.TestCase):
 
         self.assertTrue(estimate.path.valid)
         self.assertAlmostEqual(
-            estimate.path.x_at(75),
-            self._center_x(75),
+            estimate.path.x_at(67),
+            self._center_x(67),
             delta=2.0,
         )
 
@@ -247,7 +251,10 @@ class LaneModelTest(unittest.TestCase):
         mask = np.zeros((100, 160), dtype=np.uint8)
         for side in sides:
             points = []
-            for y in range(60, 91):
+            for y in range(
+                self.config.roi_y_min,
+                self.config.roi_y_max + 1,
+            ):
                 direction = -1.0 if side == "left" else 1.0
                 center_x = self._center_x(y) if curved_center else 80.0
                 x = (

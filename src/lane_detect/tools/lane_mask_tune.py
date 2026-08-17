@@ -223,7 +223,7 @@ def build_parser():
     p.add_argument("--camera-fy", type=float, default=561.136352539)
     p.add_argument("--camera-cy", type=float, default=352.621124268)
     p.add_argument("--reference-image-height", type=int, default=720)
-    p.add_argument("--bottom-cut-ratio", type=float, default=0.10)
+    p.add_argument("--bottom-cut-ratio", type=float, default=0.25)
     return p
 
 

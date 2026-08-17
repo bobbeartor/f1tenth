@@ -16,21 +16,21 @@ class LaneModelConfig:
     processing_width: int = 160
     processing_height: int = 100
     roi_y_min: int = 60
-    roi_y_max: int = 90
+    roi_y_max: int = 74
     white_threshold: int = 127
     morphology_kernel: int = 3
     maximum_line_width_px: int = 12
     minimum_points_per_boundary: int = 8
     tracking_margin_px: float = 22.0
     expected_lane_width_y_ratios: tuple[float, float, float] = (
-        0.55,
-        0.65,
-        0.75,
+        0.50,
+        0.60,
+        0.70,
     )
     expected_lane_width_ratios: tuple[float, float, float] = (
-        0.383,
-        0.563,
-        0.711,
+        0.297,
+        0.469,
+        0.641,
     )
     lane_width_minimum_scale: float = 0.55
     lane_width_maximum_scale: float = 1.45
@@ -67,7 +67,7 @@ class LaneModelEstimate:
 
 
 class LaneModel:
-    """Fit lane boundaries inside rows 60..90 of a 160x100 mask."""
+    """Fit lane boundaries inside rows 60..74 of a 160x100 mask."""
 
     def __init__(self, config: LaneModelConfig) -> None:
         self.config = config
@@ -573,7 +573,7 @@ class LaneModel:
             self.config.single_lane_curvature_gain * curvatures
         )
         offset_scale = np.clip(
-            normal_projection_scale * curvature_scale,
+            np.maximum(1.0, normal_projection_scale) * curvature_scale,
             1.0,
             self.config.single_lane_maximum_offset_scale,
         )

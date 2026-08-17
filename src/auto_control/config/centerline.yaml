@@ -24,11 +24,11 @@ centerline_node:
     image_timeout_sec: 0.15
 
     # Every input is normalized to this fixed coordinate system. The bottom
-    # 9 rows (y=91..99) are excluded from lane fitting.
+    # 25 rows (y=75..99), occupied by the wheels/body, are excluded.
     processing_width: 160
     processing_height: 100
     roi_y_min: 60
-    roi_y_max: 90
+    roi_y_max: 74
     white_threshold: 127
     morphology_kernel: 3
     maximum_line_width_px: 12
@@ -39,8 +39,8 @@ centerline_node:
     # Values are normalized by image height/width and are fitted as a quadratic
     # perspective profile. When only one boundary exists, half of this profile
     # reconstructs the centerline. Valid two-boundary frames refine it online.
-    expected_lane_width_y_ratios: [0.55, 0.65, 0.75]
-    expected_lane_width_ratios: [0.383, 0.563, 0.711]
+    expected_lane_width_y_ratios: [0.50, 0.60, 0.70]
+    expected_lane_width_ratios: [0.297, 0.469, 0.641]
     lane_width_minimum_scale: 0.55
     lane_width_maximum_scale: 1.45
     maximum_fit_residual_px: 3.5

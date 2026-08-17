@@ -326,17 +326,17 @@ class CenterlineNode(Node):
         self.declare_parameter("processing_width", 160)
         self.declare_parameter("processing_height", 100)
         self.declare_parameter("roi_y_min", 60)
-        self.declare_parameter("roi_y_max", 90)
+        self.declare_parameter("roi_y_max", 74)
         self.declare_parameter("white_threshold", 127)
         self.declare_parameter("morphology_kernel", 3)
         self.declare_parameter("maximum_line_width_px", 12)
         self.declare_parameter("minimum_points_per_boundary", 8)
         self.declare_parameter("tracking_margin_px", 22.0)
         self.declare_parameter(
-            "expected_lane_width_y_ratios", [0.55, 0.65, 0.75]
+            "expected_lane_width_y_ratios", [0.50, 0.60, 0.70]
         )
         self.declare_parameter(
-            "expected_lane_width_ratios", [0.383, 0.563, 0.711]
+            "expected_lane_width_ratios", [0.297, 0.469, 0.641]
         )
         self.declare_parameter("lane_width_minimum_scale", 0.55)
         self.declare_parameter("lane_width_maximum_scale", 1.45)
