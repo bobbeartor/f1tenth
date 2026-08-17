@@ -38,7 +38,9 @@ lane_mask:
     # for a vertical stroke, up+down for a horizontal one). Takes priority
     # over dark_gate_enabled above when true. bilateral_span_px is how far
     # (px, auto-scaled with resolution) to look for dark on each side.
-    bilateral_dark_enabled: true
+    # The strict bilateral test dropped valid tape when one surrounding tile
+    # was brighter than dark_threshold. Use the ratio gate above instead.
+    bilateral_dark_enabled: false
     bilateral_span_px: 25
 
     # Stage 3: connected-component shape filtering.

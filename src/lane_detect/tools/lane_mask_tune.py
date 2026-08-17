@@ -208,7 +208,7 @@ def build_parser():
     p.add_argument("--dark-threshold", type=int, default=70)
     p.add_argument("--dark-ratio", type=float, default=0.20)
     p.add_argument("--dark-window", type=int, default=25)
-    p.add_argument("--bilateral-dark-enabled", type=int, default=1)
+    p.add_argument("--bilateral-dark-enabled", type=int, default=0)
     p.add_argument("--bilateral-span-px", type=int, default=25)
     p.add_argument("--min-area", type=int, default=200)
     p.add_argument("--blob-area", type=int, default=1200)
