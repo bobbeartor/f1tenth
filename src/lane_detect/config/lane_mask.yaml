@@ -42,10 +42,9 @@ lane_mask:
     bilateral_span_px: 25
 
     # Stage 3: connected-component shape filtering.
-    # 400: sharply cuts the number of spurious components while shrinking
-    # lane pixel count by <2% across the tuning photos. 600 was not adopted
-    # because it risked losing the lane entirely in some photos.
-    min_area: 400
+    # Keep shorter lane-tape segments that fell just below the previous 400
+    # cutoff. At process_width=640 this becomes about 89 working pixels.
+    min_area: 200
     blob_area: 1200
     blob_aspect: 2.5
     blob_fill: 0.45

@@ -210,7 +210,7 @@ def build_parser():
     p.add_argument("--dark-window", type=int, default=25)
     p.add_argument("--bilateral-dark-enabled", type=int, default=1)
     p.add_argument("--bilateral-span-px", type=int, default=25)
-    p.add_argument("--min-area", type=int, default=400)
+    p.add_argument("--min-area", type=int, default=200)
     p.add_argument("--blob-area", type=int, default=1200)
     p.add_argument("--blob-aspect", type=float, default=2.5)
     p.add_argument("--blob-fill", type=float, default=0.45)
