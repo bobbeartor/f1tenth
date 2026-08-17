@@ -20,6 +20,8 @@ from auto_control.centerline_controller import (
     DEFAULT_SERVO_CENTER,
     DEFAULT_SERVO_LEFT,
     DEFAULT_SERVO_RIGHT,
+    StartupDutyConfig,
+    StartupDutyProfile,
     steering_to_servo,
 )
 from auto_control.lane_model import LaneModel, LaneModelConfig
@@ -149,6 +151,29 @@ class CenterlineNode(Node):
         )
         self.model = LaneModel(model_config)
         self.controller = CenterlineController(controller_config)
+        self.startup_duty_profile = StartupDutyProfile(
+            StartupDutyConfig(
+                boost_duty=float(
+                    self.get_parameter("startup_boost_duty").value
+                ),
+                boost_duration_sec=float(
+                    self.get_parameter(
+                        "startup_boost_duration_sec"
+                    ).value
+                ),
+                ramp_down_sec=float(
+                    self.get_parameter("startup_ramp_down_sec").value
+                ),
+                stable_tracking_sec=float(
+                    self.get_parameter(
+                        "startup_stable_tracking_sec"
+                    ).value
+                ),
+                rearm_stop_sec=float(
+                    self.get_parameter("startup_rearm_stop_sec").value
+                ),
+            )
+        )
 
         latest_qos = QoSProfile(depth=1)
         latest_qos.reliability = ReliabilityPolicy.BEST_EFFORT
@@ -244,6 +269,8 @@ class CenterlineNode(Node):
         )
         self._processing_error_count = 0
         self._last_actual_state = "STARTING"
+        self._last_actual_steering = 0.0
+        self._last_actual_duty = 0.0
 
         control_rate_hz = max(
             1.0,
@@ -332,6 +359,11 @@ class CenterlineNode(Node):
         self.declare_parameter("base_duty", 0.055)
         self.declare_parameter("minimum_duty", 0.050)
         self.declare_parameter("steering_slowdown", 0.55)
+        self.declare_parameter("startup_boost_duty", 0.060)
+        self.declare_parameter("startup_boost_duration_sec", 0.20)
+        self.declare_parameter("startup_ramp_down_sec", 0.10)
+        self.declare_parameter("startup_stable_tracking_sec", 0.20)
+        self.declare_parameter("startup_rearm_stop_sec", 0.50)
         self.declare_parameter("servo_left", DEFAULT_SERVO_LEFT)
         self.declare_parameter("servo_center", DEFAULT_SERVO_CENTER)
         self.declare_parameter("servo_right", DEFAULT_SERVO_RIGHT)
@@ -413,9 +445,18 @@ class CenterlineNode(Node):
         )
         if permitted:
             steering = self._latest_command.steering
-            duty = self._latest_command.duty
-            state = self._latest_command.state
+            duty, startup_state = self.startup_duty_profile.update(
+                True,
+                self._latest_command.duty,
+                dt_sec,
+            )
+            state = (
+                self._latest_command.state
+                if startup_state == StartupDutyProfile.RUNNING
+                else startup_state
+            )
         else:
+            self.startup_duty_profile.update(False, 0.0, dt_sec)
             steering = 0.0
             duty = 0.0
             if not self.drive_enabled:
@@ -428,6 +469,8 @@ class CenterlineNode(Node):
                 state = self._latest_command.state
 
         self._last_actual_state = state
+        self._last_actual_steering = steering
+        self._last_actual_duty = duty
         self.steering_pub.publish(Float32(data=float(steering)))
         self.throttle_pub.publish(Float32(data=float(duty)))
         self.confidence_pub.publish(
@@ -471,7 +514,9 @@ class CenterlineNode(Node):
             f"state={self._last_actual_state} "
             f"lane_mode={self._latest_path.mode} "
             f"confidence={self._latest_path.confidence:.2f} "
-            f"steering={command.steering:+.3f} duty={command.duty:.4f} "
+            f"steering={self._last_actual_steering:+.3f} "
+            f"duty={self._last_actual_duty:.4f} "
+            f"requested_duty={command.duty:.4f} "
             f"cross_track={command.cross_track_error:+.3f} "
             f"preview={command.preview_error:+.3f} "
             f"vesc_connected={self._vesc_connected} "
@@ -529,6 +574,7 @@ class CenterlineNode(Node):
         )
 
     def stop_actuators(self) -> None:
+        self.startup_duty_profile.reset()
         if not (self.publish_to_vesc and self.drive_enabled):
             return
         for _ in range(3):

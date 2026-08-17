@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 
@@ -62,6 +63,102 @@ class ControlCommand:
     cross_track_error: float
     preview_error: float
     state: str
+
+
+@dataclass(frozen=True)
+class StartupDutyConfig:
+    boost_duty: float = 0.060
+    boost_duration_sec: float = 0.20
+    ramp_down_sec: float = 0.10
+    stable_tracking_sec: float = 0.20
+    rearm_stop_sec: float = 0.50
+
+    def __post_init__(self) -> None:
+        values = (
+            self.boost_duty,
+            self.boost_duration_sec,
+            self.ramp_down_sec,
+            self.stable_tracking_sec,
+            self.rearm_stop_sec,
+        )
+        if not all(math.isfinite(value) for value in values):
+            raise ValueError("startup duty values must be finite")
+        if not 0.0 <= self.boost_duty <= 1.0:
+            raise ValueError("startup boost duty must be between 0 and 1")
+        if min(values[1:]) < 0.0:
+            raise ValueError("startup duty durations cannot be negative")
+
+
+class StartupDutyProfile:
+    """Apply a one-shot breakaway boost after stable lane tracking."""
+
+    WAITING = "STARTUP_WAIT"
+    BOOSTING = "STARTUP_BOOST"
+    RAMPING = "STARTUP_RAMP"
+    RUNNING = "RUNNING"
+    STOPPED = "STOPPED"
+
+    def __init__(self, config: StartupDutyConfig) -> None:
+        self.config = config
+        self.reset()
+
+    def reset(self) -> None:
+        self._phase = self.WAITING
+        self._stable_tracking_elapsed = 0.0
+        self._phase_elapsed = 0.0
+        self._stopped_elapsed = 0.0
+
+    @property
+    def phase(self) -> str:
+        return self._phase
+
+    def update(
+        self,
+        tracking_permitted: bool,
+        requested_duty: float,
+        dt_sec: float,
+    ) -> tuple[float, str]:
+        requested_duty = _clamp(float(requested_duty), 0.0, 1.0)
+        dt_sec = _clamp(float(dt_sec), 0.0, 0.2)
+
+        if not tracking_permitted:
+            self._stable_tracking_elapsed = 0.0
+            if self._phase != self.WAITING:
+                self._stopped_elapsed += dt_sec
+                if self._stopped_elapsed >= self.config.rearm_stop_sec:
+                    self._phase = self.WAITING
+                    self._phase_elapsed = 0.0
+            return 0.0, self.STOPPED
+
+        self._stopped_elapsed = 0.0
+        if self._phase == self.WAITING:
+            self._stable_tracking_elapsed += dt_sec
+            if (
+                self._stable_tracking_elapsed
+                < self.config.stable_tracking_sec
+            ):
+                return 0.0, self.WAITING
+            self._phase = self.BOOSTING
+            self._phase_elapsed = 0.0
+
+        if self._phase == self.BOOSTING:
+            elapsed = self._phase_elapsed
+            self._phase_elapsed += dt_sec
+            boost_duty = max(requested_duty, self.config.boost_duty)
+            if elapsed < self.config.boost_duration_sec:
+                return boost_duty, self.BOOSTING
+
+            ramp_elapsed = elapsed - self.config.boost_duration_sec
+            if (
+                self.config.ramp_down_sec > 0.0
+                and ramp_elapsed < self.config.ramp_down_sec
+            ):
+                progress = ramp_elapsed / self.config.ramp_down_sec
+                duty = boost_duty + (requested_duty - boost_duty) * progress
+                return duty, self.RAMPING
+            self._phase = self.RUNNING
+
+        return requested_duty, self.RUNNING
 
 
 class CenterlineController:

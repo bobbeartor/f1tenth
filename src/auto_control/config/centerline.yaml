@@ -71,6 +71,17 @@ centerline_node:
     base_duty: 0.055
     minimum_duty: 0.050
     steering_slowdown: 0.55
+
+    # Require a stable lane before moving, then briefly overcome static
+    # friction at 0.06 and return smoothly to the controller's requested duty.
+    # A short lane flicker stops the motor immediately but does not repeat the
+    # boost; remaining stopped for rearm_stop_sec prepares a new start.
+    startup_boost_duty: 0.060
+    startup_boost_duration_sec: 0.20
+    startup_ramp_down_sec: 0.10
+    startup_stable_tracking_sec: 0.20
+    startup_rearm_stop_sec: 0.50
+
     servo_left: 0.02
     servo_center: 0.46
     servo_right: 0.98

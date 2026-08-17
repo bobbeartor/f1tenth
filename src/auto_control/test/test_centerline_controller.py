@@ -7,6 +7,8 @@ from auto_control.centerline_controller import (
     DEFAULT_SERVO_CENTER,
     DEFAULT_SERVO_LEFT,
     DEFAULT_SERVO_RIGHT,
+    StartupDutyConfig,
+    StartupDutyProfile,
     steering_to_servo,
 )
 
@@ -89,6 +91,94 @@ class CenterlineControllerTest(unittest.TestCase):
             valid=valid,
             mode=mode,
         )
+
+
+class StartupDutyProfileTest(unittest.TestCase):
+    def test_waits_for_stable_tracking_then_boosts_and_ramps_down(self):
+        profile = StartupDutyProfile(
+            StartupDutyConfig(
+                boost_duty=0.060,
+                boost_duration_sec=0.20,
+                ramp_down_sec=0.10,
+                stable_tracking_sec=0.20,
+                rearm_stop_sec=0.50,
+            )
+        )
+
+        for _ in range(19):
+            duty, state = profile.update(True, 0.050, 0.01)
+            self.assertEqual(duty, 0.0)
+            self.assertEqual(state, StartupDutyProfile.WAITING)
+
+        duty, state = profile.update(True, 0.050, 0.01)
+        self.assertAlmostEqual(duty, 0.060)
+        self.assertEqual(state, StartupDutyProfile.BOOSTING)
+
+        samples = []
+        for _ in range(40):
+            samples.append(profile.update(True, 0.050, 0.01))
+        ramp_duties = [
+            duty
+            for duty, phase in samples
+            if phase == StartupDutyProfile.RAMPING
+        ]
+        self.assertTrue(ramp_duties)
+        self.assertGreater(max(ramp_duties), 0.050)
+        self.assertLessEqual(max(ramp_duties), 0.060)
+        self.assertEqual(samples[-1][1], StartupDutyProfile.RUNNING)
+        self.assertAlmostEqual(samples[-1][0], 0.050)
+
+    def test_safety_loss_stops_immediately_during_boost(self):
+        profile = StartupDutyProfile(
+            StartupDutyConfig(stable_tracking_sec=0.0)
+        )
+        duty, state = profile.update(True, 0.050, 0.01)
+        self.assertEqual(state, StartupDutyProfile.BOOSTING)
+        self.assertAlmostEqual(duty, 0.060)
+
+        duty, state = profile.update(False, 0.050, 0.01)
+
+        self.assertEqual(state, StartupDutyProfile.STOPPED)
+        self.assertEqual(duty, 0.0)
+
+    def test_short_stop_does_not_repeat_boost(self):
+        profile = StartupDutyProfile(
+            StartupDutyConfig(
+                boost_duration_sec=0.0,
+                ramp_down_sec=0.0,
+                stable_tracking_sec=0.0,
+                rearm_stop_sec=0.50,
+            )
+        )
+        duty, state = profile.update(True, 0.050, 0.01)
+        self.assertEqual(state, StartupDutyProfile.RUNNING)
+        self.assertAlmostEqual(duty, 0.050)
+
+        profile.update(False, 0.0, 0.20)
+        duty, state = profile.update(True, 0.050, 0.01)
+
+        self.assertEqual(state, StartupDutyProfile.RUNNING)
+        self.assertAlmostEqual(duty, 0.050)
+
+    def test_long_stop_rearms_stable_tracking_wait(self):
+        profile = StartupDutyProfile(
+            StartupDutyConfig(
+                boost_duration_sec=0.0,
+                ramp_down_sec=0.0,
+                stable_tracking_sec=0.20,
+                rearm_stop_sec=0.50,
+            )
+        )
+        for _ in range(20):
+            profile.update(True, 0.050, 0.01)
+        self.assertEqual(profile.phase, StartupDutyProfile.RUNNING)
+
+        for _ in range(3):
+            profile.update(False, 0.0, 0.20)
+        duty, state = profile.update(True, 0.050, 0.01)
+
+        self.assertEqual(state, StartupDutyProfile.WAITING)
+        self.assertEqual(duty, 0.0)
 
 
 if __name__ == "__main__":
