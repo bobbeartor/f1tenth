@@ -17,7 +17,7 @@ lane_mask:
     # Stage 1: white top-hat. Kernel must exceed the lane stroke width so
     # wide bright surfaces are removed and thin bright strokes survive.
     blur_kernel: 3
-    tophat_kernel: 31
+    tophat_kernel: 45
     # 60 broke the darker-side lane into disconnected fragments across the
     # 11 tuning photos; 45 keeps it continuous without letting extra noise in.
     tophat_threshold: 45
