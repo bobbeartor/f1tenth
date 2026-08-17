@@ -23,11 +23,11 @@ centerline_node:
     status_log_rate_hz: 2.0
     image_timeout_sec: 0.15
 
-    # Every input is normalized to this fixed coordinate system. The bottom
-    # 25 rows (y=75..99), occupied by the wheels/body, are excluded.
+    # Use y=50..74 and exclude the bottom 25 rows (y=75..99), occupied by
+    # the wheels/body.
     processing_width: 160
     processing_height: 100
-    roi_y_min: 60
+    roi_y_min: 50
     roi_y_max: 74
     white_threshold: 127
     morphology_kernel: 3

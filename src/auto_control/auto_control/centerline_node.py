@@ -325,7 +325,7 @@ class CenterlineNode(Node):
 
         self.declare_parameter("processing_width", 160)
         self.declare_parameter("processing_height", 100)
-        self.declare_parameter("roi_y_min", 60)
+        self.declare_parameter("roi_y_min", 50)
         self.declare_parameter("roi_y_max", 74)
         self.declare_parameter("white_threshold", 127)
         self.declare_parameter("morphology_kernel", 3)

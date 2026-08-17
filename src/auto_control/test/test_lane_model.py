@@ -10,14 +10,14 @@ class LaneModelTest(unittest.TestCase):
     def setUp(self):
         self.config = LaneModelConfig()
 
-    def test_pixels_outside_y_60_through_74_are_removed(self):
+    def test_pixels_outside_y_50_through_74_are_removed(self):
         model = LaneModel(self.config)
         mask = np.full((100, 160), 255, dtype=np.uint8)
 
         prepared = model._prepare_mask(mask, image_is_mask=True)
 
-        self.assertEqual(np.count_nonzero(prepared[:60]), 0)
-        self.assertGreater(np.count_nonzero(prepared[60:75]), 0)
+        self.assertEqual(np.count_nonzero(prepared[:50]), 0)
+        self.assertGreater(np.count_nonzero(prepared[50:75]), 0)
         self.assertEqual(np.count_nonzero(prepared[75:]), 0)
 
     def test_two_curved_boundaries_create_quadratic_centerline(self):
@@ -31,7 +31,7 @@ class LaneModelTest(unittest.TestCase):
         self.assertIsNotNone(estimate.left)
         self.assertIsNotNone(estimate.right)
         self.assertGreater(abs(estimate.path.coefficients[0]), 0.005)
-        for y in (60, 67, 74):
+        for y in (50, 62, 74):
             self.assertAlmostEqual(
                 estimate.path.x_at(y),
                 self._center_x(y),
@@ -64,7 +64,7 @@ class LaneModelTest(unittest.TestCase):
         self.assertTrue(estimate.path.valid)
         self.assertEqual(estimate.path.mode, "LEFT_ONLY")
         self.assertGreaterEqual(estimate.path.confidence, 0.45)
-        for y in (60, 67, 74):
+        for y in (50, 62, 74):
             self.assertAlmostEqual(
                 estimate.path.x_at(y),
                 80.0,
@@ -82,7 +82,7 @@ class LaneModelTest(unittest.TestCase):
         self.assertTrue(estimate.path.valid)
         self.assertEqual(estimate.path.mode, "RIGHT_ONLY")
         self.assertGreaterEqual(estimate.path.confidence, 0.45)
-        for y in (60, 67, 74):
+        for y in (50, 62, 74):
             self.assertAlmostEqual(
                 estimate.path.x_at(y),
                 80.0,
@@ -111,7 +111,7 @@ class LaneModelTest(unittest.TestCase):
         )
 
         self.assertEqual(estimate.path.mode, "LEFT_ONLY")
-        for y in (60, 67, 74):
+        for y in (50, 62, 74):
             self.assertAlmostEqual(
                 estimate.path.x_at(y),
                 80.0,
@@ -221,7 +221,7 @@ class LaneModelTest(unittest.TestCase):
     def test_only_roi_pixels_affect_the_curve(self):
         model = LaneModel(self.config)
         mask = self._lane_mask(sides=("left", "right"))
-        cv2.line(mask, (0, 0), (159, 59), 255, 5)
+        cv2.line(mask, (0, 0), (159, 49), 255, 5)
         mask[99, :] = 255
 
         estimate = model.estimate(mask, image_is_mask=True)

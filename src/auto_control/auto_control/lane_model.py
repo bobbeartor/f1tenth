@@ -15,7 +15,7 @@ from auto_control.centerline_controller import CenterlinePath
 class LaneModelConfig:
     processing_width: int = 160
     processing_height: int = 100
-    roi_y_min: int = 60
+    roi_y_min: int = 50
     roi_y_max: int = 74
     white_threshold: int = 127
     morphology_kernel: int = 3
@@ -67,7 +67,7 @@ class LaneModelEstimate:
 
 
 class LaneModel:
-    """Fit lane boundaries inside rows 60..74 of a 160x100 mask."""
+    """Fit lane boundaries inside rows 50..74 of a 160x100 mask."""
 
     def __init__(self, config: LaneModelConfig) -> None:
         self.config = config
