@@ -78,7 +78,6 @@ def generate_launch_description():
                         "process_width": ParameterValue(
                             lane_process_width, value_type=int
                         ),
-                        "process_max_fps": 0.0,
                     },
                 ],
                 extra_arguments=[{"use_intra_process_comms": True}],

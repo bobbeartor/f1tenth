@@ -12,7 +12,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
-find_package(OpenCV 4 REQUIRED COMPONENTS core highgui imgproc)
+find_package(OpenCV 4 REQUIRED
+  COMPONENTS core highgui imgproc
+  OPTIONAL_COMPONENTS cudaarithm cudafilters cudawarping
+)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -23,6 +26,18 @@ add_library(lane_detect_components SHARED
 target_compile_definitions(lane_detect_components
   PRIVATE LANE_MASK_BUILDING_DLL
 )
+if(
+  OpenCV_cudaarithm_FOUND AND
+  OpenCV_cudafilters_FOUND AND
+  OpenCV_cudawarping_FOUND
+)
+  target_compile_definitions(lane_detect_components
+    PRIVATE LANE_MASK_HAVE_OPENCV_CUDA=1
+  )
+  message(STATUS "lane_detect: OpenCV CUDA processing enabled")
+else()
+  message(STATUS "lane_detect: OpenCV CUDA modules unavailable; CPU fallback only")
+endif()
 target_include_directories(lane_detect_components
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

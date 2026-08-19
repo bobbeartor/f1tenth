@@ -13,6 +13,13 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
+#ifdef LANE_MASK_HAVE_OPENCV_CUDA
+#include <opencv2/core/cuda.hpp>
+#include <opencv2/cudaarithm.hpp>
+#include <opencv2/cudafilters.hpp>
+#include <opencv2/cudawarping.hpp>
+#endif
+
 #include "rclcpp_components/register_node_macro.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
@@ -70,15 +77,15 @@ public:
 
     RCLCPP_INFO(
       node_.get_logger(),
-      "lane_mask started: in=%s, out=%s, process_width=%d, "
-      "tophat_k=%d, tophat_thresh=%d, contrast=%s/%d bg_max=%d span=%d, "
+      "lane_mask started: in=%s, out=%s, backend=%s, process_width=%d, "
+      "tophat_k=%d, tophat_thresh=%d, contrast=%d bg_max=%d span=%d, "
       "cut_row=%d (est. work_rows=%d)",
       input_topic_.c_str(),
       mask_topic_.c_str(),
+      cuda_active_ ? "cuda" : "cpu",
       process_width_,
       tophat_kernel_,
       tophat_threshold_,
-      bilateral_contrast_enabled_ ? "relative" : "off",
       bilateral_contrast_threshold_,
       bilateral_background_max_,
       bilateral_span_px_,
@@ -104,7 +111,7 @@ private:
 
     // 0 keeps the native input width. Smaller values trade detail for speed.
     node_.declare_parameter<int>("process_width", 640);
-    node_.declare_parameter<double>("process_max_fps", 30.0);
+    node_.declare_parameter<bool>("use_cuda", true);
 
     // Size-like parameters below are written for this working width and are
     // rescaled automatically when process_width differs, so changing the
@@ -116,21 +123,12 @@ private:
     node_.declare_parameter<int>("tophat_threshold", 60);
     node_.declare_parameter<int>("blur_kernel", 5);
 
-    // Stage 2: lane tape only exists next to the dark EVA mat.
-    node_.declare_parameter<int>("dark_threshold", 70);
-    node_.declare_parameter<double>("dark_ratio", 0.12);
-    node_.declare_parameter<int>("dark_window", 25);
-    node_.declare_parameter<bool>("dark_gate_enabled", true);
-
-    // Stage 2b: relative bilateral contrast. Compare each bright candidate
+    // Stage 2: relative bilateral contrast. Compare each bright candidate
     // with its own surroundings instead of requiring an absolute black level,
     // so the same lane tape works on both gray and black floor tiles.
-    node_.declare_parameter<bool>("bilateral_contrast_enabled", true);
     node_.declare_parameter<int>("bilateral_contrast_threshold", 30);
     node_.declare_parameter<int>("bilateral_background_max", 90);
 
-    // Legacy absolute-dark bilateral mode, retained for comparison only.
-    node_.declare_parameter<bool>("bilateral_dark_enabled", false);
     node_.declare_parameter<int>("bilateral_span_px", 45);
 
     // Stage 3: shape filtering on connected components.
@@ -168,7 +166,7 @@ private:
 
     process_width_ = static_cast<int>(
       node_.get_parameter("process_width").as_int());
-    process_max_fps_ = node_.get_parameter("process_max_fps").as_double();
+    use_cuda_ = node_.get_parameter("use_cuda").as_bool();
     param_reference_width_ = std::max(
       1, static_cast<int>(
         node_.get_parameter("param_reference_width").as_int()));
@@ -180,15 +178,6 @@ private:
     blur_kernel_ = makeOdd(
       static_cast<int>(node_.get_parameter("blur_kernel").as_int()), 1);
 
-    dark_threshold_ = static_cast<int>(
-      node_.get_parameter("dark_threshold").as_int());
-    dark_ratio_ = node_.get_parameter("dark_ratio").as_double();
-    dark_window_ = makeOdd(
-      static_cast<int>(node_.get_parameter("dark_window").as_int()), 3);
-    dark_gate_enabled_ = node_.get_parameter("dark_gate_enabled").as_bool();
-
-    bilateral_contrast_enabled_ =
-      node_.get_parameter("bilateral_contrast_enabled").as_bool();
     bilateral_contrast_threshold_ = std::clamp(
       static_cast<int>(
         node_.get_parameter("bilateral_contrast_threshold").as_int()),
@@ -197,8 +186,6 @@ private:
       static_cast<int>(
         node_.get_parameter("bilateral_background_max").as_int()),
       0, 255);
-    bilateral_dark_enabled_ =
-      node_.get_parameter("bilateral_dark_enabled").as_bool();
     bilateral_span_px_ = std::max(
       1, static_cast<int>(
         node_.get_parameter("bilateral_span_px").as_int()));
@@ -229,6 +216,40 @@ private:
       node_.get_parameter("preview_window_name").as_string();
     status_log_interval_sec_ =
       node_.get_parameter("status_log_interval_sec").as_double();
+
+    initializeCuda();
+  }
+
+  void initializeCuda()
+  {
+#ifdef LANE_MASK_HAVE_OPENCV_CUDA
+    if (!use_cuda_) {
+      return;
+    }
+    try {
+      const int device_count = cv::cuda::getCudaEnabledDeviceCount();
+      if (device_count > 0) {
+        cv::cuda::setDevice(0);
+        cuda_stream_ = std::make_unique<cv::cuda::Stream>();
+        cuda_active_ = true;
+        return;
+      }
+      RCLCPP_WARN(
+        node_.get_logger(),
+        "CUDA requested but no CUDA device is available; using CPU.");
+    } catch (const cv::Exception & error) {
+      RCLCPP_WARN(
+        node_.get_logger(),
+        "CUDA initialization failed (%s); using CPU.", error.what());
+    }
+#else
+    if (use_cuda_) {
+      RCLCPP_WARN(
+        node_.get_logger(),
+        "CUDA requested but lane_detect was built without OpenCV CUDA modules; "
+        "using CPU.");
+    }
+#endif
   }
 
   void onImage(sensor_msgs::msg::Image::ConstSharedPtr message)
@@ -254,17 +275,6 @@ private:
         message->width, message->height, message->encoding.c_str(),
         message->step, message->data.size());
       return;
-    }
-
-    if (process_max_fps_ > 0.0) {
-      const auto now = std::chrono::steady_clock::now();
-      const double minimum_period = 1.0 / process_max_fps_;
-      const double elapsed =
-        std::chrono::duration<double>(now - last_processed_at_).count();
-      if (elapsed < minimum_period) {
-        return;
-      }
-      last_processed_at_ = now;
     }
 
     // NV12 luma plane is already the grayscale image. No conversion needed.
@@ -300,6 +310,26 @@ private:
 
   cv::Mat computeMask(const cv::Mat & luma)
   {
+#ifdef LANE_MASK_HAVE_OPENCV_CUDA
+    if (cuda_active_) {
+      try {
+        return computeMaskCuda(luma);
+      } catch (const cv::Exception & error) {
+        cuda_active_ = false;
+        clearCudaFilters();
+        cuda_stream_.reset();
+        RCLCPP_ERROR(
+          node_.get_logger(),
+          "CUDA lane masking failed (%s); switching permanently to CPU.",
+          error.what());
+      }
+    }
+#endif
+    return computeMaskCpu(luma);
+  }
+
+  cv::Mat computeMaskCpu(const cv::Mat & luma)
+  {
     cv::Mat work;
     const bool downscale =
       process_width_ > 0 && process_width_ < luma.cols;
@@ -318,16 +348,7 @@ private:
       static_cast<double>(param_reference_width_);
     const int tophat_kernel = makeOdd(
       static_cast<int>(std::lround(tophat_kernel_ * ratio)), 3);
-    const int dark_window = makeOdd(
-      static_cast<int>(std::lround(dark_window_ * ratio)), 3);
-    const int min_area = std::max(
-      10, static_cast<int>(std::lround(min_area_ * ratio * ratio)));
-    const int blob_area = std::max(
-      50, static_cast<int>(std::lround(blob_area_ * ratio * ratio)));
-    const int sliver_max_height = std::max(
-      2, static_cast<int>(std::lround(sliver_max_height_ * ratio)));
-    // Minimum 3 (not 1) so the directional dilation never degenerates to a
-    // 1x1 no-op kernel, which would silently disable the bilateral gate.
+    // Minimum 3 prevents the directional erosion from becoming a no-op.
     const int bilateral_span = std::max(
       3, static_cast<int>(std::lround(bilateral_span_px_ * ratio)));
 
@@ -350,114 +371,75 @@ private:
 
     // Stage 2: contextual gate. Real lane tape has locally darker pavement
     // on both sides; isolated floor/tile highlights generally do not.
-    if (bilateral_contrast_enabled_) {
-      // Directional erosion returns the darkest nearby pixel independently
-      // on each side. A valid lane must be brighter than both horizontal
-      // sides or both vertical sides by the configured contrast amount.
-      const cv::Mat kh = cv::getStructuringElement(
-        cv::MORPH_RECT, {bilateral_span, 1});
-      const cv::Mat kv = cv::getStructuringElement(
-        cv::MORPH_RECT, {1, bilateral_span});
-      cv::Mat left_min;
-      cv::Mat right_min;
-      cv::Mat up_min;
-      cv::Mat down_min;
-      cv::erode(
-        blurred, left_min, kh, {bilateral_span - 1, 0}, 1,
-        cv::BORDER_CONSTANT, cv::Scalar(255));
-      cv::erode(
-        blurred, right_min, kh, {0, 0}, 1,
-        cv::BORDER_CONSTANT, cv::Scalar(255));
-      cv::erode(
-        blurred, up_min, kv, {0, bilateral_span - 1}, 1,
-        cv::BORDER_CONSTANT, cv::Scalar(255));
-      cv::erode(
-        blurred, down_min, kv, {0, 0}, 1,
-        cv::BORDER_CONSTANT, cv::Scalar(255));
+    // Directional erosion returns the darkest nearby pixel independently
+    // on each side. A valid lane must be brighter than both horizontal
+    // sides or both vertical sides by the configured contrast amount.
+    const cv::Mat kh = cv::getStructuringElement(
+      cv::MORPH_RECT, {bilateral_span, 1});
+    const cv::Mat kv = cv::getStructuringElement(
+      cv::MORPH_RECT, {1, bilateral_span});
+    cv::Mat left_min;
+    cv::Mat right_min;
+    cv::Mat up_min;
+    cv::Mat down_min;
+    cv::erode(
+      blurred, left_min, kh, {bilateral_span - 1, 0}, 1,
+      cv::BORDER_CONSTANT, cv::Scalar(255));
+    cv::erode(
+      blurred, right_min, kh, {0, 0}, 1,
+      cv::BORDER_CONSTANT, cv::Scalar(255));
+    cv::erode(
+      blurred, up_min, kv, {0, bilateral_span - 1}, 1,
+      cv::BORDER_CONSTANT, cv::Scalar(255));
+    cv::erode(
+      blurred, down_min, kv, {0, 0}, 1,
+      cv::BORDER_CONSTANT, cv::Scalar(255));
 
-      // The larger of the two side minima is the stricter reference: passing
-      // it guarantees that the center is brighter than both sides.
-      cv::Mat horizontal_reference;
-      cv::Mat vertical_reference;
-      cv::max(left_min, right_min, horizontal_reference);
-      cv::max(up_min, down_min, vertical_reference);
-      cv::Mat horizontal_delta;
-      cv::Mat vertical_delta;
-      cv::subtract(blurred, horizontal_reference, horizontal_delta);
-      cv::subtract(blurred, vertical_reference, vertical_delta);
+    // The larger side minimum is the stricter background reference.
+    cv::Mat horizontal_reference;
+    cv::Mat vertical_reference;
+    cv::max(left_min, right_min, horizontal_reference);
+    cv::max(up_min, down_min, vertical_reference);
+    cv::Mat horizontal_delta;
+    cv::Mat vertical_delta;
+    cv::subtract(blurred, horizontal_reference, horizontal_delta);
+    cv::subtract(blurred, vertical_reference, vertical_delta);
 
-      cv::Mat vertical_stroke;
-      cv::Mat horizontal_stroke;
-      cv::compare(
-        horizontal_delta, cv::Scalar(bilateral_contrast_threshold_),
-        vertical_stroke, cv::CMP_GE);
-      cv::compare(
-        vertical_delta, cv::Scalar(bilateral_contrast_threshold_),
-        horizontal_stroke, cv::CMP_GE);
-      cv::Mat horizontal_background_ok;
-      cv::Mat vertical_background_ok;
-      cv::compare(
-        horizontal_reference, cv::Scalar(bilateral_background_max_),
-        horizontal_background_ok, cv::CMP_LE);
-      cv::compare(
-        vertical_reference, cv::Scalar(bilateral_background_max_),
-        vertical_background_ok, cv::CMP_LE);
-      cv::bitwise_and(
-        vertical_stroke, horizontal_background_ok, vertical_stroke);
-      cv::bitwise_and(
-        horizontal_stroke, vertical_background_ok, horizontal_stroke);
-      cv::Mat gate;
-      cv::bitwise_or(vertical_stroke, horizontal_stroke, gate);
-      cv::bitwise_and(candidate, gate, candidate);
-    } else if (bilateral_dark_enabled_) {
-      // Bilateral dark condition: a mat edge is dark on only one side, but
-      // lane tape has dark mat on BOTH sides (left+right for a vertical
-      // stroke, or above+below for a horizontal one). Directional dilation
-      // with the anchor at one end of the kernel looks only in that
-      // direction from each pixel.
-      cv::Mat dark;
-      cv::threshold(
-        blurred, dark, dark_threshold_, 1, cv::THRESH_BINARY_INV);
-      const cv::Mat kh = cv::getStructuringElement(
-        cv::MORPH_RECT, {bilateral_span, 1});
-      const cv::Mat kv = cv::getStructuringElement(
-        cv::MORPH_RECT, {1, bilateral_span});
-      cv::Mat left;
-      cv::Mat right;
-      cv::Mat up;
-      cv::Mat down;
-      cv::dilate(
-        dark, left, kh, {bilateral_span - 1, 0}, 1,
-        cv::BORDER_CONSTANT, cv::Scalar(0));
-      cv::dilate(
-        dark, right, kh, {0, 0}, 1, cv::BORDER_CONSTANT, cv::Scalar(0));
-      cv::dilate(
-        dark, up, kv, {0, bilateral_span - 1}, 1,
-        cv::BORDER_CONSTANT, cv::Scalar(0));
-      cv::dilate(
-        dark, down, kv, {0, 0}, 1, cv::BORDER_CONSTANT, cv::Scalar(0));
-      cv::Mat vertical_stroke;
-      cv::Mat horizontal_stroke;
-      cv::bitwise_and(left, right, vertical_stroke);
-      cv::bitwise_and(up, down, horizontal_stroke);
-      cv::Mat gate01;
-      cv::bitwise_or(vertical_stroke, horizontal_stroke, gate01);
-      cv::Mat gate;
-      gate01.convertTo(gate, CV_8UC1, 255.0);
-      cv::bitwise_and(candidate, gate, candidate);
-    } else if (dark_gate_enabled_) {
-      cv::Mat dark;
-      cv::threshold(
-        blurred, dark, dark_threshold_, 1, cv::THRESH_BINARY_INV);
-      cv::Mat dark_ratio_map;
-      cv::boxFilter(
-        dark, dark_ratio_map, CV_32F, {dark_window, dark_window});
-      cv::Mat gate;
-      cv::threshold(
-        dark_ratio_map, gate, dark_ratio_, 255, cv::THRESH_BINARY);
-      gate.convertTo(gate, CV_8UC1);
-      cv::bitwise_and(candidate, gate, candidate);
-    }
+    cv::Mat vertical_stroke;
+    cv::Mat horizontal_stroke;
+    cv::compare(
+      horizontal_delta, cv::Scalar(bilateral_contrast_threshold_),
+      vertical_stroke, cv::CMP_GE);
+    cv::compare(
+      vertical_delta, cv::Scalar(bilateral_contrast_threshold_),
+      horizontal_stroke, cv::CMP_GE);
+    cv::Mat horizontal_background_ok;
+    cv::Mat vertical_background_ok;
+    cv::compare(
+      horizontal_reference, cv::Scalar(bilateral_background_max_),
+      horizontal_background_ok, cv::CMP_LE);
+    cv::compare(
+      vertical_reference, cv::Scalar(bilateral_background_max_),
+      vertical_background_ok, cv::CMP_LE);
+    cv::bitwise_and(
+      vertical_stroke, horizontal_background_ok, vertical_stroke);
+    cv::bitwise_and(
+      horizontal_stroke, vertical_background_ok, horizontal_stroke);
+    cv::Mat gate;
+    cv::bitwise_or(vertical_stroke, horizontal_stroke, gate);
+    cv::bitwise_and(candidate, gate, candidate);
+
+    return finalizeCandidate(candidate, ratio);
+  }
+
+  cv::Mat finalizeCandidate(cv::Mat candidate, const double ratio) const
+  {
+    const int min_area = std::max(
+      10, static_cast<int>(std::lround(min_area_ * ratio * ratio)));
+    const int blob_area = std::max(
+      50, static_cast<int>(std::lround(blob_area_ * ratio * ratio)));
+    const int sliver_max_height = std::max(
+      2, static_cast<int>(std::lround(sliver_max_height_ * ratio)));
 
     // Geometric horizon cut: rows above cut_row cannot be ground given the
     // camera height and pitch, so remove them before shape filtering.
@@ -493,11 +475,9 @@ private:
       if (area < min_area) {
         continue;
       }
-      const int box_x = stats.at<int>(index, cv::CC_STAT_LEFT);
       const int box_y = stats.at<int>(index, cv::CC_STAT_TOP);
       const int box_w = stats.at<int>(index, cv::CC_STAT_WIDTH);
       const int box_h = stats.at<int>(index, cv::CC_STAT_HEIGHT);
-      static_cast<void>(box_x);
       const double aspect =
         static_cast<double>(std::max(box_w, box_h)) /
         static_cast<double>(std::max(1, std::min(box_w, box_h)));
@@ -521,6 +501,166 @@ private:
 
     return filtered;
   }
+
+#ifdef LANE_MASK_HAVE_OPENCV_CUDA
+  void clearCudaFilters()
+  {
+    cuda_gaussian_filter_.release();
+    cuda_tophat_filter_.release();
+    cuda_erode_left_filter_.release();
+    cuda_erode_right_filter_.release();
+    cuda_erode_up_filter_.release();
+    cuda_erode_down_filter_.release();
+    cuda_cached_blur_kernel_ = 0;
+    cuda_cached_tophat_kernel_ = 0;
+    cuda_cached_bilateral_span_ = 0;
+  }
+
+  void ensureCudaFilters(
+    const int blur_kernel, const int tophat_kernel,
+    const int bilateral_span)
+  {
+    if (
+      cuda_cached_blur_kernel_ == blur_kernel &&
+      cuda_cached_tophat_kernel_ == tophat_kernel &&
+      cuda_cached_bilateral_span_ == bilateral_span)
+    {
+      return;
+    }
+
+    clearCudaFilters();
+    if (blur_kernel > 1) {
+      cuda_gaussian_filter_ = cv::cuda::createGaussianFilter(
+        CV_8UC1, CV_8UC1, {blur_kernel, blur_kernel}, 0.0);
+    }
+
+    const cv::Mat tophat_element = cv::getStructuringElement(
+      cv::MORPH_RECT, {tophat_kernel, tophat_kernel});
+    cuda_tophat_filter_ = cv::cuda::createMorphologyFilter(
+      cv::MORPH_TOPHAT, CV_8UC1, tophat_element);
+
+    const cv::Mat horizontal_element = cv::getStructuringElement(
+      cv::MORPH_RECT, {bilateral_span, 1});
+    const cv::Mat vertical_element = cv::getStructuringElement(
+      cv::MORPH_RECT, {1, bilateral_span});
+
+    cuda_erode_left_filter_ = cv::cuda::createMorphologyFilter(
+      cv::MORPH_ERODE, CV_8UC1, horizontal_element,
+      {bilateral_span - 1, 0});
+    cuda_erode_right_filter_ = cv::cuda::createMorphologyFilter(
+      cv::MORPH_ERODE, CV_8UC1, horizontal_element, {0, 0});
+    cuda_erode_up_filter_ = cv::cuda::createMorphologyFilter(
+      cv::MORPH_ERODE, CV_8UC1, vertical_element,
+      {0, bilateral_span - 1});
+    cuda_erode_down_filter_ = cv::cuda::createMorphologyFilter(
+      cv::MORPH_ERODE, CV_8UC1, vertical_element, {0, 0});
+
+    cuda_cached_blur_kernel_ = blur_kernel;
+    cuda_cached_tophat_kernel_ = tophat_kernel;
+    cuda_cached_bilateral_span_ = bilateral_span;
+  }
+
+  cv::Mat computeMaskCuda(const cv::Mat & luma)
+  {
+    const bool downscale =
+      process_width_ > 0 && process_width_ < luma.cols;
+    const int work_width = downscale ? process_width_ : luma.cols;
+    const int work_height = downscale
+      ? static_cast<int>(std::lround(
+          static_cast<double>(luma.rows) * work_width / luma.cols))
+      : luma.rows;
+    const double ratio =
+      static_cast<double>(work_width) /
+      static_cast<double>(param_reference_width_);
+    const int tophat_kernel = makeOdd(
+      static_cast<int>(std::lround(tophat_kernel_ * ratio)), 3);
+    const int bilateral_span = std::max(
+      3, static_cast<int>(std::lround(bilateral_span_px_ * ratio)));
+
+    ensureCudaFilters(blur_kernel_, tophat_kernel, bilateral_span);
+    cv::cuda::Stream & stream = *cuda_stream_;
+
+    cv::cuda::GpuMat gpu_input;
+    cv::cuda::GpuMat gpu_work;
+    gpu_input.upload(luma, stream);
+    if (downscale) {
+      cv::cuda::resize(
+        gpu_input, gpu_work, {work_width, work_height}, 0.0, 0.0,
+        cv::INTER_AREA, stream);
+    } else {
+      gpu_work = gpu_input;
+    }
+
+    cv::cuda::GpuMat gpu_blurred;
+    if (cuda_gaussian_filter_) {
+      cuda_gaussian_filter_->apply(gpu_work, gpu_blurred, stream);
+    } else {
+      gpu_blurred = gpu_work;
+    }
+
+    cv::cuda::GpuMat gpu_tophat;
+    cuda_tophat_filter_->apply(gpu_blurred, gpu_tophat, stream);
+    cv::cuda::GpuMat gpu_candidate;
+    cv::cuda::threshold(
+      gpu_tophat, gpu_candidate, tophat_threshold_, 255,
+      cv::THRESH_BINARY, stream);
+
+    cv::cuda::GpuMat left_min;
+    cv::cuda::GpuMat right_min;
+    cv::cuda::GpuMat up_min;
+    cv::cuda::GpuMat down_min;
+    cuda_erode_left_filter_->apply(gpu_blurred, left_min, stream);
+    cuda_erode_right_filter_->apply(gpu_blurred, right_min, stream);
+    cuda_erode_up_filter_->apply(gpu_blurred, up_min, stream);
+    cuda_erode_down_filter_->apply(gpu_blurred, down_min, stream);
+
+    cv::cuda::GpuMat horizontal_reference;
+    cv::cuda::GpuMat vertical_reference;
+    cv::cuda::max(left_min, right_min, horizontal_reference, stream);
+    cv::cuda::max(up_min, down_min, vertical_reference, stream);
+    cv::cuda::GpuMat horizontal_delta;
+    cv::cuda::GpuMat vertical_delta;
+    cv::cuda::subtract(
+      gpu_blurred, horizontal_reference, horizontal_delta,
+      cv::noArray(), -1, stream);
+    cv::cuda::subtract(
+      gpu_blurred, vertical_reference, vertical_delta,
+      cv::noArray(), -1, stream);
+
+    cv::cuda::GpuMat vertical_stroke;
+    cv::cuda::GpuMat horizontal_stroke;
+    cv::cuda::compareWithScalar(
+      horizontal_delta, cv::Scalar(bilateral_contrast_threshold_),
+      vertical_stroke, cv::CMP_GE, stream);
+    cv::cuda::compareWithScalar(
+      vertical_delta, cv::Scalar(bilateral_contrast_threshold_),
+      horizontal_stroke, cv::CMP_GE, stream);
+    cv::cuda::GpuMat horizontal_background_ok;
+    cv::cuda::GpuMat vertical_background_ok;
+    cv::cuda::compareWithScalar(
+      horizontal_reference, cv::Scalar(bilateral_background_max_),
+      horizontal_background_ok, cv::CMP_LE, stream);
+    cv::cuda::compareWithScalar(
+      vertical_reference, cv::Scalar(bilateral_background_max_),
+      vertical_background_ok, cv::CMP_LE, stream);
+    cv::cuda::bitwise_and(
+      vertical_stroke, horizontal_background_ok, vertical_stroke,
+      cv::noArray(), stream);
+    cv::cuda::bitwise_and(
+      horizontal_stroke, vertical_background_ok, horizontal_stroke,
+      cv::noArray(), stream);
+    cv::cuda::GpuMat gate;
+    cv::cuda::bitwise_or(
+      vertical_stroke, horizontal_stroke, gate, cv::noArray(), stream);
+    cv::cuda::bitwise_and(
+      gpu_candidate, gate, gpu_candidate, cv::noArray(), stream);
+
+    cv::Mat candidate;
+    gpu_candidate.download(candidate, stream);
+    stream.waitForCompletion();
+    return finalizeCandidate(std::move(candidate), ratio);
+  }
+#endif
 
   void publishMono8(
     const sensor_msgs::msg::Image & source,
@@ -554,7 +694,8 @@ private:
     const double interval = std::max(0.001, status_log_interval_sec_);
     RCLCPP_INFO(
       node_.get_logger(),
-      "lane_mask: in=%.1f fps, out=%.1f fps, rejected=%u",
+      "lane_mask: backend=%s, in=%.1f fps, out=%.1f fps, rejected=%u",
+      cuda_active_ ? "cuda" : "cpu",
       static_cast<double>(received) / interval,
       static_cast<double>(processed) / interval,
       rejected);
@@ -567,21 +708,28 @@ private:
 
   int process_width_{640};
   int param_reference_width_{960};
-  double process_max_fps_{30.0};
+  bool use_cuda_{true};
+  bool cuda_active_{false};
+
+#ifdef LANE_MASK_HAVE_OPENCV_CUDA
+  std::unique_ptr<cv::cuda::Stream> cuda_stream_;
+  cv::Ptr<cv::cuda::Filter> cuda_gaussian_filter_;
+  cv::Ptr<cv::cuda::Filter> cuda_tophat_filter_;
+  cv::Ptr<cv::cuda::Filter> cuda_erode_left_filter_;
+  cv::Ptr<cv::cuda::Filter> cuda_erode_right_filter_;
+  cv::Ptr<cv::cuda::Filter> cuda_erode_up_filter_;
+  cv::Ptr<cv::cuda::Filter> cuda_erode_down_filter_;
+  int cuda_cached_blur_kernel_{0};
+  int cuda_cached_tophat_kernel_{0};
+  int cuda_cached_bilateral_span_{0};
+#endif
 
   int tophat_kernel_{31};
   int tophat_threshold_{60};
   int blur_kernel_{5};
 
-  int dark_threshold_{70};
-  double dark_ratio_{0.12};
-  int dark_window_{25};
-  bool dark_gate_enabled_{true};
-
-  bool bilateral_contrast_enabled_{true};
   int bilateral_contrast_threshold_{30};
   int bilateral_background_max_{90};
-  bool bilateral_dark_enabled_{false};
   int bilateral_span_px_{45};
 
   int min_area_{200};
@@ -603,8 +751,6 @@ private:
   bool preview_enabled_{false};
   std::string preview_window_name_{"lane mask"};
   double status_log_interval_sec_{5.0};
-
-  std::chrono::steady_clock::time_point last_processed_at_{};
 
   std::atomic<unsigned> received_{0U};
   std::atomic<unsigned> processed_{0U};
