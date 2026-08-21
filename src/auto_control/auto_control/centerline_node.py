@@ -338,8 +338,8 @@ class CenterlineNode(Node):
         self.declare_parameter(
             "expected_lane_width_ratios", [0.297, 0.469, 0.641]
         )
-        self.declare_parameter("lane_width_minimum_scale", 0.55)
-        self.declare_parameter("lane_width_maximum_scale", 1.45)
+        self.declare_parameter("lane_width_minimum_scale", 0.45)
+        self.declare_parameter("lane_width_maximum_scale", 1.60)
         self.declare_parameter("maximum_fit_residual_px", 3.5)
         self.declare_parameter("lane_width_learning_alpha", 0.15)
         self.declare_parameter("single_lane_confidence_scale", 0.78)

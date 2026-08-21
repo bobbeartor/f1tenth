@@ -32,8 +32,8 @@ class LaneModelConfig:
         0.469,
         0.641,
     )
-    lane_width_minimum_scale: float = 0.55
-    lane_width_maximum_scale: float = 1.45
+    lane_width_minimum_scale: float = 0.45
+    lane_width_maximum_scale: float = 1.60
     maximum_fit_residual_px: float = 3.5
     lane_width_learning_alpha: float = 0.15
     single_lane_confidence_scale: float = 0.78

@@ -38,6 +38,21 @@ class LaneModelTest(unittest.TestCase):
                 delta=2.0,
             )
 
+    def test_two_boundaries_with_narrow_apparent_width_are_kept(self):
+        model = LaneModel(self.config)
+        mask = self._lane_mask(
+            sides=("left", "right"),
+            width_scale=0.48,
+            curved_center=False,
+        )
+
+        estimate = model.estimate(mask, image_is_mask=True)
+
+        self.assertTrue(estimate.path.valid)
+        self.assertEqual(estimate.path.mode, "BOTH")
+        self.assertIsNotNone(estimate.left)
+        self.assertIsNotNone(estimate.right)
+
     def test_configured_width_matches_new_camera_calibration(self):
         model = LaneModel(self.config)
 

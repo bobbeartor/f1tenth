@@ -41,8 +41,11 @@ centerline_node:
     # reconstructs the centerline. Valid two-boundary frames refine it online.
     expected_lane_width_y_ratios: [0.50, 0.60, 0.70]
     expected_lane_width_ratios: [0.297, 0.469, 0.641]
-    lane_width_minimum_scale: 0.55
-    lane_width_maximum_scale: 1.45
+    # Curves and camera-edge clipping can change the apparent distance between
+    # two visible boundaries substantially. Keep the pair gate permissive while
+    # continuity and curve-fit checks reject unrelated white floor features.
+    lane_width_minimum_scale: 0.45
+    lane_width_maximum_scale: 1.60
     maximum_fit_residual_px: 3.5
     lane_width_learning_alpha: 0.15
     single_lane_confidence_scale: 0.78
