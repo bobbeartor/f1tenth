@@ -69,14 +69,17 @@ class CenterlineNode(Node):
             morphology_kernel=int(
                 self.get_parameter("morphology_kernel").value
             ),
-            maximum_line_width_px=int(
-                self.get_parameter("maximum_line_width_px").value
-            ),
             minimum_points_per_boundary=int(
                 self.get_parameter("minimum_points_per_boundary").value
             ),
             tracking_margin_px=float(
                 self.get_parameter("tracking_margin_px").value
+            ),
+            trace_seed_search_rows=int(
+                self.get_parameter("trace_seed_search_rows").value
+            ),
+            trace_centering_max_run_width=int(
+                self.get_parameter("trace_centering_max_run_width").value
             ),
             expected_lane_width_y_ratios=tuple(
                 float(value)
@@ -104,9 +107,6 @@ class CenterlineNode(Node):
             ),
             single_lane_confidence_scale=float(
                 self.get_parameter("single_lane_confidence_scale").value
-            ),
-            maximum_boundary_step_px=float(
-                self.get_parameter("maximum_boundary_step_px").value
             ),
             maximum_extrapolation_rows=int(
                 self.get_parameter("maximum_extrapolation_rows").value
@@ -339,9 +339,10 @@ class CenterlineNode(Node):
         self.declare_parameter("roi_y_max", 74)
         self.declare_parameter("white_threshold", 127)
         self.declare_parameter("morphology_kernel", 3)
-        self.declare_parameter("maximum_line_width_px", 12)
         self.declare_parameter("minimum_points_per_boundary", 8)
         self.declare_parameter("tracking_margin_px", 22.0)
+        self.declare_parameter("trace_seed_search_rows", 12)
+        self.declare_parameter("trace_centering_max_run_width", 12)
         self.declare_parameter(
             "expected_lane_width_y_ratios", [0.50, 0.60, 0.70]
         )
@@ -353,7 +354,6 @@ class CenterlineNode(Node):
         self.declare_parameter("maximum_fit_residual_px", 3.5)
         self.declare_parameter("lane_width_learning_alpha", 0.15)
         self.declare_parameter("single_lane_confidence_scale", 0.78)
-        self.declare_parameter("maximum_boundary_step_px", 5.0)
         self.declare_parameter("maximum_extrapolation_rows", 5)
         self.declare_parameter("single_lane_curvature_gain", 6.0)
         self.declare_parameter("single_lane_maximum_offset_scale", 1.30)

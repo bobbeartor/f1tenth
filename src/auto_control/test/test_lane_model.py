@@ -217,6 +217,30 @@ class LaneModelTest(unittest.TestCase):
         self.assertEqual(right.path.mode, "RIGHT_ONLY")
         self.assertLess(right.right.coefficients[0], 0.0)
 
+    def test_connected_trace_follows_near_horizontal_sharp_curve(self):
+        model = LaneModel(self.config)
+        mask = np.zeros((100, 160), dtype=np.uint8)
+        points = np.asarray(
+            [
+                (8, 74),
+                (18, 70),
+                (35, 66),
+                (58, 62),
+                (87, 58),
+                (120, 54),
+                (155, 52),
+            ],
+            dtype=np.int32,
+        )
+        cv2.polylines(mask, [points], False, 255, 3)
+
+        estimate = model.estimate(mask, image_is_mask=True)
+
+        self.assertTrue(estimate.path.valid)
+        self.assertEqual(estimate.path.mode, "LEFT_ONLY")
+        self.assertLessEqual(estimate.observed_y_min, 52)
+        self.assertGreaterEqual(len(estimate.left.points), 20)
+
     def test_both_boundaries_keep_measured_curve_direction(self):
         model = LaneModel(self.config)
 

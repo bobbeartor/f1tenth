@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass
 from typing import Sequence
 
@@ -19,9 +20,10 @@ class LaneModelConfig:
     roi_y_max: int = 74
     white_threshold: int = 127
     morphology_kernel: int = 3
-    maximum_line_width_px: int = 12
     minimum_points_per_boundary: int = 8
     tracking_margin_px: float = 22.0
+    trace_seed_search_rows: int = 12
+    trace_centering_max_run_width: int = 12
     expected_lane_width_y_ratios: tuple[float, float, float] = (
         0.50,
         0.60,
@@ -37,7 +39,6 @@ class LaneModelConfig:
     maximum_fit_residual_px: float = 3.5
     lane_width_learning_alpha: float = 0.15
     single_lane_confidence_scale: float = 0.78
-    maximum_boundary_step_px: float = 5.0
     maximum_extrapolation_rows: int = 5
     single_lane_curvature_gain: float = 6.0
     single_lane_maximum_offset_scale: float = 1.30
@@ -337,132 +338,148 @@ class LaneModel:
         self,
         mask: np.ndarray,
     ) -> tuple[list[tuple[float, float]], list[tuple[float, float]]]:
-        left_points: list[tuple[float, float]] = []
-        right_points: list[tuple[float, float]] = []
-        center_hint = self.config.processing_width * 0.5
-        last_left: tuple[int, float] | None = None
-        last_right: tuple[int, float] | None = None
+        binary = np.ascontiguousarray((mask > 0).astype(np.uint8))
+        _, labels = cv2.connectedComponents(binary, connectivity=8)
+        return (
+            self._trace_connected_boundary(binary, labels, "left"),
+            self._trace_connected_boundary(binary, labels, "right"),
+        )
 
-        for y in range(self.config.roi_y_max, self.config.roi_y_min - 1, -1):
+    def _trace_connected_boundary(
+        self,
+        binary: np.ndarray,
+        labels: np.ndarray,
+        side: str,
+    ) -> list[tuple[float, float]]:
+        """Trace one boundary through connected mask pixels from near to far.
+
+        A graph path does not impose a maximum horizontal run width or a fixed
+        x step per image row, so it remains valid when a sharp curve becomes
+        almost horizontal. Selecting the first shortest path that reaches the
+        farthest row avoids following a horizontal branch after reaching it.
+        """
+        seed = self._find_trace_seed(binary, side)
+        if seed is None:
+            return []
+        seed_y, seed_x = seed
+        component_label = int(labels[seed_y, seed_x])
+        if component_label <= 0:
+            return []
+
+        rows, columns = binary.shape
+        visited = np.zeros(binary.shape, dtype=np.uint8)
+        parent_y = np.full(binary.shape, -1, dtype=np.int16)
+        parent_x = np.full(binary.shape, -1, dtype=np.int16)
+        distance = np.full(binary.shape, -1, dtype=np.int16)
+        queue: deque[tuple[int, int]] = deque([(seed_y, seed_x)])
+        visited[seed_y, seed_x] = 1
+        distance[seed_y, seed_x] = 0
+        best = (seed_y, seed_x)
+
+        while queue:
+            y, x = queue.popleft()
+            current_distance = int(distance[y, x])
+            best_distance = int(distance[best[0], best[1]])
+            if y < best[0] or (y == best[0] and current_distance < best_distance):
+                best = (y, x)
+
+            for delta_y in (-1, 0, 1):
+                neighbor_y = y + delta_y
+                if neighbor_y < 0 or neighbor_y >= rows:
+                    continue
+                for delta_x in (-1, 0, 1):
+                    if delta_y == 0 and delta_x == 0:
+                        continue
+                    neighbor_x = x + delta_x
+                    if neighbor_x < 0 or neighbor_x >= columns:
+                        continue
+                    if visited[neighbor_y, neighbor_x]:
+                        continue
+                    if int(labels[neighbor_y, neighbor_x]) != component_label:
+                        continue
+                    visited[neighbor_y, neighbor_x] = 1
+                    parent_y[neighbor_y, neighbor_x] = y
+                    parent_x[neighbor_y, neighbor_x] = x
+                    distance[neighbor_y, neighbor_x] = current_distance + 1
+                    queue.append((neighbor_y, neighbor_x))
+
+        if best[0] >= seed_y:
+            return []
+        path: list[tuple[int, int]] = []
+        point = best
+        while True:
+            path.append(point)
+            if point == seed:
+                break
+            y, x = point
+            previous_y = int(parent_y[y, x])
+            previous_x = int(parent_x[y, x])
+            if previous_y < 0 or previous_x < 0:
+                return []
+            point = (previous_y, previous_x)
+        path.reverse()
+
+        # Keep the first crossing of each row along the near-to-far path. A
+        # horizontal continuation may contain many pixels at one y but must not
+        # bias the boundary center toward its remote endpoint.
+        row_samples: dict[int, list[int]] = {}
+        for y, x in path:
+            row_samples.setdefault(y, []).append(x)
+        samples: list[tuple[float, float]] = []
+        centering_limit = max(1, self.config.trace_centering_max_run_width)
+        for y, x_values in row_samples.items():
+            path_x = float(np.mean(x_values))
+            sample_x = path_x
+            for start, end in self._active_runs(binary[y]):
+                if start <= path_x < end:
+                    if end - start <= centering_limit:
+                        sample_x = 0.5 * (start + end - 1)
+                    break
+            samples.append((float(y), sample_x))
+        return samples
+
+    def _find_trace_seed(
+        self,
+        binary: np.ndarray,
+        side: str,
+    ) -> tuple[int, int] | None:
+        direction = -1.0 if side == "left" else 1.0
+        search_rows = max(1, self.config.trace_seed_search_rows)
+        search_y_min = max(
+            self.config.roi_y_min,
+            self.config.roi_y_max - search_rows + 1,
+        )
+        candidates: list[tuple[float, int, int]] = []
+        for y in range(self.config.roi_y_max, search_y_min - 1, -1):
+            center_hint = self.config.processing_width * 0.5
             if self._previous_center_coefficients is not None:
                 center_hint = float(
                     np.polyval(self._previous_center_coefficients, y)
                 )
             expected_width = self._width_at(y)
-            candidates = self._row_candidates(mask[y])
-            left_x, right_x = self._select_candidates(
-                candidates,
-                center_hint,
-                expected_width,
-                y,
-                last_left,
-                last_right,
-            )
-            if left_x is not None:
-                left_points.append((float(y), left_x))
-                last_left = (y, left_x)
-            if right_x is not None:
-                right_points.append((float(y), right_x))
-                last_right = (y, right_x)
-            if left_x is not None and right_x is not None:
-                center_hint = 0.5 * (left_x + right_x)
-            elif left_x is not None:
-                center_hint = left_x + 0.5 * expected_width
-            elif right_x is not None:
-                center_hint = right_x - 0.5 * expected_width
+            expected_x = center_hint + direction * 0.5 * expected_width
+            margin = max(self.config.tracking_margin_px, expected_width * 0.35)
+            for start, end in self._active_runs(binary[y]):
+                center_x = 0.5 * (start + end - 1)
+                lateral_error = abs(center_x - expected_x)
+                if lateral_error > margin:
+                    continue
+                vertical_gap = self.config.roi_y_max - y
+                cost = lateral_error + 2.0 * vertical_gap
+                candidates.append((cost, y, int(round(center_x))))
+        if not candidates:
+            return None
+        _, y, x = min(candidates)
+        return y, x
 
-        return left_points, right_points
-
-    def _row_candidates(self, row: np.ndarray) -> list[float]:
+    @staticmethod
+    def _active_runs(row: np.ndarray) -> list[tuple[int, int]]:
         active = row > 0
-        candidates: list[float] = []
-        start: int | None = None
-        width = int(row.shape[0])
-        for x in range(width + 1):
-            is_active = x < width and bool(active[x])
-            if is_active and start is None:
-                start = x
-            elif not is_active and start is not None:
-                run_width = x - start
-                if 0 < run_width <= self.config.maximum_line_width_px:
-                    candidates.append(0.5 * (start + x - 1))
-                start = None
-        return candidates
-
-    def _select_candidates(
-        self,
-        candidates: Sequence[float],
-        center_hint: float,
-        expected_width: float,
-        y: int,
-        last_left: tuple[int, float] | None,
-        last_right: tuple[int, float] | None,
-    ) -> tuple[float | None, float | None]:
-        expected_left = center_hint - 0.5 * expected_width
-        expected_right = center_hint + 0.5 * expected_width
-        best_pair: tuple[float, float] | None = None
-        best_pair_cost = float("inf")
-        ordered = sorted(candidates)
-        for index, left_x in enumerate(ordered):
-            for right_x in ordered[index + 1 :]:
-                if not self._is_continuous(left_x, y, last_left):
-                    continue
-                if not self._is_continuous(right_x, y, last_right):
-                    continue
-                measured_width = right_x - left_x
-                if not (
-                    expected_width * self.config.lane_width_minimum_scale
-                    <= measured_width
-                    <= expected_width * self.config.lane_width_maximum_scale
-                ):
-                    continue
-                cost = (
-                    abs(left_x - expected_left)
-                    + abs(right_x - expected_right)
-                    + abs(measured_width - expected_width)
-                )
-                if cost < best_pair_cost:
-                    best_pair_cost = cost
-                    best_pair = (left_x, right_x)
-        if best_pair is not None:
-            return best_pair
-
-        margin = max(self.config.tracking_margin_px, expected_width * 0.30)
-        left_options = [
-            (abs(x - expected_left), x)
-            for x in ordered
-            if abs(x - expected_left) <= margin
-            and self._is_continuous(x, y, last_left)
-        ]
-        right_options = [
-            (abs(x - expected_right), x)
-            for x in ordered
-            if abs(x - expected_right) <= margin
-            and self._is_continuous(x, y, last_right)
-        ]
-        left = min(left_options)[1] if left_options else None
-        right = min(right_options)[1] if right_options else None
-        if left is not None and right is not None and left == right:
-            if abs(left - expected_left) <= abs(right - expected_right):
-                right = None
-            else:
-                left = None
-        if left is not None and right is not None and left >= right:
-            return None, None
-        return left, right
-
-    def _is_continuous(
-        self,
-        x: float,
-        y: int,
-        previous: tuple[int, float] | None,
-    ) -> bool:
-        if previous is None:
-            return True
-        previous_y, previous_x = previous
-        row_gap = max(1, abs(y - previous_y))
-        allowed_step = self.config.maximum_boundary_step_px * np.sqrt(row_gap)
-        return abs(x - previous_x) <= allowed_step
+        padded = np.pad(active.astype(np.int8), (1, 1))
+        transitions = np.diff(padded)
+        starts = np.flatnonzero(transitions == 1)
+        ends = np.flatnonzero(transitions == -1)
+        return list(zip(starts.tolist(), ends.tolist()))
 
     def _fit_boundary(
         self,
@@ -835,8 +852,10 @@ class LaneModel:
             raise ValueError("lane width y ratios must be distinct")
         if np.any(width_ratios <= 0.0):
             raise ValueError("expected lane width ratios must be positive")
-        if self.config.maximum_boundary_step_px <= 0.0:
-            raise ValueError("maximum boundary step must be positive")
+        if self.config.trace_seed_search_rows <= 0:
+            raise ValueError("trace seed search rows must be positive")
+        if self.config.trace_centering_max_run_width <= 0:
+            raise ValueError("trace centering run width must be positive")
         if self.config.maximum_extrapolation_rows < 0:
             raise ValueError("maximum extrapolation rows cannot be negative")
         if self.config.single_lane_curvature_gain < 0.0:

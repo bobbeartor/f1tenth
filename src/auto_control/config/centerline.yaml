@@ -31,9 +31,15 @@ centerline_node:
     roi_y_max: 74
     white_threshold: 127
     morphology_kernel: 3
-    maximum_line_width_px: 12
     minimum_points_per_boundary: 8
     tracking_margin_px: 22.0
+    # Search this many rows upward from the ROI bottom for the connected-path
+    # seed. Unlike row runs, connected tracing also follows near-horizontal
+    # sections of a sharp curve.
+    trace_seed_search_rows: 12
+    # Recenter ordinary thin runs, but keep the graph entry point for longer
+    # near-horizontal runs instead of rejecting or averaging across them.
+    trace_centering_max_run_width: 12
 
     # New camera calibration: expected full lane width at three screen rows.
     # Values are normalized by image height/width and are fitted as a quadratic
@@ -50,9 +56,8 @@ centerline_node:
     lane_width_learning_alpha: 0.15
     single_lane_confidence_scale: 0.78
 
-    # Reject abrupt row-to-row jumps toward white floor tiles. A centerline is
-    # extrapolated at most five rows beyond the actually observed boundary.
-    maximum_boundary_step_px: 5.0
+    # A centerline is extrapolated at most five rows beyond the actually
+    # observed connected boundary.
     maximum_extrapolation_rows: 5
 
     # With one visible boundary, reconstruct the center using the boundary's
