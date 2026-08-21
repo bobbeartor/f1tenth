@@ -62,6 +62,11 @@ lane_mask:
     camera_cy: 352.621124268
     reference_image_height: 720
 
+    # Only y=50%..75% is consumed by the centerline model. Morphology runs on
+    # this band plus an internal kernel-sized halo, then the published mask is
+    # restored to its original 640x360 coordinate system.
+    roi_top_ratio: 0.50
+
     # The wheels/body occupy roughly the lowest 9.5 of 36 grid rows. Exclude
     # the lowest 25% and keep mask data only above y=75%.
     bottom_cut_ratio: 0.25

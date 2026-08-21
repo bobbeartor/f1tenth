@@ -80,7 +80,7 @@ public:
       node_.get_logger(),
       "lane_mask started: in=%s, out=%s, backend=%s, process_width=%d, "
       "tophat_k=%d, tophat_thresh=%d, contrast=%d bg_max=%d span=%d, "
-      "cut_row=%d (est. work_rows=%d)",
+      "geometry_cut=%d, roi=%.1f%%..%.1f%% (est. work_rows=%d)",
       input_topic_.c_str(),
       mask_topic_.c_str(),
       cuda_active_ ? "cuda" : "cpu",
@@ -91,6 +91,8 @@ public:
       bilateral_background_max_,
       bilateral_span_px_,
       startup_cut_row,
+      roi_top_ratio_ * 100.0,
+      (1.0 - bottom_cut_ratio_) * 100.0,
       assumed_work_rows);
   }
 
@@ -151,6 +153,10 @@ private:
     node_.declare_parameter<double>("camera_cy", 352.621124268);
     node_.declare_parameter<int>("reference_image_height", 720);
 
+    // The centerline model only consumes the lower-middle image band. Avoid
+    // running expensive morphology above that band.
+    node_.declare_parameter<double>("roi_top_ratio", 0.50);
+
     // Bottom cut: the bumper and its white sticker sit at a fixed screen
     // position and are otherwise indistinguishable from lane tape.
     node_.declare_parameter<double>("bottom_cut_ratio", 0.25);
@@ -210,7 +216,10 @@ private:
       1, static_cast<int>(
         node_.get_parameter("reference_image_height").as_int()));
 
+    roi_top_ratio_ = std::clamp(
+      node_.get_parameter("roi_top_ratio").as_double(), 0.0, 1.0);
     bottom_cut_ratio_ = node_.get_parameter("bottom_cut_ratio").as_double();
+    bottom_cut_ratio_ = std::clamp(bottom_cut_ratio_, 0.0, 1.0);
 
     preview_enabled_ = node_.get_parameter("preview_enabled").as_bool();
     preview_window_name_ =
@@ -309,6 +318,42 @@ private:
     return std::max(0, std::min(cut_row, std::max(0, work_rows - 1)));
   }
 
+  struct ProcessingRows
+  {
+    int active_begin;
+    int active_end;
+    int processing_begin;
+    int processing_end;
+  };
+
+  ProcessingRows computeProcessingRows(
+    const int work_rows, const int tophat_kernel,
+    const int bilateral_span) const
+  {
+    const int bottom_rows = std::clamp(
+      static_cast<int>(std::lround(work_rows * bottom_cut_ratio_)),
+      0, work_rows);
+    const int active_end = work_rows - bottom_rows;
+    const int configured_top = std::clamp(
+      static_cast<int>(std::lround(work_rows * roi_top_ratio_)),
+      0, work_rows);
+    const int active_begin = std::min(
+      std::max(computeCutRow(work_rows), configured_top), active_end);
+
+    // Preserve the exact result at the active ROI boundary. Top-hat opening
+    // can depend on pixels one full kernel width away, directional erosion on
+    // span - 1 rows, and Gaussian blur on its radius.
+    const int blur_radius = blur_kernel_ > 1 ? blur_kernel_ / 2 : 0;
+    const int halo = blur_radius + std::max(
+      tophat_kernel - 1, bilateral_span - 1);
+    return {
+      active_begin,
+      active_end,
+      std::max(0, active_begin - halo),
+      std::min(work_rows, active_end + halo),
+    };
+  }
+
   cv::Mat computeMask(const cv::Mat & luma)
   {
 #ifdef LANE_MASK_HAVE_OPENCV_CUDA
@@ -352,12 +397,22 @@ private:
     // Minimum 3 prevents the directional erosion from becoming a no-op.
     const int bilateral_span = std::max(
       3, static_cast<int>(std::lround(bilateral_span_px_ * ratio)));
+    const ProcessingRows rows = computeProcessingRows(
+      work.rows, tophat_kernel, bilateral_span);
+    if (rows.active_begin >= rows.active_end) {
+      output_.create(work.size(), CV_8UC1);
+      output_.setTo(0);
+      return output_;
+    }
+    const cv::Mat work_region = work.rowRange(
+      rows.processing_begin, rows.processing_end);
 
     cv::Mat blurred;
     if (blur_kernel_ > 1) {
-      cv::GaussianBlur(work, blurred, {blur_kernel_, blur_kernel_}, 0);
+      cv::GaussianBlur(
+        work_region, blurred, {blur_kernel_, blur_kernel_}, 0);
     } else {
-      blurred = work;
+      blurred = work_region;
     }
 
     // Stage 1: white top-hat. Wide bright regions (terrazzo floor, walls)
@@ -430,10 +485,18 @@ private:
     cv::bitwise_or(vertical_stroke, horizontal_stroke, gate);
     cv::bitwise_and(candidate, gate, candidate);
 
-    return finalizeCandidate(candidate, ratio);
+    const int local_active_begin =
+      rows.active_begin - rows.processing_begin;
+    const int local_active_end = local_active_begin +
+      (rows.active_end - rows.active_begin);
+    return finalizeCandidate(
+      candidate.rowRange(local_active_begin, local_active_end), ratio,
+      work.rows, rows.active_begin);
   }
 
-  cv::Mat finalizeCandidate(cv::Mat candidate, const double ratio)
+  cv::Mat finalizeCandidate(
+    const cv::Mat & candidate, const double ratio,
+    const int output_rows, const int output_y)
   {
     const int min_area = std::max(
       10, static_cast<int>(std::lround(min_area_ * ratio * ratio)));
@@ -442,38 +505,17 @@ private:
     const int sliver_max_height = std::max(
       2, static_cast<int>(std::lround(sliver_max_height_ * ratio)));
 
-    // Geometric horizon cut: rows above cut_row cannot be ground given the
-    // camera height and pitch, so remove them before shape filtering.
-    const int cut_row = computeCutRow(candidate.rows);
-    if (cut_row > 0) {
-      candidate(cv::Rect(0, 0, candidate.cols, cut_row)).setTo(0);
-    }
-
-    // Bottom cut: the bumper and its sticker sit at a fixed screen position.
-    if (bottom_cut_ratio_ > 0.0) {
-      const int bottom_rows = std::min(
-        candidate.rows,
-        static_cast<int>(
-          std::lround(candidate.rows * bottom_cut_ratio_)));
-      if (bottom_rows > 0) {
-        candidate(
-          cv::Rect(
-            0, candidate.rows - bottom_rows, candidate.cols, bottom_rows))
-        .setTo(0);
-      }
-    }
-
-    // Stage 3: shape filtering.
+    // Stage 3: shape filtering runs only on the active ground ROI.
     const int count = cv::connectedComponentsWithStats(
       candidate, labels_, stats_, centroids_, 8, CV_32S);
     kept_components_.assign(static_cast<std::size_t>(count), 0U);
-    const int rows = candidate.rows;
     for (int index = 1; index < count; ++index) {
       const int area = stats_.at<int>(index, cv::CC_STAT_AREA);
       if (area < min_area) {
         continue;
       }
-      const int box_y = stats_.at<int>(index, cv::CC_STAT_TOP);
+      const int box_y =
+        output_y + stats_.at<int>(index, cv::CC_STAT_TOP);
       const int box_w = stats_.at<int>(index, cv::CC_STAT_WIDTH);
       const int box_h = stats_.at<int>(index, cv::CC_STAT_HEIGHT);
       const double aspect =
@@ -490,7 +532,7 @@ private:
         box_w > 3 * box_h &&
         box_h <= sliver_max_height &&
         static_cast<double>(box_y) <
-        static_cast<double>(rows) * sliver_top_ratio_)
+        static_cast<double>(output_rows) * sliver_top_ratio_)
       {
         continue;  // thin horizontal sliver near the top: far floor seam
       }
@@ -506,7 +548,11 @@ private:
           static_cast<std::size_t>(labels[column])] ? 255U : 0U;
       }
     }
-    return filtered_;
+    output_.create(output_rows, candidate.cols, CV_8UC1);
+    output_.setTo(0);
+    filtered_.copyTo(
+      output_(cv::Rect(0, output_y, candidate.cols, candidate.rows)));
+    return output_;
   }
 
 #ifdef LANE_MASK_HAVE_OPENCV_CUDA
@@ -583,6 +629,13 @@ private:
       static_cast<int>(std::lround(tophat_kernel_ * ratio)), 3);
     const int bilateral_span = std::max(
       3, static_cast<int>(std::lround(bilateral_span_px_ * ratio)));
+    const ProcessingRows rows = computeProcessingRows(
+      work_height, tophat_kernel, bilateral_span);
+    if (rows.active_begin >= rows.active_end) {
+      output_.create(work_height, work_width, CV_8UC1);
+      output_.setTo(0);
+      return output_;
+    }
 
     ensureCudaFilters(blur_kernel_, tophat_kernel, bilateral_span);
     cv::cuda::Stream & stream = *cuda_stream_;
@@ -595,10 +648,12 @@ private:
         cv::INTER_AREA, stream);
       work = &cuda_work_;
     }
+    cv::cuda::GpuMat work_region = work->rowRange(
+      rows.processing_begin, rows.processing_end);
 
-    cv::cuda::GpuMat * blurred = work;
+    cv::cuda::GpuMat * blurred = &work_region;
     if (cuda_gaussian_filter_) {
-      cuda_gaussian_filter_->apply(*work, cuda_blurred_, stream);
+      cuda_gaussian_filter_->apply(work_region, cuda_blurred_, stream);
       blurred = &cuda_blurred_;
     }
 
@@ -649,9 +704,16 @@ private:
     cv::cuda::bitwise_and(
       cuda_candidate_, cuda_gate_, cuda_candidate_, cv::noArray(), stream);
 
-    cuda_candidate_.download(cuda_candidate_host_, stream);
+    const int local_active_begin =
+      rows.active_begin - rows.processing_begin;
+    const int local_active_end = local_active_begin +
+      (rows.active_end - rows.active_begin);
+    cv::cuda::GpuMat active_candidate = cuda_candidate_.rowRange(
+      local_active_begin, local_active_end);
+    active_candidate.download(cuda_candidate_host_, stream);
     stream.waitForCompletion();
-    return finalizeCandidate(cuda_candidate_host_, ratio);
+    return finalizeCandidate(
+      cuda_candidate_host_, ratio, work_height, rows.active_begin);
   }
 #endif
 
@@ -740,6 +802,7 @@ private:
   cv::Mat stats_;
   cv::Mat centroids_;
   cv::Mat filtered_;
+  cv::Mat output_;
   std::vector<std::uint8_t> kept_components_;
 
   int tophat_kernel_{31};
@@ -764,6 +827,7 @@ private:
   double camera_fy_{561.136352539};
   double camera_cy_{352.621124268};
   int reference_image_height_{720};
+  double roi_top_ratio_{0.50};
   double bottom_cut_ratio_{0.25};
 
   bool preview_enabled_{false};
