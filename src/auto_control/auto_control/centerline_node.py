@@ -75,6 +75,9 @@ class CenterlineNode(Node):
             tracking_margin_px=float(
                 self.get_parameter("tracking_margin_px").value
             ),
+            tracking_memory_frames=int(
+                self.get_parameter("tracking_memory_frames").value
+            ),
             trace_seed_search_rows=int(
                 self.get_parameter("trace_seed_search_rows").value
             ),
@@ -344,6 +347,7 @@ class CenterlineNode(Node):
         self.declare_parameter("morphology_kernel", 3)
         self.declare_parameter("minimum_points_per_boundary", 8)
         self.declare_parameter("tracking_margin_px", 22.0)
+        self.declare_parameter("tracking_memory_frames", 8)
         self.declare_parameter("trace_seed_search_rows", 12)
         self.declare_parameter("trace_centering_max_run_width", 12)
         self.declare_parameter(

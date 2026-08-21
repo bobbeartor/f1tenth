@@ -241,6 +241,31 @@ class LaneModelTest(unittest.TestCase):
         self.assertLessEqual(estimate.observed_y_min, 52)
         self.assertGreaterEqual(len(estimate.left.points), 20)
 
+    def test_left_boundary_identity_survives_center_crossing_and_dropout(self):
+        model = LaneModel(self.config)
+
+        for x in (50, 70, 90):
+            estimate = model.estimate(
+                self._vertical_line_mask(x),
+                image_is_mask=True,
+            )
+            self.assertEqual(estimate.path.mode, "LEFT_ONLY")
+
+        dropout = model.estimate(
+            np.zeros((100, 160), dtype=np.uint8),
+            image_is_mask=True,
+        )
+        self.assertFalse(dropout.path.valid)
+
+        reacquired = model.estimate(
+            self._vertical_line_mask(100),
+            image_is_mask=True,
+        )
+        self.assertTrue(reacquired.path.valid)
+        self.assertEqual(reacquired.path.mode, "LEFT_ONLY")
+        self.assertIsNotNone(reacquired.left)
+        self.assertIsNone(reacquired.right)
+
     def test_both_boundaries_keep_measured_curve_direction(self):
         model = LaneModel(self.config)
 
@@ -255,6 +280,12 @@ class LaneModelTest(unittest.TestCase):
         self.assertEqual(estimate.path.mode, "BOTH")
         self.assertFalse(estimate.single_lane_direction_limited)
         self.assertLess(estimate.path.coefficients[0], -0.005)
+
+    @staticmethod
+    def _vertical_line_mask(x):
+        mask = np.zeros((100, 160), dtype=np.uint8)
+        cv2.line(mask, (x, 74), (x, 50), 255, 2)
+        return mask
 
     def test_path_extrapolation_is_limited_to_configured_rows(self):
         config = LaneModelConfig(

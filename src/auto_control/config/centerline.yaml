@@ -33,6 +33,9 @@ centerline_node:
     morphology_kernel: 3
     minimum_points_per_boundary: 8
     tracking_margin_px: 22.0
+    # Preserve boundary identity for short mask dropouts. At about 28 FPS,
+    # eight frames retain the same physical curve for roughly 0.3 seconds.
+    tracking_memory_frames: 8
     # Search this many rows upward from the ROI bottom for the connected-path
     # seed. Unlike row runs, connected tracing also follows near-horizontal
     # sections of a sharp curve.

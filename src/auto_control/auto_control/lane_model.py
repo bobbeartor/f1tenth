@@ -22,6 +22,7 @@ class LaneModelConfig:
     morphology_kernel: int = 3
     minimum_points_per_boundary: int = 8
     tracking_margin_px: float = 22.0
+    tracking_memory_frames: int = 8
     trace_seed_search_rows: int = 12
     trace_centering_max_run_width: int = 12
     expected_lane_width_y_ratios: tuple[float, float, float] = (
@@ -77,6 +78,12 @@ class LaneModel:
         self.config = config
         self._validate_config()
         self._previous_center_coefficients: np.ndarray | None = None
+        self._previous_left_coefficients: np.ndarray | None = None
+        self._previous_right_coefficients: np.ndarray | None = None
+        self._center_memory_age = self.config.tracking_memory_frames + 1
+        self._left_memory_age = self.config.tracking_memory_frames + 1
+        self._right_memory_age = self.config.tracking_memory_frames + 1
+        self._previous_mode = "NONE"
         self._configured_lane_width_coefficients = (
             self._make_configured_width_coefficients()
         )
@@ -86,6 +93,12 @@ class LaneModel:
 
     def reset(self) -> None:
         self._previous_center_coefficients = None
+        self._previous_left_coefficients = None
+        self._previous_right_coefficients = None
+        self._center_memory_age = self.config.tracking_memory_frames + 1
+        self._left_memory_age = self.config.tracking_memory_frames + 1
+        self._right_memory_age = self.config.tracking_memory_frames + 1
+        self._previous_mode = "NONE"
         self._lane_width_coefficients = (
             self._configured_lane_width_coefficients.copy()
         )
@@ -99,6 +112,7 @@ class LaneModel:
         left_points, right_points = self._collect_boundary_points(mask)
         left = self._fit_boundary(left_points)
         right = self._fit_boundary(right_points)
+        left, right = self._preserve_single_boundary_identity(left, right)
         single_lane_curvature = 0.0
         single_lane_offset_scale = 1.0
         single_lane_direction_limited = False
@@ -116,6 +130,8 @@ class LaneModel:
         elif right is not None and left is None:
             if not self._single_boundary_convexity_allowed(right, "right"):
                 right = None
+
+        self._remember_boundaries(left, right)
 
         if left is not None and right is not None:
             left_coefficients = np.asarray(left.coefficients, dtype=np.float64)
@@ -173,7 +189,7 @@ class LaneModel:
             mode = "RIGHT_ONLY"
             confidence = self._confidence(None, right, single=True)
         else:
-            self._previous_center_coefficients = None
+            self._age_center_memory()
             return LaneModelEstimate(
                 path=CenterlinePath(
                     image_width=self.config.processing_width,
@@ -196,6 +212,8 @@ class LaneModel:
             path_y_max,
         )
         self._previous_center_coefficients = center_coefficients.copy()
+        self._center_memory_age = 0
+        self._previous_mode = mode
         path = CenterlinePath(
             image_width=self.config.processing_width,
             roi_y_min=path_y_min,
@@ -451,13 +469,17 @@ class LaneModel:
         )
         candidates: list[tuple[float, int, int]] = []
         for y in range(self.config.roi_y_max, search_y_min - 1, -1):
-            center_hint = self.config.processing_width * 0.5
-            if self._previous_center_coefficients is not None:
-                center_hint = float(
-                    np.polyval(self._previous_center_coefficients, y)
-                )
             expected_width = self._width_at(y)
-            expected_x = center_hint + direction * 0.5 * expected_width
+            tracked_boundary = self._tracked_boundary_coefficients(side)
+            if tracked_boundary is not None:
+                expected_x = float(np.polyval(tracked_boundary, y))
+            else:
+                center_hint = self.config.processing_width * 0.5
+                if self._previous_center_coefficients is not None:
+                    center_hint = float(
+                        np.polyval(self._previous_center_coefficients, y)
+                    )
+                expected_x = center_hint + direction * 0.5 * expected_width
             margin = max(self.config.tracking_margin_px, expected_width * 0.35)
             for start, end in self._active_runs(binary[y]):
                 center_x = 0.5 * (start + end - 1)
@@ -530,9 +552,7 @@ class LaneModel:
         y_min = max(min(left_y), min(right_y))
         y_max = min(max(left_y), max(right_y))
         if y_min >= y_max:
-            if len(left.points) >= len(right.points):
-                return left, None
-            return None, right
+            return self._select_temporal_pair_survivor(left, right)
         for y in np.linspace(y_min, y_max, 7):
             expected_width = self._configured_width_at(float(y))
             measured_width = right.x_at(float(y)) - left.x_at(float(y))
@@ -541,10 +561,108 @@ class LaneModel:
                 <= measured_width
                 <= expected_width * self.config.lane_width_maximum_scale
             ):
-                if len(left.points) >= len(right.points):
-                    return left, None
-                return None, right
+                return self._select_temporal_pair_survivor(left, right)
         return left, right
+
+    def _preserve_single_boundary_identity(
+        self,
+        left: BoundaryFit | None,
+        right: BoundaryFit | None,
+    ) -> tuple[BoundaryFit | None, BoundaryFit | None]:
+        """Keep a tracked boundary's side when it crosses the image center."""
+        margin = max(1.0, self.config.tracking_margin_px)
+        if left is None and right is not None:
+            left_distance = self._history_distance(right, "left")
+            right_distance = self._history_distance(right, "right")
+            if left_distance <= margin and left_distance < right_distance:
+                return right, None
+        elif right is None and left is not None:
+            left_distance = self._history_distance(left, "left")
+            right_distance = self._history_distance(left, "right")
+            if right_distance <= margin and right_distance < left_distance:
+                return None, left
+        return left, right
+
+    def _select_temporal_pair_survivor(
+        self,
+        left: BoundaryFit,
+        right: BoundaryFit,
+    ) -> tuple[BoundaryFit | None, BoundaryFit | None]:
+        left_distance = self._history_distance(left, "left")
+        right_distance = self._history_distance(right, "right")
+        if left_distance < right_distance:
+            return left, None
+        if right_distance < left_distance:
+            return None, right
+        if self._previous_mode == "LEFT_ONLY":
+            return left, None
+        if self._previous_mode == "RIGHT_ONLY":
+            return None, right
+        if len(left.points) >= len(right.points):
+            return left, None
+        return None, right
+
+    def _history_distance(self, fit: BoundaryFit, side: str) -> float:
+        coefficients = self._tracked_boundary_coefficients(side)
+        if coefficients is None:
+            return float("inf")
+        y_values = np.asarray(
+            [point[0] for point in fit.points],
+            dtype=np.float64,
+        )
+        measured_x = np.asarray(
+            [point[1] for point in fit.points],
+            dtype=np.float64,
+        )
+        predicted_x = np.polyval(coefficients, y_values)
+        return float(np.median(np.abs(measured_x - predicted_x)))
+
+    def _tracked_boundary_coefficients(
+        self,
+        side: str,
+    ) -> np.ndarray | None:
+        if side == "left":
+            if self._left_memory_age <= self.config.tracking_memory_frames:
+                return self._previous_left_coefficients
+            return None
+        if side == "right":
+            if self._right_memory_age <= self.config.tracking_memory_frames:
+                return self._previous_right_coefficients
+            return None
+        raise ValueError(f"unknown boundary side: {side}")
+
+    def _remember_boundaries(
+        self,
+        left: BoundaryFit | None,
+        right: BoundaryFit | None,
+    ) -> None:
+        if left is not None:
+            self._previous_left_coefficients = np.asarray(
+                left.coefficients,
+                dtype=np.float64,
+            )
+            self._left_memory_age = 0
+        else:
+            self._left_memory_age += 1
+            if self._left_memory_age > self.config.tracking_memory_frames:
+                self._previous_left_coefficients = None
+
+        if right is not None:
+            self._previous_right_coefficients = np.asarray(
+                right.coefficients,
+                dtype=np.float64,
+            )
+            self._right_memory_age = 0
+        else:
+            self._right_memory_age += 1
+            if self._right_memory_age > self.config.tracking_memory_frames:
+                self._previous_right_coefficients = None
+
+    def _age_center_memory(self) -> None:
+        self._center_memory_age += 1
+        if self._center_memory_age > self.config.tracking_memory_frames:
+            self._previous_center_coefficients = None
+            self._previous_mode = "NONE"
 
     def _confidence(
         self,
@@ -854,6 +972,8 @@ class LaneModel:
             raise ValueError("expected lane width ratios must be positive")
         if self.config.trace_seed_search_rows <= 0:
             raise ValueError("trace seed search rows must be positive")
+        if self.config.tracking_memory_frames < 0:
+            raise ValueError("tracking memory frames cannot be negative")
         if self.config.trace_centering_max_run_width <= 0:
             raise ValueError("trace centering run width must be positive")
         if self.config.maximum_extrapolation_rows < 0:
