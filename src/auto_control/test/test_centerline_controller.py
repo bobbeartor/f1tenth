@@ -38,7 +38,10 @@ class CenterlineControllerTest(unittest.TestCase):
         )
 
         self.assertGreater(command.steering, 0.0)
-        self.assertLessEqual(command.steering, 3.0 / 60.0)
+        self.assertLessEqual(
+            command.steering,
+            self.controller.config.maximum_steering_rate_per_sec / 60.0,
+        )
 
     def test_centerline_to_left_commands_left_steering(self):
         command = self.controller.update(

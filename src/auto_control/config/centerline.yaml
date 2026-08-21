@@ -79,13 +79,13 @@ centerline_node:
     # errors in a curve receive stronger correction without amplifying small
     # near-center errors as much.
     lookahead_y: 68
-    cross_track_gain: 0.75
-    cross_track_error_boost_gain: 1.50
-    preview_gain: 1.25
+    cross_track_gain: 0.90
+    cross_track_error_boost_gain: 2.00
+    preview_gain: 1.40
     derivative_gain: 0.025
     steering_deadband: 0.015
     steering_filter_alpha: 0.45
-    maximum_steering_rate_per_sec: 3.0
+    maximum_steering_rate_per_sec: 4.0
     minimum_confidence: 0.45
 
     base_duty: 0.055

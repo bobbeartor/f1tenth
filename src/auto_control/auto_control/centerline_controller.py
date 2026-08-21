@@ -44,13 +44,13 @@ class CenterlinePath:
 @dataclass(frozen=True)
 class ControllerConfig:
     lookahead_y: int = 68
-    cross_track_gain: float = 0.75
-    cross_track_error_boost_gain: float = 1.50
-    preview_gain: float = 1.25
+    cross_track_gain: float = 0.90
+    cross_track_error_boost_gain: float = 2.00
+    preview_gain: float = 1.40
     derivative_gain: float = 0.025
     steering_deadband: float = 0.015
     steering_filter_alpha: float = 0.45
-    maximum_steering_rate_per_sec: float = 3.0
+    maximum_steering_rate_per_sec: float = 4.0
     minimum_confidence: float = 0.45
     base_duty: float = 0.055
     minimum_duty: float = 0.050
