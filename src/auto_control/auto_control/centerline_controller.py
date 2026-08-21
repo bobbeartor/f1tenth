@@ -45,6 +45,7 @@ class CenterlinePath:
 class ControllerConfig:
     lookahead_y: int = 68
     cross_track_gain: float = 0.75
+    cross_track_error_boost_gain: float = 1.50
     preview_gain: float = 1.25
     derivative_gain: float = 0.025
     steering_deadband: float = 0.015
@@ -209,8 +210,13 @@ class CenterlineController:
             )
         self._previous_cross_track_error = cross_track_error
 
+        cross_track_gain = (
+            self.config.cross_track_gain
+            + self.config.cross_track_error_boost_gain
+            * abs(cross_track_error)
+        )
         target = (
-            self.config.cross_track_gain * cross_track_error
+            cross_track_gain * cross_track_error
             + self.config.preview_gain * preview_error
             + self.config.derivative_gain * derivative
         )

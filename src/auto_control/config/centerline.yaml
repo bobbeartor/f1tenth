@@ -71,9 +71,13 @@ centerline_node:
     # Allow only tiny quadratic-fit noise around a perfectly straight line.
     single_lane_convexity_tolerance: 0.002
 
-    # Steering uses only the fitted quadratic centerline x(y).
+    # Steering uses only the fitted quadratic centerline x(y). Increase the
+    # cross-track gain as the vehicle gets farther from the centerline so large
+    # errors in a curve receive stronger correction without amplifying small
+    # near-center errors as much.
     lookahead_y: 68
     cross_track_gain: 0.75
+    cross_track_error_boost_gain: 1.50
     preview_gain: 1.25
     derivative_gain: 0.025
     steering_deadband: 0.015

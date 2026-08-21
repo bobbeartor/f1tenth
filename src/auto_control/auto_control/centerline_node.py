@@ -135,6 +135,9 @@ class CenterlineNode(Node):
             cross_track_gain=float(
                 self.get_parameter("cross_track_gain").value
             ),
+            cross_track_error_boost_gain=float(
+                self.get_parameter("cross_track_error_boost_gain").value
+            ),
             preview_gain=float(self.get_parameter("preview_gain").value),
             derivative_gain=float(
                 self.get_parameter("derivative_gain").value
@@ -362,6 +365,7 @@ class CenterlineNode(Node):
 
         self.declare_parameter("lookahead_y", 68)
         self.declare_parameter("cross_track_gain", 0.75)
+        self.declare_parameter("cross_track_error_boost_gain", 1.50)
         self.declare_parameter("preview_gain", 1.25)
         self.declare_parameter("derivative_gain", 0.025)
         self.declare_parameter("steering_deadband", 0.015)

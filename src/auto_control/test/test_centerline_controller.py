@@ -48,6 +48,27 @@ class CenterlineControllerTest(unittest.TestCase):
 
         self.assertLess(command.steering, 0.0)
 
+    def test_large_cross_track_error_receives_stronger_gain(self):
+        config = ControllerConfig(
+            preview_gain=0.0,
+            derivative_gain=0.0,
+            steering_deadband=0.0,
+            steering_filter_alpha=1.0,
+            maximum_steering_rate_per_sec=1000.0,
+        )
+        near = CenterlineController(config).update(
+            self._path(coefficients=(0.0, 0.0, 90.0)),
+            1.0 / 100.0,
+        )
+        far = CenterlineController(config).update(
+            self._path(coefficients=(0.0, 0.0, 120.0)),
+            1.0 / 100.0,
+        )
+
+        near_effective_gain = near.steering / near.cross_track_error
+        far_effective_gain = far.steering / far.cross_track_error
+        self.assertGreater(far_effective_gain, near_effective_gain)
+
     def test_curved_centerline_uses_lookahead(self):
         # x(90)=80 but x(68)=47: centered at the car and curving left ahead.
         command = self.controller.update(
