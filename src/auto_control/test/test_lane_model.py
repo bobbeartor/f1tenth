@@ -255,7 +255,8 @@ class LaneModelTest(unittest.TestCase):
             np.zeros((100, 160), dtype=np.uint8),
             image_is_mask=True,
         )
-        self.assertFalse(dropout.path.valid)
+        self.assertTrue(dropout.path.valid)
+        self.assertIn("HOLD 1/2", dropout.rejection_reason)
 
         reacquired = model.estimate(
             self._vertical_line_mask(100),
@@ -265,6 +266,43 @@ class LaneModelTest(unittest.TestCase):
         self.assertEqual(reacquired.path.mode, "LEFT_ONLY")
         self.assertIsNotNone(reacquired.left)
         self.assertIsNone(reacquired.right)
+
+    def test_seed_distance_is_a_soft_cost_for_long_lane_component(self):
+        model = LaneModel(self.config)
+
+        estimate = model.estimate(
+            self._vertical_line_mask(70),
+            image_is_mask=True,
+        )
+
+        self.assertTrue(estimate.path.valid)
+        self.assertEqual(estimate.path.mode, "LEFT_ONLY")
+
+    def test_wrong_side_convexity_lock_recovers_on_the_next_frame(self):
+        model = LaneModel(self.config)
+        model.estimate(
+            self._vertical_line_mask(100),
+            image_is_mask=True,
+        )
+        curve = np.zeros((100, 160), dtype=np.uint8)
+        points = []
+        for y in range(50, 75):
+            delta_y = y - 74
+            x = 60.0 - 2.0 * delta_y + 0.02 * delta_y * delta_y
+            points.append((int(round(x)), y))
+        cv2.polylines(
+            curve,
+            [np.asarray(points, dtype=np.int32)],
+            False,
+            255,
+            2,
+        )
+
+        rejected = model.estimate(curve, image_is_mask=True)
+        reacquired = model.estimate(curve, image_is_mask=True)
+
+        self.assertIn("R:CONVEXITY", rejected.rejection_reason)
+        self.assertEqual(reacquired.path.mode, "LEFT_ONLY")
 
     def test_both_boundaries_keep_measured_curve_direction(self):
         model = LaneModel(self.config)
@@ -368,6 +406,26 @@ class LaneModelTest(unittest.TestCase):
 
         self.assertFalse(estimate.path.valid)
         self.assertEqual(estimate.path.mode, "NONE")
+        self.assertEqual(estimate.rejection_reason, "L:NO_SEED R:NO_SEED")
+
+    def test_last_valid_path_is_held_for_only_two_dropout_frames(self):
+        model = LaneModel(self.config)
+        tracked = model.estimate(
+            self._vertical_line_mask(50),
+            image_is_mask=True,
+        )
+        empty = np.zeros((100, 160), dtype=np.uint8)
+
+        first = model.estimate(empty, image_is_mask=True)
+        second = model.estimate(empty, image_is_mask=True)
+        expired = model.estimate(empty, image_is_mask=True)
+
+        self.assertTrue(tracked.path.valid)
+        self.assertTrue(first.path.valid)
+        self.assertTrue(second.path.valid)
+        self.assertIn("HOLD 1/2", first.rejection_reason)
+        self.assertIn("HOLD 2/2", second.rejection_reason)
+        self.assertFalse(expired.path.valid)
 
     def _lane_mask(
         self,
