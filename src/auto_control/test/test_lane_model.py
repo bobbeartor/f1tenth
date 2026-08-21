@@ -3,7 +3,7 @@ import unittest
 import cv2
 import numpy as np
 
-from auto_control.lane_model import LaneModel, LaneModelConfig
+from auto_control.lane_model import BoundaryFit, LaneModel, LaneModelConfig
 
 
 class LaneModelTest(unittest.TestCase):
@@ -116,14 +116,15 @@ class LaneModelTest(unittest.TestCase):
             image_is_mask=True,
         )
 
-        estimate = model.estimate(
-            self._lane_mask(
-                sides=("left",),
-                width_scale=0.80,
-                curved_center=False,
-            ),
-            image_is_mask=True,
-        )
+        for _ in range(self.config.boundary_hold_frames + 1):
+            estimate = model.estimate(
+                self._lane_mask(
+                    sides=("left",),
+                    width_scale=0.80,
+                    curved_center=False,
+                ),
+                image_is_mask=True,
+            )
 
         self.assertEqual(estimate.path.mode, "LEFT_ONLY")
         for y in (50, 62, 74):
@@ -232,6 +233,42 @@ class LaneModelTest(unittest.TestCase):
         # disconnected tile at x=50 must never become the tracked boundary.
         self.assertGreaterEqual(min(y for y, _ in left_points), 67.0)
         self.assertLess(max(x for _, x in left_points), 40.0)
+
+    def test_boundary_that_turns_back_toward_background_is_rejected(self):
+        model = LaneModel(self.config)
+        points = [
+            (float(y), 50.0 + 0.20 * (float(y) - 62.0) ** 2)
+            for y in range(50, 75)
+        ]
+
+        fit = model._fit_boundary(points)
+
+        self.assertIsNone(fit)
+
+    def test_abrupt_boundary_replacement_requires_three_frames(self):
+        model = LaneModel(self.config)
+        points = tuple((float(y), 30.0) for y in range(50, 75))
+        initial = BoundaryFit((0.0, 0.0, 30.0), points, 0.0)
+        shifted = BoundaryFit((0.0, 0.0, 50.0), points, 0.0)
+
+        accepted, current = model._stabilize_boundary(
+            initial, model._left_track
+        )
+        self.assertIs(accepted, initial)
+        self.assertTrue(current)
+
+        for _ in range(2):
+            accepted, current = model._stabilize_boundary(
+                shifted, model._left_track
+            )
+            self.assertIs(accepted, initial)
+            self.assertFalse(current)
+
+        accepted, current = model._stabilize_boundary(
+            shifted, model._left_track
+        )
+        self.assertIs(accepted, shifted)
+        self.assertTrue(current)
 
     def test_only_roi_pixels_affect_the_curve(self):
         model = LaneModel(self.config)

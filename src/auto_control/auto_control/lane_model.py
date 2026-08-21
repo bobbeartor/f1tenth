@@ -38,6 +38,10 @@ class LaneModelConfig:
     lane_width_learning_alpha: float = 0.15
     single_lane_confidence_scale: float = 0.78
     maximum_boundary_step_px: float = 5.0
+    maximum_boundary_turnback_px: float = 8.0
+    maximum_temporal_boundary_shift_px: float = 12.0
+    boundary_replacement_confirmation_frames: int = 3
+    boundary_hold_frames: int = 2
     maximum_extrapolation_rows: int = 5
     single_lane_curvature_gain: float = 6.0
     single_lane_maximum_offset_scale: float = 1.30
@@ -52,6 +56,14 @@ class BoundaryFit:
     def x_at(self, y: float) -> float:
         a, b, c = self.coefficients
         return a * y * y + b * y + c
+
+
+@dataclass
+class _BoundaryTrack:
+    accepted: BoundaryFit | None = None
+    missed_frames: int = 0
+    pending: BoundaryFit | None = None
+    pending_frames: int = 0
 
 
 @dataclass(frozen=True)
@@ -79,12 +91,16 @@ class LaneModel:
         self._lane_width_coefficients = (
             self._configured_lane_width_coefficients.copy()
         )
+        self._left_track = _BoundaryTrack()
+        self._right_track = _BoundaryTrack()
 
     def reset(self) -> None:
         self._previous_center_coefficients = None
         self._lane_width_coefficients = (
             self._configured_lane_width_coefficients.copy()
         )
+        self._left_track = _BoundaryTrack()
+        self._right_track = _BoundaryTrack()
 
     def estimate(
         self,
@@ -101,6 +117,16 @@ class LaneModel:
         if left is not None and right is not None:
             left, right = self._validate_pair(left, right)
 
+        left, left_is_current = self._stabilize_boundary(
+            left, self._left_track
+        )
+        right, right_is_current = self._stabilize_boundary(
+            right, self._right_track
+        )
+
+        if left is not None and right is not None:
+            left, right = self._validate_pair(left, right)
+
         if left is not None and right is not None:
             left_coefficients = np.asarray(left.coefficients, dtype=np.float64)
             right_coefficients = np.asarray(right.coefficients, dtype=np.float64)
@@ -112,10 +138,11 @@ class LaneModel:
                 0.0,
                 min(1.0, self.config.lane_width_learning_alpha),
             )
-            self._lane_width_coefficients = (
-                (1.0 - alpha) * self._lane_width_coefficients
-                + alpha * measured_width
-            )
+            if left_is_current and right_is_current:
+                self._lane_width_coefficients = (
+                    (1.0 - alpha) * self._lane_width_coefficients
+                    + alpha * measured_width
+                )
             mode = "BOTH"
             confidence = self._confidence(left, right, single=False)
         elif left is not None:
@@ -462,13 +489,113 @@ class LaneModel:
         rms_error = float(np.sqrt(np.mean(residuals * residuals)))
         if rms_error > self.config.maximum_fit_residual_px:
             return None
-        return BoundaryFit(
+        fit = BoundaryFit(
             coefficients=tuple(float(value) for value in coefficients),
             points=tuple(
                 (float(y), float(x)) for y, x in inlier_data
             ),
             rms_error=rms_error,
         )
+        if (
+            self._boundary_turnback(fit)
+            > self.config.maximum_boundary_turnback_px
+        ):
+            return None
+        return fit
+
+    @staticmethod
+    def _boundary_turnback(fit: BoundaryFit) -> float:
+        """Return extra horizontal travel caused by reversing direction."""
+        y_values = np.asarray(
+            sorted(point[0] for point in fit.points),
+            dtype=np.float64,
+        )
+        if y_values.size < 2:
+            return 0.0
+        x_values = np.asarray(
+            [fit.x_at(float(y)) for y in y_values],
+            dtype=np.float64,
+        )
+        total_travel = float(np.sum(np.abs(np.diff(x_values))))
+        endpoint_travel = float(abs(x_values[-1] - x_values[0]))
+        return max(0.0, total_travel - endpoint_travel)
+
+    def _stabilize_boundary(
+        self,
+        candidate: BoundaryFit | None,
+        track: _BoundaryTrack,
+    ) -> tuple[BoundaryFit | None, bool]:
+        """Reject abrupt boundary replacement while allowing brief dropouts."""
+        if track.accepted is None:
+            track.pending = None
+            track.pending_frames = 0
+            track.missed_frames = 0
+            if candidate is not None:
+                track.accepted = candidate
+                return candidate, True
+            return None, False
+
+        if candidate is not None and self._fits_temporally_close(
+            candidate, track.accepted
+        ):
+            track.accepted = candidate
+            track.missed_frames = 0
+            track.pending = None
+            track.pending_frames = 0
+            return candidate, True
+
+        track.missed_frames += 1
+        if candidate is None:
+            track.pending = None
+            track.pending_frames = 0
+        elif track.pending is not None and self._fits_temporally_close(
+            candidate, track.pending
+        ):
+            track.pending = candidate
+            track.pending_frames += 1
+        else:
+            track.pending = candidate
+            track.pending_frames = 1
+
+        confirmation_frames = max(
+            1, self.config.boundary_replacement_confirmation_frames
+        )
+        if (
+            track.pending is not None
+            and track.pending_frames >= confirmation_frames
+        ):
+            track.accepted = track.pending
+            track.missed_frames = 0
+            track.pending = None
+            track.pending_frames = 0
+            return track.accepted, True
+
+        if track.missed_frames <= max(0, self.config.boundary_hold_frames):
+            return track.accepted, False
+
+        if candidate is None:
+            track.accepted = None
+            track.missed_frames = 0
+        return None, False
+
+    def _fits_temporally_close(
+        self,
+        candidate: BoundaryFit,
+        reference: BoundaryFit,
+    ) -> bool:
+        candidate_y = [point[0] for point in candidate.points]
+        reference_y = [point[0] for point in reference.points]
+        y_min = max(min(candidate_y), min(reference_y))
+        y_max = min(max(candidate_y), max(reference_y))
+        if y_min > y_max:
+            return False
+        sample_count = max(2, min(7, int(y_max - y_min) + 1))
+        y_values = np.linspace(y_min, y_max, sample_count)
+        shifts = [
+            abs(candidate.x_at(float(y)) - reference.x_at(float(y)))
+            for y in y_values
+        ]
+        return max(shifts) <= self.config.maximum_temporal_boundary_shift_px
 
     def _validate_pair(
         self,
@@ -750,6 +877,16 @@ class LaneModel:
             raise ValueError("expected lane width ratios must be positive")
         if self.config.maximum_boundary_step_px <= 0.0:
             raise ValueError("maximum boundary step must be positive")
+        if self.config.maximum_boundary_turnback_px < 0.0:
+            raise ValueError("maximum boundary turn-back cannot be negative")
+        if self.config.maximum_temporal_boundary_shift_px <= 0.0:
+            raise ValueError(
+                "maximum temporal boundary shift must be positive"
+            )
+        if self.config.boundary_replacement_confirmation_frames <= 0:
+            raise ValueError("boundary confirmation frames must be positive")
+        if self.config.boundary_hold_frames < 0:
+            raise ValueError("boundary hold frames cannot be negative")
         if self.config.maximum_extrapolation_rows < 0:
             raise ValueError("maximum extrapolation rows cannot be negative")
         if self.config.single_lane_curvature_gain < 0.0:
