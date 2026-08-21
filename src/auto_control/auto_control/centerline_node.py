@@ -108,22 +108,6 @@ class CenterlineNode(Node):
             maximum_boundary_step_px=float(
                 self.get_parameter("maximum_boundary_step_px").value
             ),
-            maximum_boundary_turnback_px=float(
-                self.get_parameter("maximum_boundary_turnback_px").value
-            ),
-            maximum_temporal_boundary_shift_px=float(
-                self.get_parameter(
-                    "maximum_temporal_boundary_shift_px"
-                ).value
-            ),
-            boundary_replacement_confirmation_frames=int(
-                self.get_parameter(
-                    "boundary_replacement_confirmation_frames"
-                ).value
-            ),
-            boundary_hold_frames=int(
-                self.get_parameter("boundary_hold_frames").value
-            ),
             maximum_extrapolation_rows=int(
                 self.get_parameter("maximum_extrapolation_rows").value
             ),
@@ -133,6 +117,11 @@ class CenterlineNode(Node):
             single_lane_maximum_offset_scale=float(
                 self.get_parameter(
                     "single_lane_maximum_offset_scale"
+                ).value
+            ),
+            single_lane_direction_guard_enabled=bool(
+                self.get_parameter(
+                    "single_lane_direction_guard_enabled"
                 ).value
             ),
         )
@@ -360,17 +349,10 @@ class CenterlineNode(Node):
         self.declare_parameter("lane_width_learning_alpha", 0.15)
         self.declare_parameter("single_lane_confidence_scale", 0.78)
         self.declare_parameter("maximum_boundary_step_px", 5.0)
-        self.declare_parameter("maximum_boundary_turnback_px", 8.0)
-        self.declare_parameter(
-            "maximum_temporal_boundary_shift_px", 12.0
-        )
-        self.declare_parameter(
-            "boundary_replacement_confirmation_frames", 3
-        )
-        self.declare_parameter("boundary_hold_frames", 2)
         self.declare_parameter("maximum_extrapolation_rows", 5)
         self.declare_parameter("single_lane_curvature_gain", 6.0)
         self.declare_parameter("single_lane_maximum_offset_scale", 1.30)
+        self.declare_parameter("single_lane_direction_guard_enabled", True)
 
         self.declare_parameter("lookahead_y", 68)
         self.declare_parameter("cross_track_gain", 0.75)

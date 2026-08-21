@@ -3,7 +3,7 @@ import unittest
 import cv2
 import numpy as np
 
-from auto_control.lane_model import BoundaryFit, LaneModel, LaneModelConfig
+from auto_control.lane_model import LaneModel, LaneModelConfig
 
 
 class LaneModelTest(unittest.TestCase):
@@ -116,15 +116,14 @@ class LaneModelTest(unittest.TestCase):
             image_is_mask=True,
         )
 
-        for _ in range(self.config.boundary_hold_frames + 1):
-            estimate = model.estimate(
-                self._lane_mask(
-                    sides=("left",),
-                    width_scale=0.80,
-                    curved_center=False,
-                ),
-                image_is_mask=True,
-            )
+        estimate = model.estimate(
+            self._lane_mask(
+                sides=("left",),
+                width_scale=0.80,
+                curved_center=False,
+            ),
+            image_is_mask=True,
+        )
 
         self.assertEqual(estimate.path.mode, "LEFT_ONLY")
         for y in (50, 62, 74):
@@ -162,7 +161,7 @@ class LaneModelTest(unittest.TestCase):
         model = LaneModel(self.config)
 
         estimate = model.estimate(
-            self._lane_mask(sides=("right",)),
+            self._lane_mask(sides=("right",), curve_direction=-1.0),
             image_is_mask=True,
         )
 
@@ -175,6 +174,45 @@ class LaneModelTest(unittest.TestCase):
             estimate.path.x_at(y),
             simple_half_width_center - 0.5,
         )
+
+    def test_left_only_rejects_left_bending_centerline(self):
+        model = LaneModel(self.config)
+
+        estimate = model.estimate(
+            self._lane_mask(sides=("left",), curve_direction=-1.0),
+            image_is_mask=True,
+        )
+
+        self.assertEqual(estimate.path.mode, "LEFT_ONLY")
+        self.assertTrue(estimate.single_lane_direction_limited)
+        self.assertAlmostEqual(estimate.path.coefficients[0], 0.0, places=9)
+
+    def test_right_only_rejects_right_bending_centerline(self):
+        model = LaneModel(self.config)
+
+        estimate = model.estimate(
+            self._lane_mask(sides=("right",), curve_direction=1.0),
+            image_is_mask=True,
+        )
+
+        self.assertEqual(estimate.path.mode, "RIGHT_ONLY")
+        self.assertTrue(estimate.single_lane_direction_limited)
+        self.assertAlmostEqual(estimate.path.coefficients[0], 0.0, places=9)
+
+    def test_both_boundaries_keep_measured_curve_direction(self):
+        model = LaneModel(self.config)
+
+        estimate = model.estimate(
+            self._lane_mask(
+                sides=("left", "right"),
+                curve_direction=-1.0,
+            ),
+            image_is_mask=True,
+        )
+
+        self.assertEqual(estimate.path.mode, "BOTH")
+        self.assertFalse(estimate.single_lane_direction_limited)
+        self.assertLess(estimate.path.coefficients[0], -0.005)
 
     def test_path_extrapolation_is_limited_to_configured_rows(self):
         config = LaneModelConfig(
@@ -234,42 +272,6 @@ class LaneModelTest(unittest.TestCase):
         self.assertGreaterEqual(min(y for y, _ in left_points), 67.0)
         self.assertLess(max(x for _, x in left_points), 40.0)
 
-    def test_boundary_that_turns_back_toward_background_is_rejected(self):
-        model = LaneModel(self.config)
-        points = [
-            (float(y), 50.0 + 0.20 * (float(y) - 62.0) ** 2)
-            for y in range(50, 75)
-        ]
-
-        fit = model._fit_boundary(points)
-
-        self.assertIsNone(fit)
-
-    def test_abrupt_boundary_replacement_requires_three_frames(self):
-        model = LaneModel(self.config)
-        points = tuple((float(y), 30.0) for y in range(50, 75))
-        initial = BoundaryFit((0.0, 0.0, 30.0), points, 0.0)
-        shifted = BoundaryFit((0.0, 0.0, 50.0), points, 0.0)
-
-        accepted, current = model._stabilize_boundary(
-            initial, model._left_track
-        )
-        self.assertIs(accepted, initial)
-        self.assertTrue(current)
-
-        for _ in range(2):
-            accepted, current = model._stabilize_boundary(
-                shifted, model._left_track
-            )
-            self.assertIs(accepted, initial)
-            self.assertFalse(current)
-
-        accepted, current = model._stabilize_boundary(
-            shifted, model._left_track
-        )
-        self.assertIs(accepted, shifted)
-        self.assertTrue(current)
-
     def test_only_roi_pixels_affect_the_curve(self):
         model = LaneModel(self.config)
         mask = self._lane_mask(sides=("left", "right"))
@@ -299,6 +301,7 @@ class LaneModelTest(unittest.TestCase):
         sides: tuple[str, ...],
         width_scale: float = 1.0,
         curved_center: bool = True,
+        curve_direction: float = 1.0,
     ) -> np.ndarray:
         mask = np.zeros((100, 160), dtype=np.uint8)
         for side in sides:
@@ -308,7 +311,11 @@ class LaneModelTest(unittest.TestCase):
                 self.config.roi_y_max + 1,
             ):
                 direction = -1.0 if side == "left" else 1.0
-                center_x = self._center_x(y) if curved_center else 80.0
+                center_x = (
+                    self._center_x(y, curve_direction)
+                    if curved_center
+                    else 80.0
+                )
                 x = (
                     center_x
                     + direction * self._lane_width(y) * width_scale * 0.5
@@ -324,8 +331,8 @@ class LaneModelTest(unittest.TestCase):
         return mask
 
     @staticmethod
-    def _center_x(y: float) -> float:
-        return 80.0 + 0.015 * (y - 90.0) ** 2
+    def _center_x(y: float, direction: float = 1.0) -> float:
+        return 80.0 + direction * 0.015 * (y - 90.0) ** 2
 
     def _lane_width(self, y: float) -> float:
         return LaneModel(self.config)._configured_width_at(y)

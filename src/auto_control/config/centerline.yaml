@@ -53,14 +53,6 @@ centerline_node:
     # Reject abrupt row-to-row jumps toward white floor tiles. A centerline is
     # extrapolated at most five rows beyond the actually observed boundary.
     maximum_boundary_step_px: 5.0
-    # Reject a fitted boundary that reverses horizontal direction inside the
-    # ROI, which occurs when a real lane joins an exterior horizontal feature.
-    maximum_boundary_turnback_px: 8.0
-    # A suddenly displaced boundary must remain consistent for three frames
-    # before replacing the tracked one. Hold the old fit for only two frames.
-    maximum_temporal_boundary_shift_px: 12.0
-    boundary_replacement_confirmation_frames: 3
-    boundary_hold_frames: 2
     maximum_extrapolation_rows: 5
 
     # With one visible boundary, reconstruct the center using the boundary's
@@ -68,6 +60,9 @@ centerline_node:
     # but the total enlargement is capped for steering stability.
     single_lane_curvature_gain: 6.0
     single_lane_maximum_offset_scale: 1.30
+    # LEFT_ONLY permits only right curvature; RIGHT_ONLY permits only left
+    # curvature. Opposite curvature is replaced by the near-field tangent.
+    single_lane_direction_guard_enabled: true
 
     # Steering uses only the fitted quadratic centerline x(y).
     lookahead_y: 68
