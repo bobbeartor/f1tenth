@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -432,7 +433,7 @@ private:
     return finalizeCandidate(candidate, ratio);
   }
 
-  cv::Mat finalizeCandidate(cv::Mat candidate, const double ratio) const
+  cv::Mat finalizeCandidate(cv::Mat candidate, const double ratio)
   {
     const int min_area = std::max(
       10, static_cast<int>(std::lround(min_area_ * ratio * ratio)));
@@ -463,21 +464,18 @@ private:
     }
 
     // Stage 3: shape filtering.
-    cv::Mat labels;
-    cv::Mat stats;
-    cv::Mat centroids;
     const int count = cv::connectedComponentsWithStats(
-      candidate, labels, stats, centroids, 8, CV_32S);
-    cv::Mat filtered = cv::Mat::zeros(candidate.size(), CV_8UC1);
+      candidate, labels_, stats_, centroids_, 8, CV_32S);
+    kept_components_.assign(static_cast<std::size_t>(count), 0U);
     const int rows = candidate.rows;
     for (int index = 1; index < count; ++index) {
-      const int area = stats.at<int>(index, cv::CC_STAT_AREA);
+      const int area = stats_.at<int>(index, cv::CC_STAT_AREA);
       if (area < min_area) {
         continue;
       }
-      const int box_y = stats.at<int>(index, cv::CC_STAT_TOP);
-      const int box_w = stats.at<int>(index, cv::CC_STAT_WIDTH);
-      const int box_h = stats.at<int>(index, cv::CC_STAT_HEIGHT);
+      const int box_y = stats_.at<int>(index, cv::CC_STAT_TOP);
+      const int box_w = stats_.at<int>(index, cv::CC_STAT_WIDTH);
+      const int box_h = stats_.at<int>(index, cv::CC_STAT_HEIGHT);
       const double aspect =
         static_cast<double>(std::max(box_w, box_h)) /
         static_cast<double>(std::max(1, std::min(box_w, box_h)));
@@ -496,10 +494,19 @@ private:
       {
         continue;  // thin horizontal sliver near the top: far floor seam
       }
-      filtered.setTo(255, labels == index);
+      kept_components_[static_cast<std::size_t>(index)] = 1U;
     }
 
-    return filtered;
+    filtered_.create(candidate.size(), CV_8UC1);
+    for (int row = 0; row < candidate.rows; ++row) {
+      const int * labels = labels_.ptr<int>(row);
+      std::uint8_t * output = filtered_.ptr<std::uint8_t>(row);
+      for (int column = 0; column < candidate.cols; ++column) {
+        output[column] = kept_components_[
+          static_cast<std::size_t>(labels[column])] ? 255U : 0U;
+      }
+    }
+    return filtered_;
   }
 
 #ifdef LANE_MASK_HAVE_OPENCV_CUDA
@@ -580,85 +587,71 @@ private:
     ensureCudaFilters(blur_kernel_, tophat_kernel, bilateral_span);
     cv::cuda::Stream & stream = *cuda_stream_;
 
-    cv::cuda::GpuMat gpu_input;
-    cv::cuda::GpuMat gpu_work;
-    gpu_input.upload(luma, stream);
+    cuda_input_.upload(luma, stream);
+    cv::cuda::GpuMat * work = &cuda_input_;
     if (downscale) {
       cv::cuda::resize(
-        gpu_input, gpu_work, {work_width, work_height}, 0.0, 0.0,
+        cuda_input_, cuda_work_, {work_width, work_height}, 0.0, 0.0,
         cv::INTER_AREA, stream);
-    } else {
-      gpu_work = gpu_input;
+      work = &cuda_work_;
     }
 
-    cv::cuda::GpuMat gpu_blurred;
+    cv::cuda::GpuMat * blurred = work;
     if (cuda_gaussian_filter_) {
-      cuda_gaussian_filter_->apply(gpu_work, gpu_blurred, stream);
-    } else {
-      gpu_blurred = gpu_work;
+      cuda_gaussian_filter_->apply(*work, cuda_blurred_, stream);
+      blurred = &cuda_blurred_;
     }
 
-    cv::cuda::GpuMat gpu_tophat;
-    cuda_tophat_filter_->apply(gpu_blurred, gpu_tophat, stream);
-    cv::cuda::GpuMat gpu_candidate;
+    cuda_tophat_filter_->apply(*blurred, cuda_tophat_, stream);
     cv::cuda::threshold(
-      gpu_tophat, gpu_candidate, tophat_threshold_, 255,
+      cuda_tophat_, cuda_candidate_, tophat_threshold_, 255,
       cv::THRESH_BINARY, stream);
 
-    cv::cuda::GpuMat left_min;
-    cv::cuda::GpuMat right_min;
-    cv::cuda::GpuMat up_min;
-    cv::cuda::GpuMat down_min;
-    cuda_erode_left_filter_->apply(gpu_blurred, left_min, stream);
-    cuda_erode_right_filter_->apply(gpu_blurred, right_min, stream);
-    cuda_erode_up_filter_->apply(gpu_blurred, up_min, stream);
-    cuda_erode_down_filter_->apply(gpu_blurred, down_min, stream);
+    cuda_erode_left_filter_->apply(*blurred, cuda_left_min_, stream);
+    cuda_erode_right_filter_->apply(*blurred, cuda_right_min_, stream);
+    cuda_erode_up_filter_->apply(*blurred, cuda_up_min_, stream);
+    cuda_erode_down_filter_->apply(*blurred, cuda_down_min_, stream);
 
-    cv::cuda::GpuMat horizontal_reference;
-    cv::cuda::GpuMat vertical_reference;
-    cv::cuda::max(left_min, right_min, horizontal_reference, stream);
-    cv::cuda::max(up_min, down_min, vertical_reference, stream);
-    cv::cuda::GpuMat horizontal_delta;
-    cv::cuda::GpuMat vertical_delta;
+    cv::cuda::max(
+      cuda_left_min_, cuda_right_min_, cuda_horizontal_reference_, stream);
+    cv::cuda::max(
+      cuda_up_min_, cuda_down_min_, cuda_vertical_reference_, stream);
     cv::cuda::subtract(
-      gpu_blurred, horizontal_reference, horizontal_delta,
+      *blurred, cuda_horizontal_reference_, cuda_horizontal_delta_,
       cv::noArray(), -1, stream);
     cv::cuda::subtract(
-      gpu_blurred, vertical_reference, vertical_delta,
+      *blurred, cuda_vertical_reference_, cuda_vertical_delta_,
       cv::noArray(), -1, stream);
 
-    cv::cuda::GpuMat vertical_stroke;
-    cv::cuda::GpuMat horizontal_stroke;
     cv::cuda::compareWithScalar(
-      horizontal_delta, cv::Scalar(bilateral_contrast_threshold_),
-      vertical_stroke, cv::CMP_GE, stream);
+      cuda_horizontal_delta_, cv::Scalar(bilateral_contrast_threshold_),
+      cuda_vertical_stroke_, cv::CMP_GE, stream);
     cv::cuda::compareWithScalar(
-      vertical_delta, cv::Scalar(bilateral_contrast_threshold_),
-      horizontal_stroke, cv::CMP_GE, stream);
-    cv::cuda::GpuMat horizontal_background_ok;
-    cv::cuda::GpuMat vertical_background_ok;
+      cuda_vertical_delta_, cv::Scalar(bilateral_contrast_threshold_),
+      cuda_horizontal_stroke_, cv::CMP_GE, stream);
     cv::cuda::compareWithScalar(
-      horizontal_reference, cv::Scalar(bilateral_background_max_),
-      horizontal_background_ok, cv::CMP_LE, stream);
+      cuda_horizontal_reference_, cv::Scalar(bilateral_background_max_),
+      cuda_horizontal_background_ok_, cv::CMP_LE, stream);
     cv::cuda::compareWithScalar(
-      vertical_reference, cv::Scalar(bilateral_background_max_),
-      vertical_background_ok, cv::CMP_LE, stream);
+      cuda_vertical_reference_, cv::Scalar(bilateral_background_max_),
+      cuda_vertical_background_ok_, cv::CMP_LE, stream);
     cv::cuda::bitwise_and(
-      vertical_stroke, horizontal_background_ok, vertical_stroke,
+      cuda_vertical_stroke_, cuda_horizontal_background_ok_,
+      cuda_vertical_stroke_,
       cv::noArray(), stream);
     cv::cuda::bitwise_and(
-      horizontal_stroke, vertical_background_ok, horizontal_stroke,
+      cuda_horizontal_stroke_, cuda_vertical_background_ok_,
+      cuda_horizontal_stroke_,
       cv::noArray(), stream);
-    cv::cuda::GpuMat gate;
     cv::cuda::bitwise_or(
-      vertical_stroke, horizontal_stroke, gate, cv::noArray(), stream);
+      cuda_vertical_stroke_, cuda_horizontal_stroke_, cuda_gate_,
+      cv::noArray(), stream);
     cv::cuda::bitwise_and(
-      gpu_candidate, gate, gpu_candidate, cv::noArray(), stream);
+      cuda_candidate_, cuda_gate_, cuda_candidate_, cv::noArray(), stream);
 
-    cv::Mat candidate;
-    gpu_candidate.download(candidate, stream);
+    cuda_candidate_.download(cuda_candidate_host_, stream);
     stream.waitForCompletion();
-    return finalizeCandidate(std::move(candidate), ratio);
+    return finalizeCandidate(cuda_candidate_host_, ratio);
   }
 #endif
 
@@ -719,10 +712,35 @@ private:
   cv::Ptr<cv::cuda::Filter> cuda_erode_right_filter_;
   cv::Ptr<cv::cuda::Filter> cuda_erode_up_filter_;
   cv::Ptr<cv::cuda::Filter> cuda_erode_down_filter_;
+  cv::cuda::GpuMat cuda_input_;
+  cv::cuda::GpuMat cuda_work_;
+  cv::cuda::GpuMat cuda_blurred_;
+  cv::cuda::GpuMat cuda_tophat_;
+  cv::cuda::GpuMat cuda_candidate_;
+  cv::cuda::GpuMat cuda_left_min_;
+  cv::cuda::GpuMat cuda_right_min_;
+  cv::cuda::GpuMat cuda_up_min_;
+  cv::cuda::GpuMat cuda_down_min_;
+  cv::cuda::GpuMat cuda_horizontal_reference_;
+  cv::cuda::GpuMat cuda_vertical_reference_;
+  cv::cuda::GpuMat cuda_horizontal_delta_;
+  cv::cuda::GpuMat cuda_vertical_delta_;
+  cv::cuda::GpuMat cuda_vertical_stroke_;
+  cv::cuda::GpuMat cuda_horizontal_stroke_;
+  cv::cuda::GpuMat cuda_horizontal_background_ok_;
+  cv::cuda::GpuMat cuda_vertical_background_ok_;
+  cv::cuda::GpuMat cuda_gate_;
+  cv::Mat cuda_candidate_host_;
   int cuda_cached_blur_kernel_{0};
   int cuda_cached_tophat_kernel_{0};
   int cuda_cached_bilateral_span_{0};
 #endif
+
+  cv::Mat labels_;
+  cv::Mat stats_;
+  cv::Mat centroids_;
+  cv::Mat filtered_;
+  std::vector<std::uint8_t> kept_components_;
 
   int tophat_kernel_{31};
   int tophat_threshold_{60};
