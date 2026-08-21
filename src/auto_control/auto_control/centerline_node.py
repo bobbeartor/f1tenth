@@ -124,6 +124,11 @@ class CenterlineNode(Node):
                     "single_lane_direction_guard_enabled"
                 ).value
             ),
+            single_lane_convexity_tolerance=float(
+                self.get_parameter(
+                    "single_lane_convexity_tolerance"
+                ).value
+            ),
         )
         controller_config = ControllerConfig(
             lookahead_y=int(self.get_parameter("lookahead_y").value),
@@ -353,6 +358,7 @@ class CenterlineNode(Node):
         self.declare_parameter("single_lane_curvature_gain", 6.0)
         self.declare_parameter("single_lane_maximum_offset_scale", 1.30)
         self.declare_parameter("single_lane_direction_guard_enabled", True)
+        self.declare_parameter("single_lane_convexity_tolerance", 0.002)
 
         self.declare_parameter("lookahead_y", 68)
         self.declare_parameter("cross_track_gain", 0.75)

@@ -63,6 +63,8 @@ centerline_node:
     # LEFT_ONLY permits only right curvature; RIGHT_ONLY permits only left
     # curvature. Opposite curvature is replaced by the near-field tangent.
     single_lane_direction_guard_enabled: true
+    # Allow only tiny quadratic-fit noise around a perfectly straight line.
+    single_lane_convexity_tolerance: 0.002
 
     # Steering uses only the fitted quadratic centerline x(y).
     lookahead_y: 68

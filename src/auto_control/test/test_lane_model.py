@@ -175,7 +175,7 @@ class LaneModelTest(unittest.TestCase):
             simple_half_width_center - 0.5,
         )
 
-    def test_left_only_rejects_left_bending_centerline(self):
+    def test_left_only_rejects_left_bending_boundary(self):
         model = LaneModel(self.config)
 
         estimate = model.estimate(
@@ -183,11 +183,11 @@ class LaneModelTest(unittest.TestCase):
             image_is_mask=True,
         )
 
-        self.assertEqual(estimate.path.mode, "LEFT_ONLY")
-        self.assertTrue(estimate.single_lane_direction_limited)
-        self.assertAlmostEqual(estimate.path.coefficients[0], 0.0, places=9)
+        self.assertFalse(estimate.path.valid)
+        self.assertEqual(estimate.path.mode, "NONE")
+        self.assertIsNone(estimate.left)
 
-    def test_right_only_rejects_right_bending_centerline(self):
+    def test_right_only_rejects_right_bending_boundary(self):
         model = LaneModel(self.config)
 
         estimate = model.estimate(
@@ -195,9 +195,27 @@ class LaneModelTest(unittest.TestCase):
             image_is_mask=True,
         )
 
-        self.assertEqual(estimate.path.mode, "RIGHT_ONLY")
-        self.assertTrue(estimate.single_lane_direction_limited)
-        self.assertAlmostEqual(estimate.path.coefficients[0], 0.0, places=9)
+        self.assertFalse(estimate.path.valid)
+        self.assertEqual(estimate.path.mode, "NONE")
+        self.assertIsNone(estimate.right)
+
+    def test_allowed_single_boundary_convexity_is_preserved(self):
+        left_model = LaneModel(self.config)
+        right_model = LaneModel(self.config)
+
+        left = left_model.estimate(
+            self._lane_mask(sides=("left",), curve_direction=1.0),
+            image_is_mask=True,
+        )
+        right = right_model.estimate(
+            self._lane_mask(sides=("right",), curve_direction=-1.0),
+            image_is_mask=True,
+        )
+
+        self.assertEqual(left.path.mode, "LEFT_ONLY")
+        self.assertGreater(left.left.coefficients[0], 0.0)
+        self.assertEqual(right.path.mode, "RIGHT_ONLY")
+        self.assertLess(right.right.coefficients[0], 0.0)
 
     def test_both_boundaries_keep_measured_curve_direction(self):
         model = LaneModel(self.config)

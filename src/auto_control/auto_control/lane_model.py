@@ -42,6 +42,7 @@ class LaneModelConfig:
     single_lane_curvature_gain: float = 6.0
     single_lane_maximum_offset_scale: float = 1.30
     single_lane_direction_guard_enabled: bool = True
+    single_lane_convexity_tolerance: float = 0.002
 
 
 @dataclass(frozen=True)
@@ -103,6 +104,17 @@ class LaneModel:
 
         if left is not None and right is not None:
             left, right = self._validate_pair(left, right)
+
+        # A single visible boundary also identifies the turn direction. Reject
+        # the boundary itself before reconstructing a centerline if it bends
+        # toward exterior background: LEFT_ONLY must be upward-convex and
+        # RIGHT_ONLY downward-convex in the x(y) model.
+        if left is not None and right is None:
+            if not self._single_boundary_convexity_allowed(left, "left"):
+                left = None
+        elif right is not None and left is None:
+            if not self._single_boundary_convexity_allowed(right, "right"):
+                right = None
 
         if left is not None and right is not None:
             left_coefficients = np.asarray(left.coefficients, dtype=np.float64)
@@ -661,6 +673,21 @@ class LaneModel:
         )
         return limited, True
 
+    def _single_boundary_convexity_allowed(
+        self,
+        boundary: BoundaryFit,
+        side: str,
+    ) -> bool:
+        if not self.config.single_lane_direction_guard_enabled:
+            return True
+        tolerance = max(0.0, self.config.single_lane_convexity_tolerance)
+        quadratic = float(boundary.coefficients[0])
+        if side == "left":
+            return quadratic >= -tolerance
+        if side == "right":
+            return quadratic <= tolerance
+        raise ValueError(f"unknown boundary side: {side}")
+
     def _observed_range(
         self,
         *fits: BoundaryFit | None,
@@ -816,6 +843,8 @@ class LaneModel:
             raise ValueError("single-lane curvature gain cannot be negative")
         if self.config.single_lane_maximum_offset_scale < 1.0:
             raise ValueError("single-lane maximum offset scale must be at least 1")
+        if self.config.single_lane_convexity_tolerance < 0.0:
+            raise ValueError("single-lane convexity tolerance cannot be negative")
 
     @staticmethod
     def _odd(value: int) -> int:
