@@ -32,15 +32,10 @@ centerline_node:
     white_threshold: 127
     morphology_kernel: 3
     minimum_points_per_boundary: 8
-    # Distance from the predicted boundary is a candidate penalty, not a hard
-    # rejection. Long connected lane components can therefore be reacquired.
     tracking_margin_px: 22.0
     # Preserve boundary identity for short mask dropouts. At about 28 FPS,
     # eight frames retain the same physical curve for roughly 0.3 seconds.
     tracking_memory_frames: 8
-    # Continue with the last validated path only across a very short dropout;
-    # the longer tracking memory above is used solely for reacquisition.
-    path_hold_frames: 2
     # Search this many rows upward from the ROI bottom for the connected-path
     # seed. Unlike row runs, connected tracing also follows near-horizontal
     # sections of a sharp curve.
@@ -48,6 +43,13 @@ centerline_node:
     # Recenter ordinary thin runs, but keep the graph entry point for longer
     # near-horizontal runs instead of rejecting or averaging across them.
     trace_centering_max_run_width: 12
+    # Reject thick mask blobs using rotation-invariant distance to the
+    # component edge. Real lane strokes measured below 3 px; background blobs
+    # in the recorded failure exceeded 7 px.
+    maximum_component_half_thickness_px: 4.0
+    # A lane is an elongated ribbon even through a 90-degree curve. Compact,
+    # jagged mask blobs have similar spread in both axes and are rejected.
+    minimum_component_elongation_ratio: 10.0
 
     # New camera calibration: expected full lane width at three screen rows.
     # Values are normalized by image height/width and are fitted as a quadratic

@@ -23,9 +23,10 @@ class LaneModelConfig:
     minimum_points_per_boundary: int = 8
     tracking_margin_px: float = 22.0
     tracking_memory_frames: int = 8
-    path_hold_frames: int = 2
     trace_seed_search_rows: int = 12
     trace_centering_max_run_width: int = 12
+    maximum_component_half_thickness_px: float = 4.0
+    minimum_component_elongation_ratio: float = 10.0
     expected_lane_width_y_ratios: tuple[float, float, float] = (
         0.50,
         0.60,
@@ -70,7 +71,6 @@ class LaneModelEstimate:
     single_lane_curvature: float = 0.0
     single_lane_offset_scale: float = 1.0
     single_lane_direction_limited: bool = False
-    rejection_reason: str = ""
 
 
 class LaneModel:
@@ -79,7 +79,13 @@ class LaneModel:
     def __init__(self, config: LaneModelConfig) -> None:
         self.config = config
         self._validate_config()
-        self._reset_tracking_state()
+        self._previous_center_coefficients: np.ndarray | None = None
+        self._previous_left_coefficients: np.ndarray | None = None
+        self._previous_right_coefficients: np.ndarray | None = None
+        self._center_memory_age = self.config.tracking_memory_frames + 1
+        self._left_memory_age = self.config.tracking_memory_frames + 1
+        self._right_memory_age = self.config.tracking_memory_frames + 1
+        self._previous_mode = "NONE"
         self._configured_lane_width_coefficients = (
             self._make_configured_width_coefficients()
         )
@@ -88,24 +94,16 @@ class LaneModel:
         )
 
     def reset(self) -> None:
-        self._reset_tracking_state()
+        self._previous_center_coefficients = None
+        self._previous_left_coefficients = None
+        self._previous_right_coefficients = None
+        self._center_memory_age = self.config.tracking_memory_frames + 1
+        self._left_memory_age = self.config.tracking_memory_frames + 1
+        self._right_memory_age = self.config.tracking_memory_frames + 1
+        self._previous_mode = "NONE"
         self._lane_width_coefficients = (
             self._configured_lane_width_coefficients.copy()
         )
-
-    def _reset_tracking_state(self) -> None:
-        expired = self.config.tracking_memory_frames + 1
-        self._previous_center_coefficients: np.ndarray | None = None
-        self._boundary_coefficients: dict[str, np.ndarray | None] = {
-            "left": None,
-            "right": None,
-        }
-        self._center_memory_age = expired
-        self._boundary_memory_age = {"left": expired, "right": expired}
-        self._previous_mode = "NONE"
-        self._last_valid_path: CenterlinePath | None = None
-        self._path_hold_age = 0
-        self._last_trace_reasons = {"left": "NO_SEED", "right": "NO_SEED"}
 
     def estimate(
         self,
@@ -116,8 +114,6 @@ class LaneModel:
         left_points, right_points = self._collect_boundary_points(mask)
         left = self._fit_boundary(left_points)
         right = self._fit_boundary(right_points)
-        left_reason = self._fit_reason(left, left_points, "left")
-        right_reason = self._fit_reason(right, right_points, "right")
         left, right = self._preserve_single_boundary_identity(left, right)
         single_lane_curvature = 0.0
         single_lane_offset_scale = 1.0
@@ -125,27 +121,17 @@ class LaneModel:
 
         if left is not None and right is not None:
             left, right = self._validate_pair(left, right)
-            if left is None:
-                left_reason = "PAIR_REJECTED"
-            if right is None:
-                right_reason = "PAIR_REJECTED"
 
         # A single visible boundary also identifies the turn direction. Reject
         # the boundary itself before reconstructing a centerline if it bends
         # toward exterior background: LEFT_ONLY must be upward-convex and
-        # RIGHT_ONLY downward-convex in the x(y) model. Drop the stale identity
-        # immediately after this rejection so it cannot lock out reacquisition
-        # for all tracking-memory frames.
+        # RIGHT_ONLY downward-convex in the x(y) model.
         if left is not None and right is None:
             if not self._single_boundary_convexity_allowed(left, "left"):
                 left = None
-                left_reason = "CONVEXITY"
-                self._forget_boundary("left")
         elif right is not None and left is None:
             if not self._single_boundary_convexity_allowed(right, "right"):
                 right = None
-                right_reason = "CONVEXITY"
-                self._forget_boundary("right")
 
         self._remember_boundaries(left, right)
 
@@ -206,20 +192,6 @@ class LaneModel:
             confidence = self._confidence(None, right, single=True)
         else:
             self._age_center_memory()
-            rejection_reason = f"L:{left_reason} R:{right_reason}"
-            held_path = self._hold_last_path()
-            if held_path is not None:
-                return LaneModelEstimate(
-                    path=held_path,
-                    mask=mask,
-                    left=None,
-                    right=None,
-                    rejection_reason=(
-                        f"HOLD {self._path_hold_age}/"
-                        f"{self.config.path_hold_frames} "
-                        f"{rejection_reason}"
-                    ),
-                )
             return LaneModelEstimate(
                 path=CenterlinePath(
                     image_width=self.config.processing_width,
@@ -229,7 +201,6 @@ class LaneModel:
                 mask=mask,
                 left=None,
                 right=None,
-                rejection_reason=rejection_reason,
             )
 
         observed_y_min, observed_y_max = self._observed_range(left, right)
@@ -254,8 +225,6 @@ class LaneModel:
             valid=True,
             mode=mode,
         )
-        self._last_valid_path = path
-        self._path_hold_age = 0
         return LaneModelEstimate(
             path,
             mask,
@@ -330,17 +299,6 @@ class LaneModel:
                 1,
                 cv2.LINE_AA,
             )
-        elif estimate.rejection_reason:
-            cv2.putText(
-                debug,
-                estimate.rejection_reason,
-                (3, 24),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.28,
-                (0, 255, 255),
-                1,
-                cv2.LINE_AA,
-            )
         return debug
 
     def _prepare_mask(self, image: np.ndarray, image_is_mask: bool) -> np.ndarray:
@@ -401,33 +359,16 @@ class LaneModel:
         mask: np.ndarray,
     ) -> tuple[list[tuple[float, float]], list[tuple[float, float]]]:
         binary = np.ascontiguousarray((mask > 0).astype(np.uint8))
-        number_of_labels, labels = cv2.connectedComponents(
-            binary,
-            connectivity=8,
-        )
-        component_row_counts = np.zeros(number_of_labels, dtype=np.int16)
-        for row in labels[self.config.roi_y_min : self.config.roi_y_max + 1]:
-            component_row_counts[np.unique(row)] += 1
+        _, labels = cv2.connectedComponents(binary, connectivity=8)
         return (
-            self._trace_connected_boundary(
-                binary,
-                labels,
-                component_row_counts,
-                "left",
-            ),
-            self._trace_connected_boundary(
-                binary,
-                labels,
-                component_row_counts,
-                "right",
-            ),
+            self._trace_connected_boundary(binary, labels, "left"),
+            self._trace_connected_boundary(binary, labels, "right"),
         )
 
     def _trace_connected_boundary(
         self,
         binary: np.ndarray,
         labels: np.ndarray,
-        component_row_counts: np.ndarray,
         side: str,
     ) -> list[tuple[float, float]]:
         """Trace one boundary through connected mask pixels from near to far.
@@ -437,19 +378,14 @@ class LaneModel:
         almost horizontal. Selecting the first shortest path that reaches the
         farthest row avoids following a horizontal branch after reaching it.
         """
-        seed = self._find_trace_seed(
-            binary,
-            labels,
-            component_row_counts,
-            side,
-        )
+        seed = self._find_trace_seed(binary, side)
         if seed is None:
-            self._last_trace_reasons[side] = "NO_SEED"
             return []
         seed_y, seed_x = seed
         component_label = int(labels[seed_y, seed_x])
         if component_label <= 0:
-            self._last_trace_reasons[side] = "NO_COMPONENT"
+            return []
+        if not self._component_shape_is_lane_like(labels, component_label):
             return []
 
         rows, columns = binary.shape
@@ -490,7 +426,6 @@ class LaneModel:
                     queue.append((neighbor_y, neighbor_x))
 
         if best[0] >= seed_y:
-            self._last_trace_reasons[side] = "NO_SPAN"
             return []
         path: list[tuple[int, int]] = []
         point = best
@@ -502,7 +437,6 @@ class LaneModel:
             previous_y = int(parent_y[y, x])
             previous_x = int(parent_x[y, x])
             if previous_y < 0 or previous_x < 0:
-                self._last_trace_reasons[side] = "BROKEN_PATH"
                 return []
             point = (previous_y, previous_x)
         path.reverse()
@@ -524,14 +458,11 @@ class LaneModel:
                         sample_x = 0.5 * (start + end - 1)
                     break
             samples.append((float(y), sample_x))
-        self._last_trace_reasons[side] = "OK"
         return samples
 
     def _find_trace_seed(
         self,
         binary: np.ndarray,
-        labels: np.ndarray,
-        component_row_counts: np.ndarray,
         side: str,
     ) -> tuple[int, int] | None:
         direction = -1.0 if side == "left" else 1.0
@@ -557,40 +488,37 @@ class LaneModel:
             for start, end in self._active_runs(binary[y]):
                 center_x = 0.5 * (start + end - 1)
                 lateral_error = abs(center_x - expected_x)
-                seed_x = int(round(center_x))
-                component_label = int(labels[y, seed_x])
-                if component_row_counts[component_label] < max(
-                    3,
-                    self.config.minimum_points_per_boundary,
-                ):
+                if lateral_error > margin:
                     continue
                 vertical_gap = self.config.roi_y_max - y
-                outside_margin = max(0.0, lateral_error - margin)
-                cost = (
-                    lateral_error
-                    + 2.0 * outside_margin
-                    + 2.0 * vertical_gap
-                )
-                candidates.append((cost, y, seed_x))
+                cost = lateral_error + 2.0 * vertical_gap
+                candidates.append((cost, y, int(round(center_x))))
         if not candidates:
             return None
         _, y, x = min(candidates)
         return y, x
 
-    def _fit_reason(
+    def _component_shape_is_lane_like(
         self,
-        fit: BoundaryFit | None,
-        points: Sequence[tuple[float, float]],
-        side: str,
-    ) -> str:
-        if fit is not None:
-            return "OK"
-        trace_reason = self._last_trace_reasons[side]
-        if trace_reason != "OK":
-            return trace_reason
-        if len(points) < max(3, self.config.minimum_points_per_boundary):
-            return "TOO_SHORT"
-        return "FIT_ERROR"
+        labels: np.ndarray,
+        component_label: int,
+    ) -> bool:
+        component = np.asarray(labels == component_label, dtype=np.uint8)
+        distance = cv2.distanceTransform(component, cv2.DIST_L2, 3)
+        if float(np.max(distance)) > (
+            self.config.maximum_component_half_thickness_px
+        ):
+            return False
+
+        coordinates = np.column_stack(np.nonzero(component))
+        if len(coordinates) < 3:
+            return False
+        eigenvalues = np.linalg.eigvalsh(np.cov(coordinates, rowvar=False))
+        elongation = float(eigenvalues[-1]) / max(
+            float(eigenvalues[0]),
+            1.0e-6,
+        )
+        return elongation >= self.config.minimum_component_elongation_ratio
 
     @staticmethod
     def _active_runs(row: np.ndarray) -> list[tuple[int, int]]:
@@ -719,56 +647,48 @@ class LaneModel:
         self,
         side: str,
     ) -> np.ndarray | None:
-        if side not in self._boundary_coefficients:
-            raise ValueError(f"unknown boundary side: {side}")
-        if self._boundary_memory_age[side] <= self.config.tracking_memory_frames:
-            return self._boundary_coefficients[side]
-        return None
+        if side == "left":
+            if self._left_memory_age <= self.config.tracking_memory_frames:
+                return self._previous_left_coefficients
+            return None
+        if side == "right":
+            if self._right_memory_age <= self.config.tracking_memory_frames:
+                return self._previous_right_coefficients
+            return None
+        raise ValueError(f"unknown boundary side: {side}")
 
     def _remember_boundaries(
         self,
         left: BoundaryFit | None,
         right: BoundaryFit | None,
     ) -> None:
-        for side, fit in (("left", left), ("right", right)):
-            if fit is not None:
-                self._boundary_coefficients[side] = np.asarray(
-                    fit.coefficients,
-                    dtype=np.float64,
-                )
-                self._boundary_memory_age[side] = 0
-                continue
-            self._boundary_memory_age[side] += 1
-            if (
-                self._boundary_memory_age[side]
-                > self.config.tracking_memory_frames
-            ):
-                self._boundary_coefficients[side] = None
+        if left is not None:
+            self._previous_left_coefficients = np.asarray(
+                left.coefficients,
+                dtype=np.float64,
+            )
+            self._left_memory_age = 0
+        else:
+            self._left_memory_age += 1
+            if self._left_memory_age > self.config.tracking_memory_frames:
+                self._previous_left_coefficients = None
 
-    def _forget_boundary(self, side: str) -> None:
-        if side not in self._boundary_coefficients:
-            raise ValueError(f"unknown boundary side: {side}")
-        expired_age = self.config.tracking_memory_frames + 1
-        self._boundary_coefficients[side] = None
-        self._boundary_memory_age[side] = expired_age
-        if self._previous_mode == f"{side.upper()}_ONLY":
-            self._previous_center_coefficients = None
-            self._center_memory_age = expired_age
-            self._previous_mode = "NONE"
+        if right is not None:
+            self._previous_right_coefficients = np.asarray(
+                right.coefficients,
+                dtype=np.float64,
+            )
+            self._right_memory_age = 0
+        else:
+            self._right_memory_age += 1
+            if self._right_memory_age > self.config.tracking_memory_frames:
+                self._previous_right_coefficients = None
 
     def _age_center_memory(self) -> None:
         self._center_memory_age += 1
         if self._center_memory_age > self.config.tracking_memory_frames:
             self._previous_center_coefficients = None
             self._previous_mode = "NONE"
-
-    def _hold_last_path(self) -> CenterlinePath | None:
-        if self._last_valid_path is None:
-            return None
-        if self._path_hold_age >= self.config.path_hold_frames:
-            return None
-        self._path_hold_age += 1
-        return self._last_valid_path
 
     def _confidence(
         self,
@@ -1080,10 +1000,12 @@ class LaneModel:
             raise ValueError("trace seed search rows must be positive")
         if self.config.tracking_memory_frames < 0:
             raise ValueError("tracking memory frames cannot be negative")
-        if self.config.path_hold_frames < 0:
-            raise ValueError("path hold frames cannot be negative")
         if self.config.trace_centering_max_run_width <= 0:
             raise ValueError("trace centering run width must be positive")
+        if self.config.maximum_component_half_thickness_px <= 0.0:
+            raise ValueError("component half thickness must be positive")
+        if self.config.minimum_component_elongation_ratio <= 1.0:
+            raise ValueError("component elongation ratio must exceed one")
         if self.config.maximum_extrapolation_rows < 0:
             raise ValueError("maximum extrapolation rows cannot be negative")
         if self.config.single_lane_curvature_gain < 0.0:

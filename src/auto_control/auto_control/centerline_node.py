@@ -78,14 +78,21 @@ class CenterlineNode(Node):
             tracking_memory_frames=int(
                 self.get_parameter("tracking_memory_frames").value
             ),
-            path_hold_frames=int(
-                self.get_parameter("path_hold_frames").value
-            ),
             trace_seed_search_rows=int(
                 self.get_parameter("trace_seed_search_rows").value
             ),
             trace_centering_max_run_width=int(
                 self.get_parameter("trace_centering_max_run_width").value
+            ),
+            maximum_component_half_thickness_px=float(
+                self.get_parameter(
+                    "maximum_component_half_thickness_px"
+                ).value
+            ),
+            minimum_component_elongation_ratio=float(
+                self.get_parameter(
+                    "minimum_component_elongation_ratio"
+                ).value
             ),
             expected_lane_width_y_ratios=tuple(
                 float(value)
@@ -351,9 +358,10 @@ class CenterlineNode(Node):
         self.declare_parameter("minimum_points_per_boundary", 8)
         self.declare_parameter("tracking_margin_px", 22.0)
         self.declare_parameter("tracking_memory_frames", 8)
-        self.declare_parameter("path_hold_frames", 2)
         self.declare_parameter("trace_seed_search_rows", 12)
         self.declare_parameter("trace_centering_max_run_width", 12)
+        self.declare_parameter("maximum_component_half_thickness_px", 4.0)
+        self.declare_parameter("minimum_component_elongation_ratio", 10.0)
         self.declare_parameter(
             "expected_lane_width_y_ratios", [0.50, 0.60, 0.70]
         )
