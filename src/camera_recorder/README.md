@@ -36,12 +36,25 @@ ros2 launch camera_recorder camera_recording.launch.py \
 ```
 
 이 실행에는 `vehicle_bringup`, `camera_driver`, `bev_processor`,
-`point_cloud`, `oak_startup` 등이 필요하지 않다. 필요한 ROS 의존성은 `rclcpp`,
-DepthAI C++ 및 OpenCV뿐이다.
+`point_cloud`, `oak_startup` 등이 필요하지 않다. 녹화 노드 자체에 필요한 ROS
+의존성은 `rclcpp`, DepthAI C++ 및 OpenCV뿐이다.
 
 ## 수동주행과 동시에 녹화
 
-가장 독립적인 실행 방법은 터미널을 분리하는 것이다. 먼저 수동주행을 실행한다.
+`manual_drive_recording.launch.py`는 `vehicle_bringup`을 사용하지 않고
+`joy_initializer`, `manual_control`, `vesc_bridge`를 직접 실행한다. 수동주행의
+안전 제한 설정은 이 패키지의 `config/manual_control.yaml`과
+`config/vesc.yaml`에 포함되어 있다.
+
+```bash
+ros2 launch camera_recorder manual_drive_recording.launch.py \
+  output_directory:=/home/autopilot03/recordings \
+  vehicle_namespace:=autopilot03 \
+  vesc_port:=/dev/ttyTHS1
+```
+
+세 수동주행 패키지와 녹화 노드를 별도로 관리하려면 터미널을 나눠 실행해도 된다.
+먼저 수동주행을 실행한다.
 
 ```bash
 ros2 launch vehicle_bringup manual_drive.launch.py \
@@ -54,17 +67,6 @@ ros2 launch vehicle_bringup manual_drive.launch.py \
 ```bash
 ros2 launch camera_recorder camera_recording.launch.py \
   output_directory:=/home/autopilot03/recordings
-```
-
-`vehicle_bringup`이 정상적으로 빌드된 환경에서는 편의용 통합 런치도 사용할 수
-있다. 이 런치만 선택적으로 `vehicle_bringup`을 참조하며, `camera_recorder`의
-빌드 의존성은 아니다.
-
-```bash
-ros2 launch camera_recorder manual_drive_recording.launch.py \
-  output_directory:=/home/autopilot03/recordings \
-  vehicle_namespace:=autopilot03 \
-  vesc_port:=/dev/ttyTHS1
 ```
 
 종료할 때는 `Ctrl+C`를 누르고 `Recording closed` 로그가 나올 때까지 기다린다.

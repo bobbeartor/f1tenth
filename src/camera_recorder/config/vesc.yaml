@@ -1,0 +1,39 @@
+/**:
+  ros__parameters:
+    port: "/dev/ttyTHS1"
+    baudrate: 115200
+    serial_timeout: 0.02
+    write_timeout: 0.02
+    startup_delay: 0.2
+    connect_on_startup: true
+    verify_firmware_on_startup: true
+
+    duty_topic: "/vesc/duty"
+    brake_current_topic: "/vesc/brake_current"
+    measured_erpm_topic: "/vesc/measured_erpm"
+    servo_position_topic: "/vesc/servo_position"
+    connection_status_topic: "/vesc/connected"
+
+    min_duty: -0.08
+    max_duty: 0.10
+    max_brake_current_amps: 8.0
+    servo_min: 0.0
+    servo_max: 1.0
+    command_timeout: 0.3
+    log_commands: false
+    telemetry_rate_hz: 80.0
+    telemetry_log_rate_hz: 2.0
+    telemetry_timeout_sec: 0.15
+
+    packet:
+      start_byte: 2
+      end_byte: 3
+      comm_get_firmware_version: 0
+      comm_get_values_selective: 50
+      comm_set_duty: 5
+      comm_set_current_brake: 7
+      comm_set_erpm: 8
+      comm_set_servo_pos: 12
+      duty_scale: 100000
+      brake_current_scale: 1000
+      servo_scale: 1000

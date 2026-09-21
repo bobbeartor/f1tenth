@@ -1,0 +1,35 @@
+/**:
+  ros__parameters:
+    joy_topic: "/joy"
+    joy_steering_axis: 0
+    joy_accelerator_axis: 5
+    joy_brake_axis: 4
+    joy_gear_button: 10
+    joy_trigger_released: 0.0
+    joy_trigger_pressed: 1.0
+    current_duty_topic: "/manual/current_duty"
+    current_brake_current_topic: "/manual/current_brake_current"
+    gear_state_topic: "/manual/gear"
+    duty_topic: "/vesc/duty"
+    brake_current_topic: "/vesc/brake_current"
+    servo_position_topic: "/vesc/servo_position"
+
+    forward_max_duty: 0.10
+    reverse_max_duty: 0.08
+    start_duty: 0.05
+    reverse_start_duty: 0.05
+    acceleration_duty_per_sec: 0.03
+    coast_deceleration_duty_per_sec: 0.04
+    maximum_brake_current_amps: 8.0
+    brake_current_rise_amps_per_sec: 16.0
+    brake_current_fall_amps_per_sec: 32.0
+    control_rate_hz: 80.0
+    status_log_rate_hz: 2.0
+    input_timeout_sec: 0.30
+    immediate_stop_on_accelerator_release: false
+
+    servo_left: 1.0
+    servo_center: 0.46
+    servo_right: 0.0
+    pedal_deadzone: 0.01
+    steering_deadzone: 0.04
