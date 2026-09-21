@@ -46,7 +46,9 @@ def generate_launch_description():
                         "output_directory": LaunchConfiguration(
                             "output_directory"
                         ),
-                        "device_id": LaunchConfiguration("device_id"),
+                        "device_id": ParameterValue(
+                            LaunchConfiguration("device_id"), value_type=str
+                        ),
                         "fps": ParameterValue(
                             LaunchConfiguration("fps"), value_type=float
                         ),

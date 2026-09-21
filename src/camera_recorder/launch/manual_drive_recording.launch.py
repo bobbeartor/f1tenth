@@ -86,7 +86,7 @@ def generate_launch_description():
         launch_arguments={
             "params_file": LaunchConfiguration("params_file"),
             "output_directory": LaunchConfiguration("output_directory"),
-            "device_id": LaunchConfiguration("device_id"),
+            "device_id": LaunchConfiguration("camera_device_id"),
             "fps": LaunchConfiguration("fps"),
             "ir_dot_projector_intensity": LaunchConfiguration(
                 "ir_dot_projector_intensity"
@@ -115,7 +115,13 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "output_directory", default_value="recordings"
             ),
-            DeclareLaunchArgument("device_id", default_value=""),
+            DeclareLaunchArgument(
+                "camera_device_id",
+                default_value="",
+                description=(
+                    "DepthAI camera device ID; empty selects the first device."
+                ),
+            ),
             DeclareLaunchArgument("fps", default_value="30.0"),
             DeclareLaunchArgument(
                 "ir_dot_projector_intensity", default_value="0.0"
