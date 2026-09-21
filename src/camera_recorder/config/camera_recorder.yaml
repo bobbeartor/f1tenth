@@ -26,7 +26,7 @@ camera_recorder:
 
     # CAM_B/C share the same exposure so their brightness remains comparable.
     ir_manual_exposure_enabled: true
-    ir_manual_exposure_us: 5000
+    ir_manual_exposure_us: 30000
     ir_manual_sensitivity_iso: 800
 
     # Flood illumination gives a clean IR image. The dot projector is off by
