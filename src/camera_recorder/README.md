@@ -22,12 +22,43 @@ colcon build --packages-select camera_recorder \
 source install/setup.bash
 ```
 
-DepthAI C++ 3.6 이상과 OpenCV 4가 필요하다. DepthAI를 별도 경로에 설치했다면
-기존 `camera_driver`와 마찬가지로 `-Ddepthai_DIR=...`를 전달한다.
+DepthAI C++ 3.6 이상과 OpenCV 4가 필요하다. DepthAI는 ROS/ament 패키지
+의존성이 아니라 외부 CMake SDK로 찾는다. 별도 경로에 설치했다면 기존
+`camera_driver`와 마찬가지로 `-Ddepthai_DIR=...`를 전달한다.
+
+## 독립 실행
+
+저장 경로는 쓰기 속도가 충분한 SSD의 절대 경로를 권장한다.
+
+```bash
+ros2 launch camera_recorder camera_recording.launch.py \
+  output_directory:=/home/autopilot03/recordings
+```
+
+이 실행에는 `vehicle_bringup`, `camera_driver`, `bev_processor`,
+`point_cloud`, `oak_startup` 등이 필요하지 않다. 필요한 ROS 의존성은 `rclcpp`,
+DepthAI C++ 및 OpenCV뿐이다.
 
 ## 수동주행과 동시에 녹화
 
-저장 경로는 쓰기 속도가 충분한 SSD의 절대 경로를 권장한다.
+가장 독립적인 실행 방법은 터미널을 분리하는 것이다. 먼저 수동주행을 실행한다.
+
+```bash
+ros2 launch vehicle_bringup manual_drive.launch.py \
+  vehicle_namespace:=autopilot03 \
+  vesc_port:=/dev/ttyTHS1
+```
+
+다른 터미널에서 녹화 노드만 실행한다.
+
+```bash
+ros2 launch camera_recorder camera_recording.launch.py \
+  output_directory:=/home/autopilot03/recordings
+```
+
+`vehicle_bringup`이 정상적으로 빌드된 환경에서는 편의용 통합 런치도 사용할 수
+있다. 이 런치만 선택적으로 `vehicle_bringup`을 참조하며, `camera_recorder`의
+빌드 의존성은 아니다.
 
 ```bash
 ros2 launch camera_recorder manual_drive_recording.launch.py \
@@ -36,16 +67,7 @@ ros2 launch camera_recorder manual_drive_recording.launch.py \
   vesc_port:=/dev/ttyTHS1
 ```
 
-실행하면 기존 `vehicle_bringup/manual_drive.launch.py`의 조이스틱, 수동 제어,
-VESC 브리지를 그대로 시작하고 카메라 녹화를 병행한다. 종료할 때는
-`Ctrl+C`를 한 번 누르고 `Recording closed` 로그가 나올 때까지 기다린다.
-
-카메라만 녹화하려면 다음을 사용한다.
-
-```bash
-ros2 launch camera_recorder camera_recording.launch.py \
-  output_directory:=/home/autopilot03/recordings
-```
+종료할 때는 `Ctrl+C`를 누르고 `Recording closed` 로그가 나올 때까지 기다린다.
 
 `camera_driver`, `ir_camera_driver`, `depth_lidar`처럼 같은 OAK 장치를 직접 여는
 노드는 녹화 중 함께 실행하면 안 된다. `manual_drive.launch.py`는 카메라를 열지
