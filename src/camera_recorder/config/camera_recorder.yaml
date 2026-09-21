@@ -1,0 +1,35 @@
+camera_recorder:
+  ros__parameters:
+    # Relative paths are resolved from the directory where ros2 launch runs.
+    # An absolute path on the vehicle SSD is recommended for real driving.
+    output_directory: "recordings"
+    session_prefix: "drive"
+    device_id: ""  # Empty selects the first available OAK device.
+
+    width: 1280
+    height: 800
+    fps: 30.0
+    undistort_enabled: true
+    sync_threshold_ms: 10.0
+
+    # MJPG/AVI is broadly supported and lets each frame be decoded separately.
+    codec: "MJPG"
+    file_extension: ".avi"
+    segment_duration_sec: 300.0
+    writer_queue_capacity: 8
+    status_log_interval_sec: 2.0
+
+    # CAM_A color exposure. Leave manual mode off for normal driving.
+    rgb_manual_exposure_enabled: false
+    rgb_manual_exposure_us: 5000
+    rgb_manual_sensitivity_iso: 400
+
+    # CAM_B/C share the same exposure so their brightness remains comparable.
+    ir_manual_exposure_enabled: true
+    ir_manual_exposure_us: 5000
+    ir_manual_sensitivity_iso: 800
+
+    # Flood illumination gives a clean IR image. The dot projector is off by
+    # default because its pattern can contaminate a vision-training dataset.
+    ir_dot_projector_intensity: 0.0
+    ir_flood_light_intensity: 0.5

@@ -2,6 +2,7 @@ devel/
 log/
 logs/
 driving_logs/
+recordings/
 install/
 build/
 bin/
