@@ -414,3 +414,12 @@ ros2 launch vehicle_bringup manual_drive_distance_collection.launch.py
 
 기존 조이스틱/VESC 설정을 사용하며 자동 생성된 시퀀스로 `~/distance_dataset`에 저장합니다.
 자세한 인수와 종료 동작은 `vehicle_bringup/README.md`의 수동주행 수집 항목을 참고하세요.
+
+### 변경파일만 받아 기존 빌드 결과 재사용
+
+전체 워크스페이스 재빌드 대신 `deployment/distance-overlay.tar.gz`(모델 없는 변경 묶음)를
+기존 워크스페이스에 적용할 수 있습니다. 이 경우 독립 `yolo_distance_runtime` 패키지만
+`colcon build --packages-select yolo_distance_runtime`으로 빌드하고,
+`ros2 run yolo_distance_runtime yolo_distance_node`를 사용합니다.
+수동주행/BEV/roi_lidar 및 기존 multiclass_yolo 패키지는 빌드하지 않습니다.
+정확한 다운로드·적용·실행 명령과 기존 point_cloud 의존성 조건은 `deployment/README.md`에 있습니다.

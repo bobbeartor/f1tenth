@@ -14,6 +14,9 @@
 #include <thread>
 
 namespace mc=multiclass_yolo;
+#ifndef MULTICLASS_YOLO_MODEL_PACKAGE
+#define MULTICLASS_YOLO_MODEL_PACKAGE "multiclass_yolo"
+#endif
 using Clock=std::chrono::steady_clock;
 static double seconds(Clock::time_point t) {return std::chrono::duration<double>(t.time_since_epoch()).count();}
 static double elapsed(Clock::time_point t) {return (seconds(Clock::now())-seconds(t))*1000;}
@@ -80,7 +83,7 @@ class DistanceNode:public rclcpp::Node {
     if(!std::isfinite(quality.core+quality.min_ratio+quality.max_relative_spread+quality.min_m+quality.max_m) ||
        quality.core<=0 || quality.core>1 || quality.min_ratio<=0 || quality.min_ratio>1 || quality.max_relative_spread<=0 ||
        quality.min_pixels<1 || quality.min_m<=0 || quality.max_m<=quality.min_m) throw std::invalid_argument("Invalid depth quality settings");
-    auto share=ament_index_cpp::get_package_share_directory("multiclass_yolo");
+    auto share=ament_index_cpp::get_package_share_directory(MULTICLASS_YOLO_MODEL_PACKAGE);
     auto model_path=declare_parameter<std::string>("yolo_model",share+"/models/multiclass_yolox_tiny_512x320_holdout10.onnx");
     auto backend=declare_parameter<std::string>("backend","TENSORRT");
     mc::YoloxDetector detector(model_path,backend,declare_parameter<std::string>("engine_cache",""),"fp16",

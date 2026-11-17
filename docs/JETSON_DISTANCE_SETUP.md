@@ -108,3 +108,11 @@ ros2 launch vehicle_bringup manual_drive_distance_collection.launch.py
 촬영 시퀀스 이름은 매번 자동 생성되며 `sequence:=manual_track_001`로 직접 지정할 수도 있습니다.
 Q/ESC 또는 수집 노드 종료 시 이 launch 전체에 shutdown을 보냅니다.
 실제 Jetson/차량에서 통합 실행은 아직 검증되지 않았습니다.
+
+## 전체 빌드 대신 변경파일만 적용하기
+
+이미 정상 동작하는 워크스페이스가 있다면 `deployment/README.md`의 부분 적용 방법을
+우선 사용해도 됩니다. 작은 `distance-overlay.tar.gz`만 다운로드하고,
+`yolo_distance_runtime` 패키지만 선택 빌드합니다. 기존 수동주행/BEV/roi_lidar 빌드는
+재사용합니다. 기존 point_cloud 라이브러리와 YOLO 소스/모델이 있어야 하며,
+이 방법에서는 수동주행과 수집을 두 터미널에서 독립 실행합니다.
