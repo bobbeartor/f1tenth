@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>oak_startup</name>
+  <version>0.1.0</version>
+  <description>Shared one-shot OAK IMU and ground-plane mounting measurement.</description>
+  <maintainer email="ojeonghun@example.com">ojeonghun</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>depthai</depend>
+  <depend>libopencv-dev</depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

@@ -1,0 +1,11 @@
+tunnel_tcn_test:
+  ros__parameters:
+    image_topic: /camera/image_rect
+    camera_fps: 30.0
+    threshold: 0.5
+    cooldown_seconds: 1.0
+    warmup_seconds: 2.5
+    max_gap_seconds: 0.5
+    max_image_age_seconds: 0.25
+    engine_cache_dir: ~/.cache/tunnel_tcn_test
+    initial_state: unknown

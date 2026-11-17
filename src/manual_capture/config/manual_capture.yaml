@@ -1,0 +1,75 @@
+manual_capture:
+  ros__parameters:
+    # Empty: first OAK found. The startup measurement then reopens that device.
+    device_id: ""
+
+    # --- restart-required (also editable in the GUI) ---
+    rgb_width: 1280
+    rgb_height: 800
+    rgb_fps: 30.0
+    rgb_format: "NV12"          # NV12 or RGB888
+    rgb_undistort: true         # required for a metric color BEV
+    stereo_width: 1280
+    stereo_height: 800
+    stereo_fps: 30.0            # <= 50 with both lenses + stereo depth
+    stereo_mode: "left_right"   # left_right, or left_only (left-lens BEV, right lens locked)
+    virtual_camera_position_ratio: 0.5   # 0=LEFT, 0.5=midpoint, 1=RIGHT
+    sync_threshold_ms: 2.0
+
+    # --- live controls (initial values) ---
+    rgb_auto_exposure: true
+    rgb_exposure_us: 8000
+    rgb_iso: 400
+    stereo_auto_exposure: false
+    stereo_exposure_us: 5000
+    stereo_iso: 800
+    # IR flood always starts at 0. The dot projector is automatic: ON only while
+    # the center view is previewed (disparity) or during Refit, at this intensity.
+    dot_projector_intensity: 1.0
+
+    # --- BEV (shared vehicle grid; color and left-lens BEVs are pixel aligned) ---
+    bev.camera_x_m: -0.16
+    bev.camera_y_m: 0.0
+    bev.camera_yaw_deg: 0.0
+    bev.x_min_m: 0.0
+    bev.x_max_m: 3.0
+    bev.y_min_m: -0.6
+    bev.y_max_m: 0.6
+    bev.meter_per_pixel: 0.01
+    bev.output_width: 120
+    bev.output_height: 300
+    # Fixed pose used until the first successful ground measurement.
+    bev.default_camera_height_m: 0.20
+    bev.default_camera_roll_deg: 0.0
+    bev.default_camera_pitch_down_deg: 14.0
+    bev.startup_measurement_enabled: true
+
+    # Ground measurement (startup + Refit), same algorithm as oak_startup.
+    measurement_attitude_source: "depth"
+    measurement_stereo_fps: 30.0
+    measurement_warmup_sec: 2.0
+    measurement_timeout_sec: 45.0
+    measurement_ir_dot_projector_intensity: 1.0
+    measurement_manual_camera_height_enabled: false
+    measurement_manual_camera_height_m: 0.20
+    measurement_roi_width: 456
+    measurement_roi_height: 228
+    measurement_roi_vertical_offset_px: 80
+    measurement_minimum_valid_points: 5080
+    measurement_minimum_height_m: 0.10
+    measurement_maximum_height_m: 0.40
+
+    # --- capture ---
+    # Launch sets capture_root to <workspace>/captures unless overridden.
+    jpeg_quality: 95
+    writer_queue_events: 64
+    auto_capture_fps: 5.0
+    camera_preview_fps: 15
+    bev_preview_fps: 10
+
+    # --- vehicle ---
+    capture_button_index: 0     # A (SDL GameController)
+    measured_erpm_topic: "/vesc/measured_erpm"
+    servo_position_topic: "/vesc/servo_position"
+    refit_maximum_abs_erpm: 100
+    erpm_timeout_sec: 1.0

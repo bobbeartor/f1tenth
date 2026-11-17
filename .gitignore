@@ -1,19 +1,33 @@
-# ROS/colcon build outputs
-autodrive_ws/build/
-autodrive_ws/install/
-autodrive_ws/log/
-
-# Python caches and virtual environments
+devel/
+log/
+logs/
+driving_logs/
+install/
+build/
+bin/
+lib/
+msg_gen/
+srv_gen/
 __pycache__/
-*.py[cod]
-.venv/
+*.pyc
+captures/
 
-# IDE/local files
-.idea/
-.agents/
-.codex/
-
-# Runtime/editor noise
-*.log
-*.swp
-*~
+# Local captures, training datasets, profiling output, and device caches
+/datasets/
+/performance_logs/
+/distance_data/
+/distance_dataset/
+/distance_inference/
+/distance_eval/
+.cache/
+.DS_Store
+*.engine
+*.bag
+*.db3
+*.mcap
+*.mp4
+*.avi
+*.mkv
+*.mov
+/camera_captures/
+/recordings/

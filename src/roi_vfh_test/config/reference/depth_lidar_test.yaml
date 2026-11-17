@@ -1,0 +1,124 @@
+# Fixed startup pose -> height band -> confirmed scan -> occupancy clusters/outlines.
+# Start stationary on level ground. No online pose/ground-plane estimation.
+depth_lidar:
+  ros__parameters:
+    camera.fps: 60.0
+    camera.resolution: "400p"       # 400p, 480p, 720p, 800p
+    depth.mode: "high_density"      # default, high_density, high_accuracy
+    # Runtime obstacle depth illumination, independent of startup intensity.
+    # Normalized 0..1; 0=OFF. Reapplied after every runtime pipeline restart.
+    depth.ir_dot_projector_intensity: 0.5
+    depth.confidence_threshold: 200
+    depth.left_right_check: true
+    depth.subpixel: false
+    depth.extended_disparity: false
+    depth.median_filter: "3x3"      # off, 3x3, 5x5, 7x7
+
+    # Measured ONCE before the runtime pipeline. startup.* is read-only at runtime.
+    # Same IMU/stationary-ground algorithm as bev_processor, in CAM_A coordinates.
+    startup.device_id: ""           # Empty: first OAK; runtime reopens that same device.
+    startup.attitude_source: "depth" # depth or imu; both use IMU stationarity checks.
+    startup.roi_preview_enabled: true
+    # Startup uses RGB-aligned 1280x800 depth, independent of camera.resolution.
+    startup.roi_width: 456
+    startup.roi_height: 228
+    startup.roi_vertical_offset_px: 80
+    startup.point_sample_step: 2
+    startup.minimum_valid_points: 5080
+    startup.minimum_depth_m: 0.30
+    startup.maximum_depth_m: 3.0
+    startup.minimum_height_m: 0.10
+    startup.maximum_height_m: 0.40
+    startup.plane_ransac_iterations: 200
+    startup.plane_inlier_threshold_m: 0.008
+    startup.plane_minimum_inliers: 3656
+    startup.plane_minimum_inlier_ratio: 0.70
+    startup.plane_maximum_residual_mad_m: 0.005
+    startup.plane_maximum_imu_difference_deg: 5.0
+    startup.stable_plane_frame_count: 45
+    startup.maximum_height_stddev_m: 0.003
+    startup.maximum_plane_normal_rms_deg: 0.25
+    startup.imu_sample_count: 1200
+    startup.imu_max_direction_rms_deg: 0.50
+    startup.imu_gyroscope_mean_maximum_degps: 0.80
+    startup.imu_gyroscope_stddev_maximum_degps: 1.40
+    startup.imu_roll_bias_deg: 0.0
+    startup.imu_pitch_bias_deg: 0.0
+    startup.stereo_confidence_threshold: 55
+    startup.warmup_sec: 2.0
+    startup.timeout_sec: 45.0
+    # Startup only: normalized 0..1, 0=OFF; >0 requires an OAK Pro dot projector.
+    startup.ir_dot_projector_intensity: 0.5
+
+    # CAM_A position/yaw relative to the front-axle ground origin (meters/degrees).
+    # Roll, pitch and height come from startup. CAM_C/rectification uses EEPROM.
+    sensor.x_m: -0.16
+    sensor.y_m: 0.0
+    sensor.yaw_deg: 0.0
+    frame_id: "front_axle"           # +X forward, +Y left, +Z up; origin at ground.
+
+    # Full image: a downward camera needs different rows at different distances.
+    # Green preview rectangle is only a sampling ROI, NOT the height band.
+    roi.width_ratio: 1.0
+    roi.height_ratio: 0.25
+    roi.bottom_offset_ratio: 0.25
+    points.pixel_stride: 2           # One sample per 2x2 block.
+    points.min_depth_m: 0.10         # Raw optical-axis depth limits.
+    points.max_depth_m: 4.0
+    height.min_m: 0.05               # Height above fixed startup ground.
+    height.max_m: 0.40
+
+    # Horizontal distance/angle from frame_id origin AFTER the fixed transform.
+    range.min_m: 0.10
+    range.max_m: 3.0
+    range.offset_m: 0.0              # Added to horizontal range, not floor subtraction.
+    scan.angle_min_deg: -50.0
+    scan.angle_max_deg: 50.0
+    scan.bins: 141                  # 1-degree bins; outside actual camera FOV stays NaN.
+    scan.min_points_per_bin: 2
+    # Reject isolated depth speckles using four neighbors at pixel_stride spacing.
+    filter.min_neighbors: 1         # 0 disables; 1..4 requires supporting neighbors.
+    filter.neighbor_delta_m: 0.08
+    # Confirm a similar range in this angular bin in 3 of the last 4 depth frames.
+    # Continuously enforced; rejects single-frame and alternating on/off speckles.
+    scan.confirm_hits: 3            # 1 disables temporal confirmation.
+    scan.confirm_window_frames: 4   # Processed depth frames, not preview refreshes.
+    scan.confirm_distance_m: 0.10   # Supporting ranges must be within 10cm of current.
+    # Only confirmed observations refresh the hold; candidates remain invisible.
+    scan.hold_sec: 0.08             # 0 = no hold; confirmation still applies.
+    input.max_age_sec: 0.20         # Reject stale/replayed frames; stop publishing old data.
+
+    # Grid built from confirmed angular scan returns, NOT raw depth pixel counts.
+    # 60 forward columns x 120 left/right rows = 7200 cells; bounds are half-open.
+    # 군집 연결 간격: 셀을 키우면 더 잘 합쳐지고, 줄이면 더 잘 분리됨.
+    # 허용 0.01~0.25m. 각 축 범위 길이는 셀 크기의 정수배여야 함.
+    grid.resolution_m: 0.05
+    grid.x_min_m: 0.0
+    grid.x_max_m: 3.0
+    grid.y_min_m: -3.0
+    grid.y_max_m: 3.0
+    # 한 셀의 최소 확정 스캔점 수. 높이면 희박한 셀이 제거됨 (raw depth 픽셀 수 아님).
+    grid.min_returns_per_cell: 1
+    # 연결 기준: 4=상하좌우, 8=대각선 포함. 빈 셀을 메우거나 외곽선을 팽창시키지 않음.
+    cluster.connectivity: 8
+    # 두 최소 조건을 모두 만족해야 군집으로 출력. 높이면 작은 군집이 제거됨.
+    cluster.min_cells: 1            # 연결된 점유 셀 수
+    cluster.min_returns: 1          # 군집 전체의 확정 스캔점 수
+
+    # Optional USB load generator; no conversion or publication.
+    nv12.enabled: true
+    nv12.fps: 30.0
+    nv12.width: 1280
+    nv12.height: 800
+
+    # White radar: cluster cell outlines; orange=current, gray=held. No circles/labels.
+    preview.enabled: true
+    preview.gui: true
+    preview.fps: 15.0
+    preview.size_px: 700
+    # C in either runtime window toggles camera streams; fixed startup pose survives.
+    stereo_preview.enabled: false
+    stereo_preview.gui: true
+    stereo_preview.fps: 10.0
+    metrics.print_interval_sec: 1.0
+

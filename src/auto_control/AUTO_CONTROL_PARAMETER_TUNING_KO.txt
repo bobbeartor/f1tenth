@@ -1,0 +1,329 @@
+AUTO CONTROL 파라미터 조정 가이드 — 0906ML
+==========================================
+
+현재 입력은 /line_detactor/result의 노란 중앙선 점열이다.
+BEV 슬라이딩 차선 및 mono8 행 평균 경로를 사용하지 않는다.
+기본값은 src/auto_control/config/auto_control.yaml에서 확인한다.
+
+  ros2 launch vehicle_bringup auto_drive.launch.py \
+    auto_control_params_file:=/absolute/path/auto_control_test.yaml \
+    line_detactor_params_file:=/absolute/path/line_detactor_test.yaml
+
+제어 YAML의 루트는 auto_control.ros__parameters,
+차선 YAML의 루트는 line_detactor.ros__parameters이다.
+기존 bev_params_file, camera_params_file 및 CAN 인자는 계속 사용할 수 있다.
+노란선 형상은 line_detactor에서 바꾸며, auto_control은 점 순서를 유지한다.
+아래 수치 예시는 조정 방향 설명용이다. 실제 기본값/실험값은 지정한 YAML이 기준이다.
+
+안전한 조정 순서
+----------------
+1. 한 번에 한 종류만 바꾼다: 경로 유효성, 조향, 속도 중 하나.
+2. 값을 10~20%씩만 바꾸고 동일 위치를 여러 번 주행한다.
+3. 바퀴를 띄운 상태에서 좌/우 조향 방향을 먼저 확인한다.
+4. /auto/steering_angle_rad, /auto/raw_steering_angle_rad,
+   /auto/cross_track_error_m, /auto/heading_error_rad,
+   /auto/current_servo_position, /auto/path_curvature, /auto/target_speed,
+   /auto/current_speed, /auto/current_duty, /auto/current_brake_current와
+   auto_control 상태 로그를 함께 본다.
+5. centerline_missing 정지는 조향 한계가 아니라 경로 유효성 조건 문제다.
+
+
+파라미터별 조정 방법
+--------------------
+
+[서보 방향]
+
+steering_servo_inverted (예시 true)
+  역할: Stanley가 계산한 물리적 조향 방향을 실제 서보 출력으로 보낼 때만 반전한다.
+  변경할 때: 오른쪽 경로인데 바퀴가 왼쪽으로 향하는 등 모든 상황에서 실제 바퀴
+             방향이 정확히 반대로 움직일 때만 false로 변경한다.
+  주의: 코너를 너무 일찍/늦게 도는 현상을 조정하는 값이 아니다.
+
+
+[짧은 중앙선 허용 조건]
+
+path_minimum_x_m (예시 0.05m)
+  역할: 앞차축으로부터 이 X 이상에 있는 중앙선만 제어에 사용한다.
+  낮추기: 코너에서 차량 바로 앞의 짧은 중앙선만 남아 centerline_missing으로
+          멈출 때. 예: 0.05 -> 0.03.
+  높이기: 차량 바로 앞 BEV 노이즈 때문에 조향이 갑자기 튈 때.
+          예: 0.05 -> 0.08~0.12.
+  부작용: 너무 낮으면 차량 하단 노이즈를 경로로 사용할 수 있다.
+
+path_minimum_points (예시 8개)
+  역할: 필터 이후 경로로 인정할 최소 중앙선 점 개수다.
+  낮추기: 실제 중앙선이 보이는데 점 수 부족으로 간헐 정지할 때. 최소 허용은 3.
+  높이기: 짧은 노이즈 조각을 중앙선으로 오인할 때. 예: 8 -> 10~15.
+  부작용: 너무 낮으면 신뢰할 수 없는 몇 개 점만으로 조향한다.
+
+path_minimum_span_m (예시 0.12m)
+  역할: 경로로 인정할 중앙선의 최소 누적 경로 길이다 (X 방향 폭이 아님).
+  낮추기: 실제 유효 경로 자체가 짧아 정지할 때.
+          예: 0.12 -> 0.08~0.10.
+  높이기: 짧은 점군을 경로로 잘못 인식할 때. 예: 0.12 -> 0.16~0.25.
+  부작용: 너무 낮으면 선수각과 곡률 계산이 불안정해진다.
+
+세 값 중 하나라도 조건을 만족하지 못하면 경로가 무효가 되어 duty가 즉시 0이 된다.
+간헐 정지 시 로그가 centerline_missing이면 이 세 값을 먼저 확인한다.
+
+
+[중앙선 모양과 요철 억제]
+
+line_detactor YAML의 centerline_smoothing_*:
+  centerline_smoothing_sigma_m: 짧은 요철 평활화 범위.
+  centerline_smoothing_window_m: 직선 구간 형상 안정화 범위.
+  centerline_smoothing_max_shift_m: 원래 경로에서 허용하는 최대 이동 거리.
+  centerline_corner_outer_weight: 관측 지지가 있는 바깥 차선 형상 가중치 상한.
+  centerline_lane_width_m: 차선 폭 (기본 0.65m).
+  기존 path_local_smoothing_window_m, path_outlier_threshold_m은 제거되어 적용되지 않는다.
+
+path_maximum_gap_m (기본 0.15m)
+  역할: 인접 중앙선 점이 이 거리보다 멀면 연결하지 않고 앞 구간까지만 사용한다.
+  검출기의 centerline_max_gap_m과 점 간격도 함께 확인한다.
+
+path_geometry_window_m (예시 0.14m)
+  역할: 경로 선수각과 곡률을 계산하는 국소 기하 구간의 크기다.
+  높이기: 선수각/곡률 값이 프레임마다 요동할 때. 예: 0.14 -> 0.18~0.24.
+  낮추기: 급코너를 늦게 알아차리거나 곡률을 지나치게 작게 볼 때.
+          예: 0.14 -> 0.10~0.12.
+  부작용: 너무 작으면 센티미터 단위 중앙선 계단이 큰 조향과 감속을 만든다.
+
+
+[Stanley 조향]
+
+stanley_heading_lookahead_m (예시 0.15m)
+  역할: 앞차축에서 가장 가까운 경로 투영점부터 경로를 따라 이 거리 앞의
+        접선 방향을 사용한다. 경로 끝을 넘으면 끝에 제한한다.
+        기존 절대 X lookahead와 의미가 다르므로 같은 값도 코너 반응이 달라질 수 있다.
+  높이기: 코너 조향이 늦고 코너 앞까지 직진하다 멈추거나 바깥으로 밀릴 때.
+          예: 0.15 -> 0.20~0.28.
+  낮추기: 코너가 멀리 있는데 너무 일찍 꺾을 때. 예: 0.15 -> 0.10~0.13.
+  부작용: 너무 높으면 먼 경로 오검출에도 미리 반응한다.
+
+stanley_gain (예시 1.40)
+  역할: 차량과 중앙선 사이 횡방향 오차를 되돌리는 힘이다.
+  높이기: 직선에서 한쪽으로 치우친 뒤 중앙으로 천천히 돌아올 때.
+          예: 1.40 -> 1.6~1.9.
+  낮추기: 중앙선을 중심으로 좌우 왕복하거나 코너에서 횡오차 보정이 너무 강할 때.
+          예: 1.40 -> 1.1~1.25.
+  주의: 코너 진행 방향 자체는 heading 항이 담당한다. gain만 크게 하면 코너 안쪽에서
+        heading과 횡오차 보정이 서로 싸울 수 있다.
+
+stanley_softening_speed_mps (예시 0.40m/s)
+  역할: 횡오차 보정의 분모에 더해 저속에서 보정이 과도해지는 것을 막는다.
+  낮추기: 저속에서 중앙 복귀가 약할 때. 예: 0.40 -> 0.30~0.35.
+  높이기: 출발 직후 또는 저속 코너에서 조향이 과격할 때. 예: 0.40 -> 0.50~0.60.
+  관계: 작을수록 Stanley 횡오차 보정이 강해지고, 클수록 약해진다.
+
+steering_current_weight (예시 0.47)
+  역할: 새 조향값 47%와 직전 조향값 53%를 섞는다.
+  높이기: 조향 반응이 늦을 때. 예: 0.47 -> 0.60~0.75.
+  낮추기: 서보가 잘게 떨거나 좌우 조향이 꿈틀거릴 때. 예: 0.47 -> 0.35~0.42.
+  부작용: 너무 낮으면 급코너 진입이 늦고, 너무 높으면 인식 노이즈가 바로 전달된다.
+
+
+[속도와 감속]
+
+현재 기본은 longitudinal_pid_enabled=true, longitudinal_staged_control_enabled=true다.
+이 단계 제어에서는 구동 PI와 제동 세기를 아래처럼 따로 조절한다.
+코너/신호등 목표 속도 생성 및 제동 진입/해제 조건은 그대로 유지한다.
+모든 변경은 auto_control.ros__parameters에 넣고 노드를 재실행해 적용한다.
+
+longitudinal_pid_kp / longitudinal_pid_ki / longitudinal_pid_kd (기본 1.0 / 0.5 / 0.0)
+  역할: 목표 속도와 실제 속도의 차이를 구동 duty로 보정한다.
+  Kp: 포화/변화율 제한에 걸리지 않는데 추종이 느리면 소폭 높인다. 속도 진동 시 낮춘다.
+  Ki: 기본 duty를 보정한 뒤에도 지속적인 속도 오차가 남을 때 조절한다.
+  Kd: 우선 0을 유지한다. 속도 노이즈와 목표 변경의 영향을 확인하기 전에는 올리지 않는다.
+  단계 제어에서 이 값들은 브레이크 전류 계산 계수로 쓰이지 않는다.
+  maximum_duty를 곱해 출력하므로 최대 duty 변경도 실제 구동 이득에 영향을 준다.
+
+longitudinal_brake_speed_gain (기본 1.0, 양수, 단위 1/(m/s))
+  역할: 속도 초과량에 따른 제동 세기. 코너/신호등 제동에 공통 사용한다.
+  낮추기: 제동이 과해 목표보다 느려지거나 일찍 멈출 때. 예: 1.0 -> 0.8.
+  높이기: 제동 중이며 전류 상한/상승률 제한에 걸리지 않는데 감속이 약할 때. 예: 1.0 -> 1.1.
+  제동 진입 시점 자체는 바꾸지 않는다. 상한 2.5A, 초과속도 0.2m/s이면
+  속도 항은 1.0일 때 0.5A, 0.8일 때 0.4A를 요청한다.
+  이전에 longitudinal_pid_kp를 따로 조정했다면 기존 제동 세기를 유지할 때만
+  그 값을 새 키에 복사한다. 키를 생략하면 구동 Kp와 무관하게 1.0을 쓴다.
+  longitudinal_staged_control_enabled=false인 signed PID 호환 모드에는 적용되지 않는다.
+
+longitudinal_brake_deceleration_gain (기본 0.50)
+  역할: 정지선·코너 접근에서 남은 거리상 부족한 감속도에 추가 제동을 요청한다.
+  높이면 같은 부족감속에 더 강하게 제동한다. 구동 PI에는 적용되지 않는다.
+
+longitudinal_planning_deceleration_mps2 (기본 0.50)
+  역할: 정지선과 전체 선택 경로의 코너에 공통 적용하는 계획 감속도다.
+  낮추면 같은 거리에서 목표 속도가 낮아져 일찍 감속한다. 높이면 더 늦게/강하게 감속한다.
+  duty 감속 관측값은 이 계획값을 낮추지 않고, 전류 제동 필요 여부를 판단하는 데 사용한다.
+  제동 전류 이득과 다르며, 실측 감속 능력과 관측 가능 거리에 맞춰 정한다.
+
+corner_speed_band_width_mps (기본 0.15)
+  역할: 곡률 상한 아래에서 정확한 한 속도를 강제하지 않고 허용할 속도 구간 폭이다.
+  구간 안에서는 PID 속도 오차를 초기화하고 현재 속도의 feed-forward만 유지한다.
+  너무 넓으면 코너 속도 편차가 커지고, 너무 좁으면 duty 보정이 잦아진다.
+
+corner_coast_entry_margin_mps (기본 0.03)
+  역할: 코너 상한에 닿기 전에 duty를 먼저 줄이기 시작하는 속도 여유다.
+
+corner_brake_entry_margin_mps / corner_brake_exit_margin_mps (기본 0.10 / 0.05)
+  역할: 코너 전류 제동의 진입·해제 히스테리시스다. 정지선 기준과 분리된다.
+  exit은 항상 entry보다 작게 설정한다.
+
+corner_brake_deceleration_margin_mps2 (기본 0.10)
+  역할: 전방 모든 프로파일 포인트에 필요한 감속도가 관측 duty 감속보다 이만큼
+  더 커야 전류 제동을 허용한다.
+
+corner_coast_probe_sec (기본 0.20)
+  역할: 코너 속도 상한을 초과한 뒤 duty 감속 효과를 먼저 관찰하는 시간이다.
+  거리상 긴급한 코너에서는 이 시간을 생략한다.
+
+corner_confirm_frames / corner_release_frames (기본 2 / 3)
+  역할: 한 프레임 곡률 돌출로 감속하거나 한 프레임 누락으로 가속하는 것을 막는다.
+
+corner_exit_curvature_per_m / corner_exit_angle_deg / corner_exit_confirm_sec (0.25 / 8.0 / 0.20)
+  역할: 근거리 곡률, 경로 방향, 이전 조향각이 모두 기준 안인 상태를 일정 시간 확인한 뒤
+        목표 속도 상승을 허용한다. 회전 중에는 코너 상한을 올리지 않는다.
+  장애물 감속 후 회복에도 적용되며 curvature_speed_control_enabled=false에서도 동작한다.
+  곡률/각도 문턱을 너무 낮추면 경로 노이즈나 잔여 조향 때문에 회복이 오래 보류될 수 있다.
+
+obstacle_planning_deceleration_mps2 / obstacle_planning_acceleration_mps2 (각각 기본 0.35)
+  역할: 장애물 검출 시 목표 감소율과 검출 해제 후 목표 회복률이다.
+  obstacle_slowdown_speed_mps는 최종 도달 속도이며 전환 중 계획 속도는 더 높을 수 있다.
+  감소율을 낮추면 더 긴 시간/거리 동안 감속한다. 1.4→1.0m/s는 기본 약 1.14초다.
+  거리 기반 긴급 충돌 제동 설정이 아니며 회피 검사 보호 정지와 신호등 정지는 별도다.
+
+obstacle_coast_probe_sec / obstacle_brake_deceleration_margin_mps2 (기본 0.20 / 0.10)
+  역할: 단계 제어에서 duty 감속 관찰 시간 및 부족 감속도 문턱이다.
+  관찰 후에도 감속이 부족하고 현재 계획 속도를 초과한 경우에만 추가 전류 제동한다.
+
+obstacle_brake_entry_margin_mps / obstacle_brake_exit_margin_mps (기본 0.10 / 0.03)
+  역할: 장애물의 현재 계획 속도 기준 제동 진입/해제 여유. 해제값은 진입값보다 작아야 한다.
+  구버전 signed PID 모드(longitudinal_staged_control_enabled=false)에는 적용하지 않는다.
+
+longitudinal_brake_release_response_sec (기본 0.15)
+  역할: 코너/장애물 단계 제동 해제 후 예상 속도 계산의 응답 여유다.
+  전류 하강 시간, 속도 필터 시간, 시작 duty 회복 시간도 더한다. 실측 지연이 아니다.
+  예상 속도가 계획 아래로 떨어지면 미리 제동을 해제한다. 긴급 코너는 이 예외보다 우선한다.
+
+longitudinal_recovery_duty_rise_per_sec (기본 0.15)
+  역할: 제동 해제 후 duty 회복률. 높이면 빨리 회복하고 낮추면 부드럽게 회복한다.
+
+driving_log_enabled (기본 false)
+  true로 켜서 목표/실제 속도, desired_duty/command_duty,
+  requested_brake_current_a/brake_current_a, stop_remaining_m과 제어 단계를 함께 비교한다.
+  적용 파라미터는 CSV 옆 파일에 저장한다. 실제 정차 위치는 외부 측정도 함께 비교한다.
+
+minimum_duty (예시 0.070)
+  적용: 기존 제어용. 현재 단계 제어에는 최소 duty 하한을 강제하지 않는다.
+  역할: 유효 경로가 있을 때 VESC에 보내는 최소 구동 duty다.
+  높이기: 모터가 소리만 나거나 출발하지 못할 때. 예: 0.070 -> 0.075~0.080.
+  낮추기: 출발이 튀거나 코너 최저 속도가 너무 빠를 때. 단, 정지 마찰보다 낮으면
+          차량이 멈춘 뒤 다시 출발하지 못한다.
+
+maximum_duty (예시 0.090)
+  역할: PID를 포함한 최종 duty의 상한이다.
+  높이기: 직선 최고 속도가 부족할 때. 예: 0.090 -> 0.095부터 소폭 조정.
+  낮추기: 전체 주행이 빠르거나 제동 여유가 부족할 때.
+  주의: minimum_duty 이하로 설정할 수 없다.
+
+minimum_speed_mps (예시 0.80m/s)
+  역할: 곡률 기반 코너 목표와 허용 속도 구간의 하한이다. 회전 중 유지 구간에도 적용한다.
+  단계 제어에는 minimum_duty 대응 관계가 없으며 구버전 속도→duty 기준 역할은 유지한다.
+  낮추기: 급코너 목표 속도를 더 낮추고 싶을 때.
+  높이기: 코너에서 지나치게 느려 모터가 불안정하거나 멈출 때.
+  주의: 장애물 제한·신호등 정지·입력 유실 보호 정지는 하한보다 우선한다.
+  이 낮은 목표에서 복귀하는 중에는 기존 가속 제한 때문에 일시적으로 하한보다 낮을 수 있다.
+  실제 속도의 직접 하한은 아니다. 하한이 곡률 속도보다 높으면 설정 횡가속도를 넘길 수 있다.
+
+maximum_speed_mps (예시 1.8m/s)
+  역할: 직선 목표 속도의 상한이다. 단계 제어의 기본 duty는 별도 feedforward 식으로 계산한다.
+  낮추기: 직선 주행이 너무 빠를 때. 높이기: 직선에서 더 빠르게 달릴 때.
+  주의: maximum_duty가 낮으면 이 값을 높여도 실제 속도가 오르지 않는다.
+
+maximum_lateral_acceleration_mps2 (예시 0.6m/s^2)
+  역할: 곡률 k에서 sqrt(값/k)로 코너 목표 속도를 계산한다.
+  낮추기: 코너 진입 속도를 더 일찍/많이 낮추고 싶을 때. 예: 0.6 -> 0.4~0.5.
+  높이기: 완만한 곡선에서도 과하게 감속할 때. 예: 0.6 -> 0.7~0.9.
+  주의: 조향 시점이나 조향각은 바꾸지 않고 목표 속도만 바꾼다.
+
+electrical_brake_enabled (예시 true)
+  역할: 실제 속도가 목표보다 높을 때 양의 duty 대신 VESC 전기제동을 사용한다.
+  false: 기존 duty-only 감속과 비교할 때만 사용한다.
+
+brake_entry_speed_error_mps (예시 0.10m/s)
+  역할: 실제 속도-목표 속도가 이 값 이상이면 전기제동을 시작한다.
+  높이기: 작은 ERPM 노이즈에도 제동이 자주 걸릴 때. 예: 0.10 -> 0.12~0.16.
+  낮추기: 코너 진입 감속이 느릴 때. 예: 0.10 -> 0.07~0.09.
+
+brake_exit_speed_error_mps (예시 0.03m/s)
+  역할: 제동 시작 후 속도 오차가 이 값 이하가 되면 제동을 해제한다.
+  주의: 반드시 brake_entry_speed_error_mps보다 작게 설정한다.
+
+brake_minimum_vehicle_speed_mps (예시 0.20m/s)
+  적용: 기존 speed_pid 제어용이며 단계 제어에는 적용되지 않는다.
+  역할: 저속에서 제동을 해제해 모터 정지 근방의 턱타를 막는다.
+
+brake_minimum_current_amps / brake_maximum_current_amps (예시 0.5A / 2.5A)
+  적용: 단계 제어는 minimum을 쓰지 않고 maximum을 정지선·코너·장애물에 공통 사용한다.
+  역할: 자동 제동 중 사용할 최소/최대 전류다.
+  제동이 강함: 최대를 0.5~1.0A씩 낮춘다.
+  제동이 약함: 바퀴를 띄운 상태에서 확인 후 최대를 소폭 높인다.
+  주의: VESC bridge의 max_brake_current_amps(8A)보다 높게 설정해도 8A로 제한된다.
+
+brake_current_gain_amps_per_mps (예시 6.0A/(m/s))
+  적용: 기존 speed_pid 제어용. 단계 제어는 longitudinal_brake_speed_gain을 조절한다.
+  역할: 속도 초과량을 제동 전류로 바꾼다. 높을수록 같은 오차에서 더 강하다.
+
+brake_current_rise_amps_per_sec / brake_current_fall_amps_per_sec (예시 6.0 / 16.0)
+  역할: 제동력이 걸리고 풀리는 변화율을 제한한다.
+  제동 진입이 튀면 rise를 낮추고, 제동 후 재가속이 느리면 fall을 높인다.
+
+
+증상별 빠른 선택
+------------------
+코너에서 centerline_missing으로 멈춤:
+  path_minimum_points, path_minimum_span_m, path_minimum_x_m을 순서대로 소폭 낮춘다.
+
+코너를 늦게 꺾음:
+  stanley_heading_lookahead_m을 높인다. 그래도 늦으면 path_geometry_window_m을
+  조금 낮추고 steering_current_weight를 조금 높인다.
+
+코너를 너무 일찍 꺾음:
+  stanley_heading_lookahead_m을 낮춘다. 먼 경로 오검출 여부도 확인한다.
+
+직선에서 중앙 복귀 방향은 맞지만 약함:
+  stanley_gain을 높이거나 stanley_softening_speed_mps를 낮춘다.
+
+직선에서 좌우로 왕복함:
+  stanley_gain 또는 steering_current_weight를 낮춘다. 중앙선 자체가 흔들리면
+  line_detactor의 centerline_smoothing_sigma_m과 제어기의 path_geometry_window_m을 조정한다.
+
+중앙선/조향이 지렁이처럼 흔들림:
+  line_detactor의 centerline_smoothing_window_m을 조정하고 steering_current_weight를
+  0.55~0.60으로 낮춘다. 코너 반응이 늦어지면 일부 되돌린다.
+
+코너 속도가 너무 빠름:
+  maximum_lateral_acceleration_mps2를 낮춘다. 최저 속도도 빠르면
+  minimum_speed_mps를 소폭 낮춘다. 단계 제어에서 minimum_duty는 사용하지 않는다.
+
+코너 진입 전기제동이 너무 자주/강하게 걸림:
+  brake_entry_speed_error_mps를 먼저 높인다. 여전히 강하면
+  longitudinal_brake_speed_gain과 brake_maximum_current_amps를 순서대로 낮춘다.
+
+코너 진입 감속이 너무 늦거나 약함:
+  brake_entry_speed_error_mps를 소폭 낮추고, 그래도 약하면
+  longitudinal_brake_speed_gain을 높인다. 목표 속도가 느리게 낮아지면
+  maximum_lateral_acceleration_mps2를 먼저 조정한다.
+
+경로는 있는데 차량이 정지함:
+  /auto/target_speed와 /auto/current_duty를 확인한다. minimum_duty가 실제 출발
+  duty보다 낮거나 VESC/ERPM timeout이 발생하는지 확인한다.
+
+
+권장 원칙
+---------
+- 조향 방향이 맞으면 steering_servo_inverted는 더 이상 바꾸지 않는다.
+- centerline_missing은 속도나 최대 조향각을 올려 해결하지 않는다.
+- 중앙선이 흔들리는 상태에서 Stanley gain부터 높이면 차량 진동이 더 커진다.
+- 짧은 코너 경로 허용값을 더 낮출 때는 반드시 BEV 하단 노이즈를 확인한다.
+- 한 번의 장면보다 같은 코너를 3회 이상 반복한 결과로 값을 결정한다.

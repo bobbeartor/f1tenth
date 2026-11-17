@@ -1,0 +1,51 @@
+# One depth frame -> ground removal -> calibrated BEV transform and XY crop.
+point_cloud:
+  ros__parameters:
+    device_id: ""                    # Empty: first available OAK; restarts reuse its ID.
+    frame_id: "point_cloud_optical_frame"  # +X right, +Y down, +Z forward; meters.
+    view_frame_id: "point_cloud_view" # Same camera origin, +X forward/+Y left/+Z up.
+
+    # Requested stereo input sizes; actual dimensions/intrinsics are logged.
+    # 400p=640x400, 480p=640x480, 720p=1280x720, 800p=1280x800.
+    # Different aspect ratios may change crop/FOV. Device support is required.
+    camera.resolution: "400p"
+    camera.fps: 50.0                 # 1..120 requested; achieved rate depends on mode/USB/host.
+    depth.mode: "high_density"      # default, high_density, high_accuracy
+    depth.ir_dot_projector_intensity: 0.5 # 0..1; 0=OFF. Positive values require supported OAK Pro.
+    depth.ir_flood_light_intensity: 0.0   # 0..1; independent of the dot projector.
+    depth.confidence_threshold: 200  # 0..255; lower = stricter.
+    depth.left_right_check: true
+    depth.left_right_threshold: 10   # 0..128 disparity pixels; lower = stricter.
+    depth.subpixel: false
+    depth.subpixel_fractional_bits: 3 # 3/4/5; 4/5 require median_filter=off.
+    depth.extended_disparity: false # Cannot be combined with subpixel in this package.
+
+    # Applied after the preset so smoothing/hole filling is explicit.
+    # Temporal filtering is always OFF; device decimation is always 1.
+    depth.median_filter: "off"       # off, 3x3, 5x5, 7x7 (device support varies)
+    depth.spatial_filter: false
+    depth.speckle_filter: false
+    depth.hole_filling: false
+    depth.adaptive_median_filter: false
+
+    # Defaults retain every valid depth pixel, including ground and distant points.
+    # Invalid/filtered samples retain their pixel slot as XYZ=NaN.
+    points.pixel_stride: 1           # 1=all pixels; 2=one point per 2x2 block; 1..16.
+    points.min_depth_m: 0.0          # Optical-axis Z; 0=no additional minimum.
+    points.max_depth_m: 0.0          # 0=no additional maximum; e.g. 4.0 for a close view.
+    # Launch imports metric bounds, CAM_A position/yaw and startup settings from
+    # bev_config_file (the BEV YAML). This file can explicitly override those values.
+    bev.enabled: true               # Crop points_bev to the BEV XY footprint; preserve height.
+
+    # Per-frame floor fit in optical coordinates; does not change the view frame.
+    # Host-only settings: live changes do not restart the camera.
+    ground.enabled: true             # false: points_filtered also shows the original cloud.
+    ground.distance_m: 0.03           # Remove points within 3cm of the detected floor.
+    ground.max_depth_m: 3.0          # Fit AND remove only within this optical Z range.
+    ground.min_height_m: 0.08        # Allowed perpendicular camera-to-floor distance.
+    ground.max_height_m: 0.50
+    ground.max_tilt_deg: 45.0        # Maximum floor normal tilt from optical +Y.
+    ground.min_inlier_ratio: 0.35    # Minimum floor fraction in sampled lower-half points.
+    publish.depth_image: true        # 16UC1, millimeters. CameraInfo is always published.
+    input.max_age_sec: 0.5           # Drop old/replayed frames; do not accumulate clouds.
+    metrics.print_interval_sec: 1.0  # Actual FPS, valid points, age, host ms, XYZ MB/s.

@@ -1,0 +1,150 @@
+{
+  "checkpoint": "C:\\Users\\godld\\Desktop\\traffic\\line_detector\\training\\highres\\stop_line_0910\\runs\\stop_0910_20260910_160656_639001\\best.pt",
+  "checkpoint_epoch": 10,
+  "checkpoint_sha256": "cd585d1e7cb8018bb472e6d01b96b9f67d58ef7af9863c1dae509da45a35bf4d",
+  "onnx_sha256": "fd21223057d6f3b2cfb65aab44487b9600666012da903f70e7950965e5d91f1b",
+  "opset": 17,
+  "input": [
+    1,
+    3,
+    300,
+    120
+  ],
+  "output": [
+    1,
+    3,
+    300,
+    120
+  ],
+  "channels": [
+    "left",
+    "right",
+    "stop_line"
+  ],
+  "torch": "2.9.1+cu128",
+  "onnx": "1.22.0",
+  "onnxruntime": "1.29.0",
+  "validation": [
+    {
+      "input": "zero",
+      "max_logit_error": 8.392333984375e-05,
+      "mask_difference_pixels": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "input": "random",
+      "max_logit_error": 4.9591064453125e-05,
+      "mask_difference_pixels": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "input": "C:\\Users\\godld\\Desktop\\traffic\\line_detector\\dataset_0910_labeled\\dataset_0910\\dataset_006\\origin_bev\\1789020832873768811_000049.png",
+      "max_logit_error": 0.00022125244140625,
+      "mask_difference_pixels": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "input": "C:\\Users\\godld\\Desktop\\traffic\\line_detector\\dataset_0910_labeled\\dataset_0910\\dataset_005\\origin_bev\\1789020348881210961_000073.png",
+      "max_logit_error": 0.000213623046875,
+      "mask_difference_pixels": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "input": "C:\\Users\\godld\\Desktop\\traffic\\line_detector\\dataset_0910_labeled\\dataset_0910\\dataset_005\\origin_bev\\1789020296491880262_000057.png",
+      "max_logit_error": 7.62939453125e-05,
+      "mask_difference_pixels": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "input": "C:\\Users\\godld\\Desktop\\traffic\\line_detector\\dataset_0910_labeled\\dataset_0910\\dataset_005\\origin_bev\\1789020352644106911_000075.png",
+      "max_logit_error": 0.0002899169921875,
+      "mask_difference_pixels": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "input": "C:\\Users\\godld\\Desktop\\traffic\\line_detector\\dataset_use\\dataset_005\\origin_bev\\1788767460547758153_000022.png",
+      "max_logit_error": 0.0001373291015625,
+      "mask_difference_pixels": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "input": "C:\\Users\\godld\\Desktop\\traffic\\line_detector\\dataset_use\\dataset_005\\origin_bev\\1788767485460119579_000115.png",
+      "max_logit_error": 9.1552734375e-05,
+      "mask_difference_pixels": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "input": "C:\\Users\\godld\\Desktop\\traffic\\line_detector\\dataset_0908\\dataset_005\\origin_bev\\1788849217164127689_000017.png",
+      "max_logit_error": 0.00014495849609375,
+      "mask_difference_pixels": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "input": "C:\\Users\\godld\\Desktop\\traffic\\line_detector\\dataset_use\\dataset_001\\origin_bev\\1788766823661458533_000129.png",
+      "max_logit_error": 0.00019073486328125,
+      "mask_difference_pixels": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "ros_build_run": false,
+  "tensorrt_engine_run": false,
+  "training_run": false,
+  "note": "Snapshot of specified best.pt; rerun after training finishes to deploy final best. CPU ONNX validation is not Jetson/TensorRT validation.",
+  "runtime_source_files": {
+    "src\\cuda_lane_pipeline.cu": "2c9fad86c1bbaea5cd71fda14774f9ec4dbb5d3b21ad399434fb27b163416371",
+    "src\\cuda_lane_pipeline.hpp": "bdbe60af1bb6a7c588a5d17166a38a066ddcace67000979e5343c497368a2845",
+    "src\\lane_connector.cpp": "c98b7fdb750da945193711a05d5b105afbbbab9867bbccbd8e0d9721823c6f26",
+    "src\\line_detactor_node.cpp": "25dd57bca1cdb37fef38c90f117fd272ffaa173475b031c9be6b12889ae9193b",
+    "src\\main.cpp": "6efe3c6521cb1e1a56f3aa9644b11074a4af848168acedfdf2208aa70fb044cc",
+    "src\\tensorrt_lane_backend.cpp": "a4a64238892313933771ff35c6b2c4f60a804fdbcfa0965be7a2a4ed4cdddec9",
+    "include\\line_detactor\\lane_connector.hpp": "0f936c7aea80db1f6cf7674123abad7e2040a6deb519b5cad18d52ff1a6a6a61",
+    "include\\line_detactor\\line_detactor_node.hpp": "ce6e301daa74bf31bdd93cabff0004b48b0910d50b6bce8a9fea0e540f734ae3",
+    "include\\line_detactor\\tensorrt_lane_backend.hpp": "a8b7bf5a8b367e34cef3ebefdae97151105949cdfb85405df1766d375810d03e",
+    "include\\line_detactor\\visibility_control.hpp": "99b345a6f91d69fcaf16b889e36c6046cd1882d3cf2a4efe16541d29abd265bc",
+    "msg\\LaneCurve.msg": "ba493e124ca245c0641757606cdf1891818b069e0996f924085a80f85689e2c3",
+    "msg\\LaneResult.msg": "6984e6fd608cbf25698e782d3ca193af22c8466f75b5cf570b46a30747fe9829",
+    "config\\line_detactor.yaml": "a04aea533cb66029eb6c288395cb320ce2df2632e3a60c28cdeef0179977d2e0"
+  },
+  "checks": [
+    "ONNX graph checked",
+    "10 CPU PyTorch/ONNX Runtime inputs compared",
+    "static pooling unit tests",
+    "launch Python parsed without ROS imports"
+  ],
+  "not_run": [
+    "ROS build",
+    "ROS node execution",
+    "CUDA C++ compilation",
+    "Jetson TensorRT engine execution"
+  ]
+}

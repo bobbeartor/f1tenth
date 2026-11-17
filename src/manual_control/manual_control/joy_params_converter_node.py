@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
 import json
-import os
 from typing import Any
 
 import rclpy
 import yaml
-from ament_index_python.packages import get_package_share_directory
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool, Float32, String
 
@@ -23,8 +22,8 @@ class JoyParamsConverterNode(Node):
         self.declare_parameter("gear_toggle_topic", "/manual/gear_toggle")
         self.declare_parameter("debug_topic", "/manual/controller_debug")
         self.declare_parameter("keymap_path", "")
-        self.declare_parameter("publish_debug", True)
-        self.declare_parameter("trigger_deadzone", 0.03)
+        self.declare_parameter("publish_debug", False)
+        self.declare_parameter("trigger_deadzone", 0.01)
         self.declare_parameter("steering_deadzone", 0.05)
 
         self.keymap = self._load_keymap()
@@ -33,7 +32,6 @@ class JoyParamsConverterNode(Node):
             self.get_parameter("trigger_deadzone").value
         )
         self.steering_deadzone = float(self.get_parameter("steering_deadzone").value)
-        self._log_joystick_connection_status()
 
         joy_topic = str(self.get_parameter("joy_topic").value)
         accelerator_topic = str(self.get_parameter("accelerator_topic").value)
@@ -42,24 +40,48 @@ class JoyParamsConverterNode(Node):
         gear_toggle_topic = str(self.get_parameter("gear_toggle_topic").value)
         debug_topic = str(self.get_parameter("debug_topic").value)
 
+        # Controller data describes current state, not an event stream. Keeping
+        # only one sample prevents held inputs from building a stale backlog.
+        latest_state_qos = QoSProfile(depth=1)
+        latest_state_qos.reliability = ReliabilityPolicy.BEST_EFFORT
+        latest_state_qos.durability = DurabilityPolicy.VOLATILE
         self.accelerator_pub = self.create_publisher(
             Float32,
             accelerator_topic,
-            10,
+            latest_state_qos,
         )
-        self.brake_pub = self.create_publisher(Float32, brake_topic, 10)
-        self.steering_pub = self.create_publisher(Float32, steering_topic, 10)
+        self.brake_pub = self.create_publisher(
+            Float32,
+            brake_topic,
+            latest_state_qos,
+        )
+        self.steering_pub = self.create_publisher(
+            Float32,
+            steering_topic,
+            latest_state_qos,
+        )
+        # Do not queue gear changes. A delayed RB event must never be replayed
+        # after the operator has released the button.
         self.gear_toggle_pub = self.create_publisher(
             Bool,
             gear_toggle_topic,
-            10,
+            latest_state_qos,
         )
-        self.debug_pub = self.create_publisher(String, debug_topic, 10)
-        self.joy_sub = self.create_subscription(Joy, joy_topic, self._on_joy, 10)
+        self.debug_pub = self.create_publisher(
+            String,
+            debug_topic,
+            latest_state_qos,
+        )
+        self.joy_sub = self.create_subscription(
+            Joy,
+            joy_topic,
+            self._on_joy,
+            latest_state_qos,
+        )
 
         self.get_logger().info(
             "Subscribing to %s, publishing accelerator=%s, brake=%s, "
-            "steering=%s, gear_toggle=%s"
+            "steering=%s, gear_toggle=%s (latest-only, no delayed replay)"
             % (
                 joy_topic,
                 accelerator_topic,
@@ -72,10 +94,9 @@ class JoyParamsConverterNode(Node):
     def _load_keymap(self) -> dict[str, Any]:
         keymap_path = str(self.get_parameter("keymap_path").value)
         if not keymap_path:
-            keymap_path = os.path.join(
-                get_package_share_directory("vehicle_config"),
-                "config",
-                "controller_keymap.yaml",
+            raise RuntimeError(
+                "keymap_path parameter is required; vehicle_bringup passes it "
+                "from controller_keymap.yaml"
             )
 
         with open(keymap_path, "r", encoding="utf-8") as keymap_file:
@@ -85,71 +106,20 @@ class JoyParamsConverterNode(Node):
         self.get_logger().info(f"Loaded manual keymap: {keymap_path}")
         return keymap
 
-    def _log_joystick_connection_status(self) -> None:
-        device_path = str(
-            self.keymap.get("controller", {}).get("device", "")
-        ).strip()
-        title = "==================== 조이스틱 연결 여부 ===================="
-        bottom = "============================================================"
-
-        if not device_path:
-            self.get_logger().warn(
-                "\n"
-                f"{title}\n"
-                "조이스틱 연결확인 실패: 장치 경로가 설정되지 않았습니다.\n"
-                f"{bottom}"
-            )
-            return
-
-        try:
-            fd = os.open(device_path, os.O_RDONLY | os.O_NONBLOCK)
-        except FileNotFoundError:
-            self.get_logger().warn(
-                "\n"
-                f"{title}\n"
-                f"조이스틱 미연결: {device_path}\n"
-                f"{bottom}"
-            )
-            return
-        except PermissionError as exc:
-            self.get_logger().warn(
-                "\n"
-                f"{title}\n"
-                f"조이스틱 장치 감지됨: {device_path}\n"
-                f"접근권한 확인 필요: {exc}\n"
-                f"{bottom}"
-            )
-            return
-        except OSError as exc:
-            self.get_logger().warn(
-                "\n"
-                f"{title}\n"
-                f"조이스틱 연결확인 실패: {device_path}\n"
-                f"원인: {exc}\n"
-                f"{bottom}"
-            )
-            return
-
-        os.close(fd)
-        self.get_logger().info(
-            "\n"
-            f"{title}\n"
-            f"조이스틱 연결완료: {device_path}\n"
-            f"{bottom}"
-        )
-
     def _on_joy(self, msg: Joy) -> None:
         controller_state = self._controller_state(msg)
 
         accelerator = controller_state["triggers"]["rt"]["value"]
         brake = controller_state["triggers"]["lt"]["value"]
         steering = controller_state["axes"]["left_stick_x"]
-        gear_toggle = controller_state["buttons"].get("y", False)
+        gear_button_pressed = controller_state["buttons"].get("rb", False)
 
         self.accelerator_pub.publish(Float32(data=accelerator))
         self.brake_pub.publish(Float32(data=brake))
         self.steering_pub.publish(Float32(data=steering))
-        self.gear_toggle_pub.publish(Bool(data=gear_toggle))
+        # Publish the current RB state, including release. With KEEP_LAST(1),
+        # release overwrites a stale press before it can execute later.
+        self.gear_toggle_pub.publish(Bool(data=gear_button_pressed))
 
         if self.publish_debug:
             self.debug_pub.publish(
@@ -223,6 +193,9 @@ class JoyParamsConverterNode(Node):
 
     def _dpad_pressed(self, msg: Joy, dpad_name: str) -> bool:
         dpad_config = self.keymap.get("dpad", {}).get(dpad_name, {})
+        if dpad_config.get("type") == "button":
+            return self._button_pressed_from_config(msg, dpad_config)
+
         raw_axis = self._axis_value(msg, dpad_config.get("number"))
         pressed_value = float(dpad_config.get("normalized_pressed", 0.0))
         if pressed_value < 0.0:

@@ -1,0 +1,429 @@
+# auto_control 통합 주행 테스트 설정 — 2026-09-18
+# 사용자 첨부 설정값 유지 + 실제 장애물 회피 제어 활성화.
+# auto_control_params_file:=/absolute/path/auto_control_test.yaml 로 지정.
+# 장애물 검출/중앙선 변형 설정은 별도 obstacle_params_file YAML에서 관리.
+# 일반 최고속도 1.4m/s, 장애물 검출 중 상한 1.0m/s. 마지막 검출 1초 후 제한 해제.
+# 기존 avoidance_speed_cap_mps 및 obstacles.avoidance.max_speed_mps는 폐기되어 무시됨.
+# 회피 관련 항목은 시작 시 적용: 수정 후 launch 재시작.
+# manual_test:=true이면 실차 출력 차단. false이면 아래 drive 설정으로 실차 출력.
+# 축간거리 0.33m와 코너 감속/지연 초기값은 실측값이 아님. 빌드·실행·주행 테스트 미진행.
+# 차선 안 장애물의 반대쪽으로 중앙선만 변형. 회피 결과 없음/유실/만료 시 기존 중앙선 사용.
+# 변형 경로에서도 기존 출발 duty와 단계식 PID 사용. 회피 검사로 출발을 차단하지 않음.
+auto_control:
+  ros__parameters:
+  
+    corner_state_topic: "/auto/corner_state"
+
+    # ======================================================================
+    # 01. 실행 모드와 기능 선택
+    # 현재: 실차 출력 ON / 실제 회피 제어 ON / 일반 목표 속도 1.4m/s / 신호등 정지 ON.
+    # longitudinal_pid_enabled=false여도 신호등 정지 중에는 longitudinal 제어를 사용한다.
+    # ----------------------------------------------------------------------
+    # 준비 조건 충족 시 주행 허용. false 명령은 duty 0; 조향 유지 여부는 아래 설정을 따름.
+    enabled: true
+    # drive=구동·제동·조향 출력, steering_only=조향만, monitor_only=계산·진단만.
+    control_mode: "drive"
+
+    # 장애물에 따라 변형한 중앙선을 실제 조향에 사용. 프리뷰만 켜는 옵션과 별개.
+    avoidance_control_enabled: true
+    # true=중앙선 변형만 적용. 충돌/곡률/경로 확인 대기로 회피 보호 정지를 요청하지 않음.
+    # false=기존 검사 모드. 양쪽 차선 누락은 변형 모드의 출발 차단 조건이 아님.
+    avoidance_deformation_only: true
+    # 차선 안 장애물 첫 검출 즉시 감속. 마지막 유효 검출 후 아래 시간 동안 재검출 없으면 해제.
+    obstacle_slowdown_enabled: true
+    obstacle_slowdown_speed_mps: 1.0 # 검출 중 최대 허용 속도. 코너/신호등 목표보다 높으면 목표를 올리지 않음
+    obstacle_slowdown_clear_sec: 1.0 # 재검출 시 해제 타이머 갱신. 시작 시 적용
+    # 변형 경로 촬영 시각/수신 후 허용 나이(s). 0.05~0.20; 만료 시 기존 중앙선 사용.
+    avoidance_max_age_sec: 0.20
+    # 검사 모드(deformation_only=false)의 회피 보호 제동 전류(A). 현재 변형 모드에서는 미사용.
+    avoidance_brake_current_amps: 2.5
+    # 실제 앞/뒤 차축 사이 거리(m). 검사 모드의 곡률 한계 계산용; 현재 변형 경로 거부에는 미사용.
+    avoidance_wheelbase_m: 0.33
+
+    # 곡률에 따라 목표 속도를 낮출지 선택. false이면 일반 목표는 maximum_speed_mps.
+    curvature_speed_control_enabled: true
+    # 일반 주행에서도 longitudinal_pid_* 사용. false이면 일반 주행은 구버전 speed_pid_*.
+    longitudinal_pid_enabled: true
+    # longitudinal 제어 방식: true=구동 PID+별도 제동, false=이전 signed PID.
+    longitudinal_staged_control_enabled: true
+    # 신호등과 정지선으로 감속·정지를 수행할지 선택. false여도 모델 실행을 끄는 것은 아님.
+    traffic_stop_enabled: true
+    # 목표 0·속도 0.05m/s 미만에서 조향 유지. 입력 유실/비활성 정지 때도 마지막 조향 유지.
+    stop_steering_hold_enabled: true
+
+    # ======================================================================
+    # 02. 목표 속도와 코너 감속
+    # 얼마나 빠르게 갈지 결정하는 단계. 신호등 접근 시 여기서 정한 목표와 정지용 속도 제한 중 작은 값을 사용.
+    # 선택 경로의 거리별 속도 계획으로 코너 진입 전 감속·통과 유지·탈출 가속.
+    # ----------------------------------------------------------------------
+    # 일반 목표 속도(m/s). 회피도 이 값을 사용하며 1.0m/s 하드코딩 상한 없음.
+    # 신호등 정지 및 켜진 경우의 일반 곡률 감속은 별도로 적용.
+    
+    
+    maximum_speed_mps: 1.8
+    # 구버전 FF 기준 속도. 새 경로별 코너 안전 상한을 강제로 올리지 않음.
+    minimum_speed_mps: 1.0
+    # 코너 목표 속도 계산에 허용할 횡가속도(m/s²). 작을수록 코너 목표가 낮아짐.
+    maximum_lateral_acceleration_mps2: 1.6
+    # 전체 선택 경로의 진단 곡률 백분위수(%). 속도 계획은 각 경로 지점의 곡률을 직접 사용.
+    curvature_percentile: 90.0
+    # 정지선과 코너에 공통인 계획 감속도. 기존 정지선 계획값과 같은 0.5m/s².
+    longitudinal_planning_deceleration_mps2: 0.50
+    # 코너 탈출과 장애물 감속 해제 시 목표 속도 증가 한도(m/s²).
+    corner_planning_acceleration_mps2: 0.80
+    # 카메라 촬영·제어·구동 지연 동안 이동하는 거리를 감속 계획에 반영(s).
+    corner_planning_response_sec: 0.001
+    # 곡률로 계산한 상한 아래에 만드는 코너 속도 허용 구간 폭(m/s).
+    corner_speed_band_width_mps: 0.08
+    # 상한에 접근했을 때 전류 제동 전 duty를 먼저 줄이는 여유(m/s).
+    corner_coast_entry_margin_mps: 0.01
+    # 코너 상한을 이만큼 초과해야 전류 제동 후보가 됨(m/s).
+    corner_brake_entry_margin_mps: 0.45
+    # 상한보다 이만큼 낮아지면 코너 전류 제동 해제(m/s). 진입값보다 작아야 함.
+    corner_brake_exit_margin_mps: 0.03
+    # 필요한 감속도가 duty 감속 관측보다 이만큼 커야 전류 제동 후보(m/s²).
+    corner_brake_deceleration_margin_mps2: 0.20
+    # 코너 속도 초과 후 duty 감속 효과를 관찰하는 시간(s). 긴급하면 생략.
+    corner_coast_probe_sec: 0.35
+    # 일반 코너 프로파일 활성화/해제에 필요한 연속 프레임 수. 긴급 코너는 즉시 활성화.
+    corner_confirm_frames: 2
+    corner_release_frames: 3
+
+    # ======================================================================
+    # 03. 구동력: 기본 duty와 속도 PID
+    # 목표 속도와 ERPM 기반 실제 속도 차이로 구동력을 보정한다.
+    # 단계 제어에서는 FF duty를 maximum_duty로 정규화한 뒤 PID를 더하고, 다시 maximum_duty를 곱한다.
+    # 따라서 longitudinal PID 계수는 구버전 speed_pid 계수와 출력 배율이 다르다.
+    # ----------------------------------------------------------------------
+    # 정지 후 출발 시 1회 적용할 duty. 수동 시작값(0.05)과 유사; PID 요청이 작으면 그 값까지만 적용.
+    # 브레이크 해제 후 적용하고 이후 일반 상승률을 사용. 0이면 기존 0부터 상승 방식.
+    longitudinal_start_duty: 0.053
+    # 주행을 유지하는 기본 duty 추정의 상수항. 아래 저속 구간에서는 0까지 줄어듦.
+    longitudinal_feedforward_offset_duty: 0.010
+    # 목표 속도 1m/s당 추가하는 기본 duty. FF=offset×저속 보정+slope×목표 속도.
+    longitudinal_feedforward_duty_per_mps: 0.050
+    # 목표 속도가 이 값 미만이면 offset을 목표 속도에 비례해 축소(m/s).
+    longitudinal_feedforward_fade_speed_mps: 0.10
+    # 현재 속도 오차에 대한 즉시 보정. 단계 제어에서는 구동 duty를 보정함.
+    longitudinal_pid_kp: 1.0
+    # 누적 속도 오차에 대한 보정. 일정하게 남는 속도 오차를 줄임.
+    longitudinal_pid_ki: 0.5
+    # 속도 오차의 변화율에 대한 보정. 0이면 D항을 사용하지 않음.
+    longitudinal_pid_kd: 0.0
+    # 오차 적분값의 절댓값 상한. Ki를 곱하기 전 누적량이며 duty 상한이 아님.
+    longitudinal_pid_integral_limit: 1.5
+    # 구동 duty 상한. 단계 제어 PID 출력의 배율에도 사용됨.
+    maximum_duty: 0.12
+    # 시작 duty 적용 이후 일반 가속 한도(/s). 0.03은 수동 최대 가속 입력의 상승률과 동일.
+    duty_rise_rate_per_sec: 0.040
+    # 구동을 줄이는 단계에서 duty 하강 한도(/s). 추가 제동 진입 시 duty는 0으로 전환.
+    duty_fall_rate_per_sec: 0.030
+    # 주행 중 제동 해제 후 회복 한도(/s). 정지 재출발은 시작 duty+일반 상승률 사용.
+    longitudinal_recovery_duty_rise_per_sec: 0.045
+    # 제동/보호 정지 후 회복 중 정체 예상 시 시작 duty까지 보조 상승하는 시간 기준(s).
+    # 보조 상승률=start_duty/이 값. PID 요청·남은 거리 조건을 따르며 반복 출발 펄스 없음.
+    longitudinal_recovery_start_ramp_sec: 0.20
+
+    # ======================================================================
+    # 04. 추가 제동: 공통 설정과 일반 주행
+    # PID 구동력을 줄여도 충분히 느려지지 않을 때 쓰는 전류 제동.
+    # electrical_brake_enabled=false는 일반 주행 설정. 코너/장애물/신호등 제동은 별도 조건으로 허용.
+    # 공통 전류 변화율은 정상 단계 제동에 적용하며, 신호등 정지 중 입력 유실 보호에서는 상한 전류를 직접 요청할 수 있음.
+    # ----------------------------------------------------------------------
+    # 일반 주행 전류 제동 허용. 장애물 감속 중에도 아래 일반 제동 임계값/상한 사용.
+    electrical_brake_enabled: true
+    # [단계 제어 공통] 초과속도(m/s)를 제동 상한의 비율로 변환. 코너·신호등·일반 제동에 공통.
+    longitudinal_brake_speed_gain: 0.8
+    # [단계 제어] 속도 변화로 추정하는 감속도의 필터 시간 상수(s).
+    longitudinal_deceleration_filter_sec: 0.20
+    # [공통] 정상 제동 전류 증가 한도(A/s). 신호등은 남은 시간 부족 시 06의 긴급 한도까지 높임.
+    brake_current_rise_amps_per_sec: 1.5
+    # [공통] 제동 전류 감소 한도(A/s). 0A 해제 명령 다음 주기에 구동 복귀.
+    brake_current_fall_amps_per_sec: 6.0
+    # [일반 제동] 실제 속도가 목표보다 이 값만큼 높으면 제동 진입(m/s).
+    brake_entry_speed_error_mps: 0.30
+    # [일반 제동] 초과속도가 이 값 이하로 줄면 제동 해제(m/s).
+    brake_exit_speed_error_mps: 0.10
+    # [공통 제동] 코너·장애물·정지선의 전류 제동 상한(A).
+    brake_maximum_current_amps: 2.0
+
+    # ======================================================================
+    # 05. 신호등: 정지 위치와 접근 속도
+    # 신호등 정지 목표 위치를 만들고, 남은 거리가 짧아질수록 목표 속도를 낮춘다.
+    # 정지선 거리에서 앞차축→범퍼 길이와 정지 여유 거리를 빼서 목표점까지의 거리를 계산한다.
+    # ----------------------------------------------------------------------
+    # 범위 진입 전 감속 계획에서 사용하는 명목 여유 거리(m). 정확히 이 위치까지 재접근하지 않음.
+    traffic_stop_margin_m: 0.10
+    # 앞범퍼가 정지선 전방 0~이 거리 안에 멈추도록 제어(m). 범위 진입 시 목표 0·duty 0으로 정지 시작.
+    # 거리 관측이 흔들리거나 입력이 잠깐 유실되어도 재전진하지 않으며 유효 GREEN에서 해제.
+    traffic_stop_range_max_m: 0.25
+    # 실차 앞차축에서 앞범퍼까지 길이(m). 차축 기준 검출 거리를 범퍼 기준으로 바꿈.
+    traffic_front_axle_to_bumper_m: 0.05
+    # 정지선도 02의 공통 longitudinal_planning_deceleration_mps2를 사용.
+    # 구동기 응답 여유(s). 단계 제어는 기준 전류까지 상승 지연도 추가하며 영상 나이 보정과 별개.
+    traffic_brake_response_time_sec: 0.15
+    # 감속 계획에 쓰는 거리 여유(m). 실제 정지 개시는 앞범퍼가 위 허용 범위에 진입할 때 확정.
+    traffic_stop_position_tolerance_m: 0.03
+    # 정지선 또는 제어 입력 유실로 임시 정지한 뒤 접근을 재개할 때 목표 속도 상한(m/s).
+    traffic_reapproach_speed_mps: 0.20
+
+    # ======================================================================
+    # 06. 신호등: 추가 제동 판단과 유지 전류
+    # 단계 제어에서는 먼저 duty를 줄여 감속을 관찰하고, 거리상 필요한 감속에 못 미치면 추가 제동.
+    # 긴급 판단 시 관찰 시간을 생략한다. 전류 요청은 상한×clamp(속도 gain×초과속도+감속 gain×부족 감속도, 0, 1).
+    # ----------------------------------------------------------------------
+    # 목표 초과속도 발생 후 duty 감소 효과를 관찰할 시간(s). 긴급한 접근에서는 생략.
+    traffic_coast_probe_sec: 0.15
+    # 필요 감속도가 관측 감속보다 이 값 이상 크면 추가 제동 후보(m/s²). 해제 비교에는 절반 사용.
+    traffic_brake_deceleration_hysteresis_mps2: 0.10
+    # 접근 중 실제 속도가 목표보다 이 값 넘게 빠르면 제동 후보(m/s). 절반 이하에서는 해제.
+    traffic_brake_speed_hysteresis_mps: 0.05
+    # 부족 감속도 1m/s²당 공통 제동 상한의 비율. 정지선과 코너에 함께 적용.
+    longitudinal_brake_deceleration_gain: 0.50
+    # 남은 거리/속도상 요청 전류에 도달할 시간이 부족할 때의 추가 상승 한도(A/s).
+    # 공통 상승률보다 낮으면 공통값 사용. 제동 전류 자체의 상한은 위 값 그대로.
+    traffic_brake_urgent_rise_amps_per_sec: 6.0
+    # 목표 속도 0·실제 속도 0.05m/s 미만에서 요청하는 최소 유지 전류(A).
+    traffic_hold_current_amps: 0.7
+
+    # ======================================================================
+    # 07. 신호등: 관측 확인과 정지선 유실 추적
+    # 오검출 거리 점프를 거르고, 관측 사이에는 ERPM 기반 이동량으로 남은 거리를 갱신한다.
+    # 근접 추적 시간은 일반 유실 시간에 더하는 값이 아니라 마지막 확인부터의 전체 상한이다.
+    # ----------------------------------------------------------------------
+    # 신호 촬영 시각 기준 수명(s). 정지 접근 시작 후 RED 유실만으로 정지를 해제하지 않음.
+    traffic_state_timeout_sec: 0.30
+    # 거리 일관성을 만족하는 정지선 관측 확인 횟수. 신호등 색 확인 프레임 수가 아님.
+    traffic_stop_line_confirm_frames: 3
+    # 이동량으로 예측한 거리와 새 관측의 허용 차이(m). 크게 튀는 관측을 거름.
+    traffic_stop_line_match_tolerance_m: 0.30
+    # 기존 추적 거리에 새 관측을 반영하는 비중(0~1). 거리 증가·감소 양방향 보정.
+    traffic_stop_line_current_weight: 0.35
+    # 일반 정지선 관측의 유효 시간(s). 접근 중 만료하면 임시 정지; 아래 근접 예외 적용.
+    traffic_stop_line_timeout_sec: 0.50
+    # 마지막으로 확인한 목표점까지 거리가 이 값 이내면 근접 유실 추적 허용(m).
+    traffic_terminal_tracking_distance_m: 0.10
+    # 근접 추적을 허용할 마지막 확인부터의 최대 시간(s). 단계 제어·유효 차선·최신 ERPM 필요.
+    traffic_terminal_tracking_timeout_sec: 1.50
+
+    # ======================================================================
+    # 08. 신호등: GREEN→RED 전환 시 통과 판단
+    # GREEN 이후 RED로 바뀔 때 예상 범퍼 정지 위치가 정지선을 크게 넘는 경우에만 통과를 선택하는 기능.
+    # 같은 정지선에 대해 접근/통과 결정을 유지하고, 유효 GREEN이나 해당 정지선 통과 등에서 상태를 해제한다.
+    # ----------------------------------------------------------------------
+    # 위 조건에서 정지 대신 정상 목표 속도로 통과할지 선택.
+    traffic_pass_if_unstoppable_enabled: false
+    # 예상 범퍼 정지 위치가 정지선을 이 거리 이상 넘어야 통과 선택(m). 현재 0.70m.
+    traffic_pass_overshoot_m: 0.50
+
+    # ======================================================================
+    # 09. 중앙선 입력: 사용할 구간과 형상 계산
+    # 검출된 중앙선을 미터 좌표로 바꾼 뒤 연속된 유효 구간만 제어에 사용한다. 전역 재피팅은 하지 않는다.
+    # ----------------------------------------------------------------------
+    # 제어에 사용할 차량 전방 X 좌표의 최솟값(m).
+    path_minimum_x_m: 0.01
+    # 제어에 사용할 차량 전방 X 좌표의 최댓값(m). 경로를 따른 길이와 다름.
+    path_maximum_x_m: 2.98
+    # 유효 경로로 받아들이는 최소 점 개수.
+    path_minimum_points: 8
+    # 유효 경로의 최소 길이(m). X 폭이 아니라 경로를 따른 길이.
+    path_minimum_span_m: 0.12
+    # 인접 중앙선 점 사이 허용 간격(m). 초과하면 그 앞에서 연속 경로를 자름.
+    path_maximum_gap_m: 0.15
+    # 경로 접선과 곡률을 계산할 주변 거리 범위(m). 조향/곡률 모두에 영향.
+    path_geometry_window_m: 0.16
+
+    # ======================================================================
+    # 10. 조향 계산: Stanley와 출력 완화
+    # 중앙선과의 횡방향 오차 및 경로 방향 오차를 조향각으로 변환한다. +각도는 차량 좌회전.
+    # ----------------------------------------------------------------------
+    # 중앙선에서 벗어난 횡오차의 조향 보정 강도.
+    stanley_gain: 1.3
+    # Stanley 분모에 더해 저속에서 횡오차 보정이 과도해지는 것을 완화(m/s).
+    stanley_softening_speed_mps: 0.30
+    # 가장 가까운 경로 투영점에서 경로를 따라 앞쪽 접선을 볼 거리(m). 현재 5cm.
+    stanley_heading_lookahead_m: 0.05
+    # 방향 오차가 이 각도 이상일 때 코너 방향 보호 적용(deg). 현재 60도.
+    stanley_corner_heading_threshold_deg: 60.0
+    # 코너에서 방향 보정과 반대인 횡오차 보정을 방향 오차의 이 비율까지 허용. 현재 80%.
+    stanley_corner_opposing_correction_ratio: 0.80
+    # 계산 조향각의 절댓값 상한(deg). 서보 좌우 매핑에도 사용.
+    maximum_steering_angle_deg: 30.0
+    # control_rate_hz 기준 현재 계산값 반영 비중. 현재 40%; 실제 수신 간격에 맞춰 환산.
+    steering_current_weight: 0.40
+    # 최종 조향각 변화 속도 상한(deg/s).
+    steering_rate_limit_deg_per_sec: 240.0
+
+    # ======================================================================
+    # 11. 실차 보정: 서보·구동계·속도 측정
+    # 차량 하드웨어와 맞추는 값. ERPM을 실제 속도로 바꿔 PID·정지 거리 추적·조향에 공급한다.
+    # ----------------------------------------------------------------------
+    # 최대 좌조향각에 대응하는 서보 위치(0~1). 반전 설정 적용 전 매핑값.
+    servo_left: 1.0
+    # 직진 서보 위치(0~1).
+    servo_center: 0.50
+    # 최대 우조향각에 대응하는 서보 위치(0~1). 반전 설정 적용 전 매핑값.
+    servo_right: 0.0
+    # 최종 서보 출력용 조향 방향 반전. 진단 조향각의 +좌회전 의미는 유지.
+    steering_servo_inverted: true
+    # 속도 환산에 쓰는 바퀴 지름(m).
+    wheel_diameter_m: 0.1095
+    # ERPM을 모터 기계 회전수로 바꾸는 자석 극쌍 수.
+    motor_pole_pairs: 2
+    # 모터 피니언 잇수. 스퍼와 함께 1차 감속비 계산.
+    motor_pinion_teeth: 13
+    # 스퍼 기어 잇수.
+    spur_gear_teeth: 54
+    # 디퍼렌셜 피니언 잇수. 링기어와 함께 최종 감속비 계산.
+    differential_pinion_teeth: 13
+    # 디퍼렌셜 링기어 잇수.
+    differential_ring_teeth: 37
+    # ERPM 부호를 차량 전진 방향과 맞추는 배율(+1 또는 -1).
+    erpm_direction_sign: 1.0
+    # 환산 속도에 곱하는 실측 보정 배율.
+    speed_scale_correction: 1.0
+    # ERPM 환산 속도의 필터 시간 상수(s). 클수록 매끄럽지만 반응이 늦음.
+    speed_filter_time_constant_sec: 0.10
+
+    # ======================================================================
+    # 12. 제어 감시: 오래된 입력과 짧은 유실
+    # 새 LaneResult가 올 때 계산한다. control_rate_hz는 결과 FPS 상한이 아니라 정지 감시 및 조향 시간 환산 기준.
+    # 입력 보호 정지는 duty를 0으로 만들며, 이미 신호등 정지 중이면 조건에 따라 제동도 유지한다.
+    # ----------------------------------------------------------------------
+    # 정지 조건을 점검하는 주기(Hz)이자 steering_current_weight의 기준 주파수.
+    control_rate_hz: 100.0
+    # 중앙선 결과를 마지막으로 받은 뒤 허용하는 최대 경과시간(s).
+    path_timeout_sec: 0.15
+    # 중앙선 원본 영상의 촬영 시각 기준 최대 나이(s). 처리·전송 지연도 제한.
+    path_capture_maximum_age_sec: 0.20
+    # 짧은 경로 검출 실패에서 마지막 유효 경로를 유지할 시간(s). 0이면 유지 안 함; path_timeout 이하.
+    path_hold_timeout_sec: 0.08
+    # 마지막 ERPM 수신 이후 허용하는 최대 경과시간(s).
+    erpm_timeout_sec: 0.15
+
+    # ======================================================================
+    # 13. BEV 좌표 환산
+    # 차선 화면 픽셀을 앞차축 기준 실제 거리로 바꾼다. auto_drive는 선택한 BEV YAML과 일치하도록 설정한다.
+    # BEV 테마 설정은 이 auto_control 노드가 아니라 line_detactor 노드 설정에 둔다.
+    # ----------------------------------------------------------------------
+    # 차량 전방 BEV 최대 거리(m). 이미지 세로 좌표를 차량 전방 X로 환산.
+    bev_x_max_m: 3.0
+    # BEV 좌우 대칭 범위의 한쪽 폭(m). 전체 폭은 2배.
+    bev_y_max_m: 0.60
+    # 픽셀당 실제 거리(m/px). 검출 결과의 물리 배율 검증에도 사용.
+    bev_meter_per_pixel: 0.01
+
+    # ======================================================================
+    # 14. ROS 연결: 입력·실차 명령·관측 출력
+    # 이름은 성능 튜닝값이 아니라 노드끼리 주고받는 통로다. 상대 노드와 일치해야 한다.
+    # ----------------------------------------------------------------------
+    # [입력] 주행 허용/중지 Bool 명령.
+    enable_topic: "/auto/enabled"
+    # [입력] 중앙선·정지선·처리시간을 포함한 LaneResult.
+    lane_result_topic: "/line_detactor/result"
+    # [검증] 입력 LaneResult에 기대하는 좌표계 이름.
+    lane_result_frame_id: "front_axle_bev"
+    # [입력] VESC 측정 ERPM.
+    measured_erpm_topic: "/vesc/measured_erpm"
+    # [입력] VESC 연결 상태.
+    connection_status_topic: "/vesc/connected"
+    # [입력] 신호등 상태 및 촬영 시각.
+    traffic_state_topic: "/traffic_light/state"
+    # [실차 출력] VESC 구동 duty 명령.
+    duty_topic: "/vesc/duty"
+    # [실차 출력] VESC 제동 전류 명령(A).
+    brake_current_topic: "/vesc/brake_current"
+    # [실차 출력] 서보 위치 명령.
+    servo_position_topic: "/vesc/servo_position"
+    # [관측 출력] 제어기가 결정한 duty. 실제 측정값이 아님.
+    command_duty_topic: "/auto/current_duty"
+    # [관측 출력] 제어기가 결정한 제동 전류. 실제 측정값이 아님.
+    command_brake_current_topic: "/auto/current_brake_current"
+    # [관측 출력] 코너/신호등 제한까지 반영한 최종 목표 속도(m/s).
+    target_speed_topic: "/auto/target_speed"
+    # [관측 출력] ERPM으로 추정·필터링한 현재 속도(m/s). BEV 속도 표시에도 사용.
+    current_speed_topic: "/auto/current_speed"
+    # [관측 출력] 제어 구간의 대표 곡률(1/m).
+    curvature_topic: "/auto/path_curvature"
+    # [관측 출력] 필터/변화율 제한을 거친 조향각(rad).
+    steering_angle_topic: "/auto/steering_angle_rad"
+    # [관측 출력] 중앙선과의 횡방향 오차(m).
+    cross_track_error_topic: "/auto/cross_track_error_m"
+    # [관측 출력] 경로와 차량의 방향 오차(rad).
+    heading_error_topic: "/auto/heading_error_rad"
+    # [관측 출력] 필터/변화율 제한 전 Stanley 조향각(rad).
+    raw_steering_angle_topic: "/auto/raw_steering_angle_rad"
+    # [관측 출력] 최종 서보 명령 위치.
+    command_servo_position_topic: "/auto/current_servo_position"
+    # [관측 출력] 검출기 입력 수신→최종 제어 결정 지연(ms). 그 전 영상 전송·그 후 VESC 전송 제외.
+    input_to_control_decision_topic: "/auto/detector_input_to_control_decision_ms"
+
+    # ======================================================================
+    # 15. 주행 로그와 성능 측정
+    # 일반 로그는 주행 모드를 바꾸지 않는다. 성능 측정 모드는 monitor_only로 전환되므로 실차 주행과 별개.
+    # 성능 측정은 유효 중앙선으로 첫 조향 계산이 완료되면 시작해 JSON 기록 후 종료한다.
+    # ----------------------------------------------------------------------
+    # 실제 주행 상태를 CSV로 기록할지 선택. 현재 ON.
+    driving_log_enabled: true
+    # 일반 주행 기록 빈도 상한(Hz). 상태 변화 시 추가 기록 가능.
+    driving_log_rate_hz: 30.0
+    # 주행 CSV 저장 폴더. 상대 경로는 실행 위치 기준.
+    driving_log_directory: "driving_logs"
+    # 콘솔 상태 로그 출력 빈도(Hz).
+    status_log_rate_hz: 2.0
+
+    # ======================================================================
+    # 16. 구버전 제어 및 호환용 — 현재 구동/제동에 미사용
+    # 값은 원문대로 보존했다. 현재는 longitudinal_pid_enabled=true + staged=true이므로 아래 값으로 튜닝하지 않는다.
+    # speed_pid_*와 minimum_duty는 longitudinal_pid_enabled=false인 일반 주행에서 사용.
+    # 구버전 제동 전용값은 여기에 더해 electrical_brake_enabled=true일 때 사용한다. 호환값도 선언/유효성 검사는 유지된다.
+    # ----------------------------------------------------------------------
+    # [구버전 구동] 출발 duty 및 속도 기반 FF의 하단 값. 현재 단계 제어의 최소 duty가 아님.
+    minimum_duty: 0.07
+    # [구버전 구동] 속도 오차의 P 보정. longitudinal_pid_kp와 출력 배율이 다름.
+    speed_pid_kp: 0.008
+    # [구버전 구동] 속도 오차 적분의 I 보정.
+    speed_pid_ki: 0.001
+    # [구버전 구동] 속도 오차 변화율의 D 보정.
+    speed_pid_kd: 0.0
+    # [구버전 구동] Ki를 곱하기 전 오차 적분값의 절댓값 상한.
+    speed_pid_integral_limit: 1.0
+    # [구버전 일반 제동] 전류 제동을 허용할 최소 차량 속도(m/s).
+    brake_minimum_vehicle_speed_mps: 0.80
+    # [구버전 일반 제동] 제동 진입 시 최소 전류(A). 현재 단계 제어는 이 하한 미사용.
+    brake_minimum_current_amps: 0.5
+    # [구버전 일반 제동] 초과속도→제동 전류 계수. 단계 제어는 longitudinal_brake_speed_gain 사용.
+    brake_current_gain_amps_per_mps: 2.5
+    # [호환용] 선언·값 검증만 남아 있으며 현재 제동 전류 계산에는 사용하지 않음.
+    traffic_brake_amps_per_mps2: 2.0
+
+
+    # ======================================================================
+    # 17. 점진 감속 및 회전 종료 확인 — 2026-09-28 추가
+    # 기존 파라미터 값은 유지하고, 커밋 7466960의 새 파라미터만 코드 기본값으로 추가.
+    # 장애물 감속 항목은 obstacle_slowdown_enabled=true일 때 동작하며 기능 선택값은 위 설정을 따름.
+    # 새 로직에서 obstacle_slowdown_speed_mps는 감속 후 도달 속도이며 전환 중 계획 속도는 더 높을 수 있음.
+    # 장애물 제동 진입/해제는 아래 전용 여유를 사용. 일반 주행 brake_entry/exit 설정과 구분.
+    # 회전 종료 확인은 장애물 속도 회복에도 적용. 신호등·입력 유실·회피 검사 보호 정지는 지연하지 않음.
+    # ----------------------------------------------------------------------
+    # 장애물 감속 시 목표 속도 감소율(m/s²). 코너 감속 ON/OFF와 독립.
+    obstacle_planning_deceleration_mps2: 0.35
+    # 장애물 검출 해제 및 회전 종료 확인 후 목표 속도 회복률(m/s²).
+    obstacle_planning_acceleration_mps2: 0.35
+    # 추가 전류 제동 전에 duty 감소에 따른 감속을 관찰하는 시간(s).
+    obstacle_coast_probe_sec: 0.20
+    # 필요 감속도와 관측 coast 감속도 차이에 대한 추가 제동 문턱(m/s²).
+    obstacle_brake_deceleration_margin_mps2: 0.10
+    # 현재 계획 속도를 초과해야 전류 제동에 진입하는 속도 여유(m/s).
+    obstacle_brake_entry_margin_mps: 0.10
+    # 장애물 제동 해제 속도 여유(m/s). 진입값보다 작아야 함.
+    obstacle_brake_exit_margin_mps: 0.03
+    # 코너·장애물 제동 해제 후 속도 예측용 응답 여유(s). 실측 보정 필요.
+    longitudinal_brake_release_response_sec: 0.15
+    # 회전 종료 확인용 근거리 곡률 문턱(1/m).
+    corner_exit_curvature_per_m: 1.0 # origin : 0.25
+    # 회전 종료 확인용 경로 방향 및 이전 조향각 문턱(deg). 둘 다 기준 이내여야 함.
+    corner_exit_angle_deg: 20.0 # 8.0
+    # 곡률·경로 방향·조향 조건을 모두 만족한 뒤 목표 상승을 허용하기까지 확인 시간(s).
+    corner_exit_confirm_sec: 0.05 # 0.2
+

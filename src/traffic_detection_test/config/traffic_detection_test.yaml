@@ -1,0 +1,42 @@
+traffic_detection_test:
+  ros__parameters:
+    # Keep the full OV9782 sensor aspect ratio while reducing the host frame.
+    camera_socket: "CAM_A"
+    width: 640
+    height: 400
+    # Source-pixel ROI. The preview keeps the original 640x400 canvas, draws
+    # this boundary in yellow, and masks everything outside it to black.
+    roi_center_x: 320
+    roi_center_y: 145
+    roi_width: 640
+    roi_height: 160
+    sensor_fps: 80.0
+    resize_mode: "CROP"
+    undistort_enabled: true
+
+    # The default ONNX contains explicit Q/DQ nodes and runs as TensorRT INT8.
+    inference_backend: "TENSORRT"
+    engine_precision: "int8"
+    # Empty creates <model>.trt<major>.int8.engine beside the ONNX file.
+    engine_cache_path: ""
+    tensorrt_workspace_size_mb: 1024
+    # These must match the fixed ONNX tensor. A smaller ROI reduces TensorRT
+    # work only when a matching smaller rectangular ONNX is selected.
+    model_input_width: 640
+    model_input_height: 160
+    score_threshold: 0.25
+    nms_threshold: 0.65
+    # For the highest-confidence box, ignore dull/dark pixels, then compare
+    # saturation*brightness energy in fixed red and green HSV hue ranges.
+    color_min_saturation: 80
+    color_min_value: 60
+
+    # Inference is latest-frame-only, so a slow detector skips old frames
+    # instead of accumulating preview latency.
+    preview_fps: 60.0
+    preview_window_name: "Traffic light detection test"
+    preview_max_width: 1280
+    preview_max_height: 800
+
+    startup_timeout_sec: 5.0
+    status_log_interval_sec: 1.0

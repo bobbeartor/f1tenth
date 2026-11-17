@@ -1,51 +1,166 @@
 camera_driver:
   ros__parameters:
     enabled: true
+    # true면 SSH 터미널 연산 측정을 위해 GUI 프리뷰를 강제로 끄고
+    # 캡처/흔들림 보정 출력 FPS를 상태 로그에 출력한다.
 
-    # OV9782 THE_720_P sensor mode: 1280x720, up to 143 FPS, 2 MIPI lanes.
-    sensor_fps: 120.0
+    # CAM_A는 RGB NV12, 스테레오 CAM_B/C는 native GRAY8로 전송한다.
+    # GRAY8은 호스트에서 neutral UV를 붙여 기존 NV12 ROS/BEV API에 맞춘다.
+    sensor_fps: 70.0
     width: 1280
-    height: 720
+    height: 800
 
-    camera_socket: "CAM_A"
-    # THE_720_P is already a 16:9 sensor crop, so no aspect-ratio change occurs.
+    camera_socket: "CAM_A" # RGB=CAM_A, stereo left/right=CAM_B/C
+    # The requested output matches the full 1280x800 sensor aspect ratio.
     resize_mode: "CROP"
 
     # Runs inside the OAK/DepthAI pipeline, not with host-side cv::remap().
     undistort_enabled: true
 
-    # Eight non-blocking slots sustain 120 FPS without stalling capture.
-    queue_size: 8
+    # Keep only the newest frame to minimize camera-to-host latency.
+    queue_size: 1
     queue_blocking: false
 
     frame_id: "camera_optical_frame"
-    # Raw NV12: Y plane followed by interleaved UV plane.
+    # ROS 출력은 센서와 무관하게 NV12: Y 다음 interleaved UV plane이다.
     image_topic: "/camera/image_rect"
 
-    # Combined automatic BEV launch overrides this to true. Both raw
-    # accelerometer and gyroscope are rotated into camera_optical_frame.
+    # IMU 토픽 발행은 선택 사항이며 영상 안정화는 내부 IMU를 직접 사용한다.
     imu_bridge_enabled: false
     imu_topic: "/camera/imu"
     imu_frame_id: "camera_optical_frame"
-    # Raw accelerometer+gyroscope synchronized output maximum.
+    # BNO086 calibrated accelerometer+gyroscope output.
     imu_rate_hz: 400.0
     imu_queue_size: 80
+    imu_max_batch_reports: 5
+    maximum_accel_gyro_timestamp_skew_sec: 0.003
+    maximum_timestamp_domain_delta_sec: 1.0
+
+    # stabilized_preview와 동일한 고정 기준 pitch/roll 안정화. 시작 후 총 5초
+    # 동안 카메라를 정지시켜 IMU 과도값 폐기와 기준 자세 측정을 완료한다.
+    imu_stabilization_enabled: true
+    # true이면 CAN, 주행 중 accelerometer anchor/nudge를 모두 끄고 gyro의
+    # cutoff 이상 진동만 보정한다. false는 기존 full-band+CAN 방식을 유지한다.
+    imu_stabilization_high_frequency_only: false
+    imu_stabilization_high_frequency_vibration_cutoff_hz: 3.0
+    # 0.0=영상 회전 보정 안 함, 1.0=추정된 gyro 회전을 전량 상쇄.
+    imu_stabilization_gyroscope_correction_gain: 1.0
+    # 수정 전과 동일한 full-band 자세 안정화를 유지한다. CAN dynamics의
+    # 종/횡가속도만 IMU 가속도에서 빼서 기존 가속도계 보정기에 전달한다.
+    imu_stabilization_can_acceleration_topic: "/vehicle/dynamics/acceleration"
+    imu_stabilization_can_acceleration_frame_id: "base_link"
+    imu_stabilization_can_acceleration_timeout_sec: 0.10
+    # CAN 차량 가속도 제거 비율. 0.0=제거 안 함, 1.0=전량 제거.
+    imu_stabilization_can_longitudinal_compensation_gain: 1.0
+    imu_stabilization_can_lateral_compensation_gain: 1.0
+    imu_stabilization_startup_discard_duration_sec: 1.0
+    imu_stabilization_reference_calibration_duration_sec: 4.0
+    imu_stabilization_calibration_maximum_angular_speed_degps: 0.5
+    imu_stabilization_gyroscope_bias_enabled: true
+    imu_stabilization_gravity_mps2: 9.80665
+    imu_stabilization_accelerometer_full_trust_deviation_mps2: 0.15
+    imu_stabilization_accelerometer_zero_trust_deviation_mps2: 1.50
+    imu_stabilization_accelerometer_time_constant_sec: 1.5
+    imu_stabilization_accelerometer_direction_gate_deg: 4.3 # 4.3
+    imu_stabilization_roll_accelerometer_time_constant_sec: 2.0
+    imu_stabilization_roll_accelerometer_direction_gate_deg: 4.3 # 4.3
+    imu_stabilization_external_reference_topic: "/camera/startup_ground_normal"
+    # The combined BEV launch overrides this to true. Keep false for the
+    # standalone camera launch, where no BEV reference publisher exists.
+    imu_stabilization_external_reference_required: false
+    # 주행 중 정지는 VESC measured ERPM으로 판정한다. 정지 진입은
+    # |ERPM|을 약하게 저역통과 필터링한 값을 쓰고,
+    # 출발은 raw ERPM으로 즉시 해제한다.
+    imu_stabilization_measured_erpm_topic: "/vesc/measured_erpm"
+    imu_stabilization_stationary_erpm_enter_threshold: 100
+    imu_stabilization_stationary_erpm_exit_threshold: 500
+    imu_stabilization_stationary_erpm_filter_time_constant_sec: 0.15
+    imu_stabilization_stationary_erpm_enter_duration_sec: 1.0
+    # 텔레메트리가 끊기면 정지로 고정하지 않고 주행 상태로 안전하게 복귀한다.
+    imu_stabilization_measured_erpm_timeout_sec: 1.0
+    # true이면 CAN 차량 가속도를 IMU에서 제거해 기존 bounded nudge에 사용한다.
+    imu_stabilization_vehicle_motion_compensation_enabled: true
+    imu_stabilization_maximum_longitudinal_acceleration_mps2: 15.0
+    imu_stabilization_maximum_lateral_acceleration_mps2: 15.0
+    # CAN으로 차량 가속도를 제거한 잔여 중력 방향을 저주파 persistent
+    # anchor로 사용해 주행 중 gyro drift를 줄인다. 빠른 반응은 아래의
+    # bounded nudge가 담당하며 anchor는 변화율로 제한된다.
+    imu_stabilization_accelerometer_stationary_only: false
+    imu_stabilization_moving_accelerometer_nudge_enabled: true
+    imu_stabilization_moving_accelerometer_nudge_time_constant_sec: 0.15
+    imu_stabilization_moving_accelerometer_nudge_strength: 0.15
+    imu_stabilization_moving_accelerometer_pitch_nudge_maximum_deg: 0.20
+    imu_stabilization_moving_accelerometer_roll_nudge_maximum_deg: 0.15
+    imu_stabilization_moving_gravity_anchor_maximum_correction_rate_degps: 0.50
+    # 평지/서스펜션 복귀 가정에 따라 gyro tilt를 시작 기준으로 천천히 누설한다.
+    # 작을수록 drift는 줄지만 오래 지속되는 실제 자세 변화를 덜 보정할 수 있다.
+    imu_stabilization_reference_tilt_leak_time_constant_sec: 4.0
+    # 1초 정지 확인 후 약 1초(약 3 tau) 안에 시작 시점으로 복귀하는 시정수다.
+    imu_stabilization_stationary_tilt_recovery_time_constant_sec: 0.35
+    imu_stabilization_online_gyroscope_tilt_bias_enabled: true
+    imu_stabilization_online_gyroscope_tilt_bias_time_constant_sec: 10.0
+    imu_stabilization_stationary_detection_window_sec: 1.0
+    imu_stabilization_stationary_accelerometer_norm_tolerance_mps2: 0.20
+    imu_stabilization_stationary_accelerometer_norm_stddev_mps2: 0.08
+    imu_stabilization_stationary_accelerometer_direction_error_deg: 1.5
+    imu_stabilization_stationary_accelerometer_direction_change_deg: 0.15
+    imu_stabilization_stationary_gyroscope_mean_maximum_degps: 0.5
+    imu_stabilization_stationary_gyroscope_stddev_maximum_degps: 0.8
+    imu_stabilization_pitch_correction_enabled: true
+    imu_stabilization_roll_correction_enabled: true
+    # 이 범위를 벗어난 불확실한 보정은 적용하지 않고 zoom-only 원본으로 통과시킨다.
+    imu_stabilization_maximum_correction_deg: 3.0
+    imu_stabilization_maximum_frame_imu_wait_sec: 0.005
+    imu_stabilization_maximum_frame_imu_age_sec: 0.012
+    # Tunnel IR has an independent timestamp lookup, without changing RGB.
+    # Enable/disable through auto_drive tunnel_ir_imu_enabled:=true/false.
+    tunnel.ir_imu_max_age_sec: 0.05  # Each bracketing sample <=50ms from IR capture.
+    tunnel.ir_imu_wait_sec: 0.10     # Hold new IR captures <=100ms for delayed IMU arrival.
+    # EXITING only: temporarily lower RGB exposure/gain, then return to AE.
+    tunnel.rgb_exit_exposure_recovery_enabled: true
+    tunnel.rgb_exit_exposure_max_hold_sec: 0.20
+    imu_stabilization_maximum_prediction_sec: 0.015
+    # 짧은 camera/IMU 매칭 실패는 zoom-only로 튀지 않고 직전 정상
+    # homography를 두 프레임까지 유지한다.
+    imu_stabilization_invalid_correction_hold_frames: 2
+
+    # 광학 중심 기준 고정 FOV. 이 crop으로 원본 경계를 채울 수 없는 자세의
+    # 프레임은 검은 영역을 섞지 않고 폐기한다.
+    fixed_view_zoom: 1.25
+    fixed_view_border_margin_px: 1.5
+
+    # Keep the full stabilized frame. Optional NV12 cropping requires an even
+    # pixel value.
+    output_crop_top_px: 0
 
     # Disabled by default while measuring direct camera performance.
     publish_enabled: false
-    publish_fps: 143.0
+    publish_fps: 70.0
 
-    # Standalone preview converts NV12 to BGR on the CPU. The combined
-    # The combined auto/manual BEV launches disable it and preview only the
-    # small GPU BEV.
+    # 통합 BEV launch에서만 켠다. 전체 영상을 CPU warp하지 않고, 원본
+    # rectified NV12의 아래쪽만 보정 행렬과 함께 CUDA BEV 단계로 전달한다.
+    # CAM_B/C 입력에서는 GRAY8 Y와 호스트에서 채운 neutral UV가 들어간다.
+    fused_bev_output_enabled: false
+    fused_bev_topic: "/camera/bev_input"
+    # 0.70이면 1280x800 중 하단 560행을 사용한다. 실행 시 변경 가능하다.
+    bev_input_bottom_fraction: 0.70
+
+    # 독립 프리뷰는 최신 NV12/GRAY8 프레임만 CPU에서 BGR로 바꾼다.
     preview_enabled: false
-    preview_fps: 143.0
-    preview_window_name: "OAK rectified image"
+    preview_fps: 60.0
+    preview_window_name: "OAK fixed-reference pitch-roll stabilization"
     preview_max_width: 1280
-    preview_max_height: 720
+    preview_max_height: 800
     # Draw a subtle source-image coordinate grid on the standalone preview.
-    preview_grid_enabled: true
+    preview_grid_enabled: false
     preview_grid_spacing_px: 20
+    # 기본값 "."은 ros2 launch 명령을 실행한 경로이다.
+    capture_directory: "."
+    capture_joy_topic: "/joy"
+    # SDL GameController 표준: A=0, B=1.
+    capture_joy_button: 0
+    # 컨트롤러 버튼 바운스·키보드 자동 반복의 중복 저장을 막는다.
+    capture_debounce_sec: 0.30
 
     startup_timeout_sec: 5.0
-    status_log_interval_sec: 5.0
+    status_log_interval_sec: 1.0

@@ -1,0 +1,4132 @@
+{
+  "schema_version": 1,
+  "partition": "train_calibration_only",
+  "selection": "deterministic proportional source/group stratification",
+  "seed": 42,
+  "source_manifest": "C:\\Users\\godld\\Desktop\\traffic\\line_detector\\training\\highres\\stop_line_0910\\prepared\\run_20260910_155954_960947\\train.json",
+  "source_manifest_sha256": "ec295b678a9b0a43acf0b49b538fc800020bf05754109124c408f65905c2780a",
+  "data_root_recorded_for_audit": "C:\\Users\\godld\\Desktop\\traffic\\line_detector",
+  "count": 512,
+  "composition": {
+    "stop_positive": 200,
+    "stop_negative": 312,
+    "by_source": {
+      "dataset_0908": 124,
+      "dataset_0909": 101,
+      "dataset_0910": 99,
+      "dataset_exception": 9,
+      "dataset_use": 179
+    },
+    "by_group": {
+      "dataset_001": 51,
+      "dataset_002": 142,
+      "dataset_003": 22,
+      "dataset_005": 71,
+      "dataset_006": 38,
+      "dataset_exception/dataset_009": 9,
+      "dataset_use/dataset_001": 33,
+      "dataset_use/dataset_002": 36,
+      "dataset_use/dataset_003": 36,
+      "dataset_use/dataset_004": 38,
+      "dataset_use/dataset_005": 36
+    }
+  },
+  "samples": [
+    {
+      "id": "dataset_use__dataset_003__1788767071836284150_000142",
+      "image": "dataset_use/dataset_003/origin_bev/1788767071836284150_000142.png",
+      "image_sha256": "9391cc557a1be95c4c01666bf8595f79523feae3e68d68b670c8678834dcadeb",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848380955548181_000017",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848380955548181_000017.png",
+      "image_sha256": "2de7c0b4c03bff2ba8b212a6e1699f9640a74f8bfc8c85b49b4767b492aac1c5",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848437530374952_000277",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848437530374952_000277.png",
+      "image_sha256": "413c281f2244279a7af45f1dc373c4e14e3cbf5e4de8ee21d257ad61e78a8df7",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020732320712225_000022",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020732320712225_000022.png",
+      "image_sha256": "a398d83e86cb5a1505be6aaa713997fd7b9ec36d4b9a14f2f3e26a2e7bf523db",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767475522727667_000078",
+      "image": "dataset_use/dataset_005/origin_bev/1788767475522727667_000078.png",
+      "image_sha256": "e98b0e95f98e03a18043a8c597f687c90a966b296d07b166f77e406ad648289e",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020757610670192_000026",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020757610670192_000026.png",
+      "image_sha256": "af131f51b67bcfd69322a275eaa4fc0ee4a105a09c1a297a2400cccb7ed0bb67",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921687529078662_000080",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921687529078662_000080.png",
+      "image_sha256": "d0ec38bf3efd9becc9a007c9144be6b60b4973d78b934f933e0a2da27e9f5ef6",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848719130624480_000109",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848719130624480_000109.png",
+      "image_sha256": "5f3d8e01eeb3c2704b0a3b52934e2b5128ada12aa8b3e12968c4304d431fe188",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767260295291297_000214",
+      "image": "dataset_use/dataset_004/origin_bev/1788767260295291297_000214.png",
+      "image_sha256": "e85e5ac5585532e56300a586810ef8fc5ef1d56371d45bb68fbb57e2e727ef43",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848461755546649_000388",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848461755546649_000388.png",
+      "image_sha256": "c088405620aab6a3e59c2b49898dedad18cbf47fa0197fd9421e3f642b1a4cc3",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767064536150904_000115",
+      "image": "dataset_use/dataset_003/origin_bev/1788767064536150904_000115.png",
+      "image_sha256": "aec4cbefa2f89660fc38fabacdeb941737d1b31fd80b242a90e0cc6a2734bcf9",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921276688375161_000022",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921276688375161_000022.png",
+      "image_sha256": "cb93ea4cabc575ac44b56663df8c23eed0b33b4ed532c86b587fa346a6aa32d7",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921777316386707_000115",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921777316386707_000115.png",
+      "image_sha256": "a373f9fb278f1358ecf9cae9a4de0e7d20e7e7e76d90e362aae2543776cd3fb8",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921476816338850_000014",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921476816338850_000014.png",
+      "image_sha256": "10d91ace83334b3c83f25550f316dfb94da70a421586679c325d155a33e756b0",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848388742991249_000053",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848388742991249_000053.png",
+      "image_sha256": "65dd8e66746b4840a03ced89fff610e1c858f5bf477391f1dc0cb1ce69151da5",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_005__1788849397874425759_000066",
+      "image": "dataset_0908/dataset_005/origin_bev/1788849397874425759_000066.png",
+      "image_sha256": "b29693f92c9efb49fea456de3962ccd41a533553a2920bbe1b9529fd9969dba4",
+      "source": "dataset_0908",
+      "group": "dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_005__1788849186477203212_000011",
+      "image": "dataset_0908/dataset_005/origin_bev/1788849186477203212_000011.png",
+      "image_sha256": "33bd49ae803865e45813516940c2ec50b4334e96e6939e1e5eb2782a50e80bde",
+      "source": "dataset_0908",
+      "group": "dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020730207053911_000021",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020730207053911_000021.png",
+      "image_sha256": "6893e87a72c0a5cdcc3c9383013edf4d672bf587d4cd6fc158345b8fc5ff1d22",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020388545628733_000090",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020388545628733_000090.png",
+      "image_sha256": "f49c489a3695084d8a6a94d1de5eedc43823d3a806572b500cf4a0d823559f38",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_005__1788849203614414332_000014",
+      "image": "dataset_0908/dataset_005/origin_bev/1788849203614414332_000014.png",
+      "image_sha256": "ba874598b4bc615fdb9f8a58831d993cb2046e8c9df2361aea0b9aae0d9d663f",
+      "source": "dataset_0908",
+      "group": "dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766927363972891_000090",
+      "image": "dataset_use/dataset_002/origin_bev/1788766927363972891_000090.png",
+      "image_sha256": "fc94b96d447e79ab9dc21e6a61416ad9f6f3faef11ba451036926fbb9a431d02",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847888426196263_000130",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847888426196263_000130.png",
+      "image_sha256": "f27c676d797888c3e6602ec62c9a55fc1bc6ae9a539ca7ec5d63c3bd499c9195",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767040073578679_000024",
+      "image": "dataset_use/dataset_003/origin_bev/1788767040073578679_000024.png",
+      "image_sha256": "174a5a20fdb67681ca6c8123de39ab2d0869b59c2235eeccb768fbb7057a780f",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020385857783753_000089",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020385857783753_000089.png",
+      "image_sha256": "2ae5fa006cd74dcac54daf328962d3fb14b1ad4bc4dd8e15442b0b1e4cb604c7",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921262213357002_000017",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921262213357002_000017.png",
+      "image_sha256": "b81deb62dffdefa60dcffd0994fafcf3d0da8c2f4a42b6121f5c7babcf3b487c",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766917901420300_000055",
+      "image": "dataset_use/dataset_002/origin_bev/1788766917901420300_000055.png",
+      "image_sha256": "5d78a2e53492d4aa33e89f310b1f4f5a62af8fc27d139fb8da68acc7a2a5d77f",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921602991352215_000057",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921602991352215_000057.png",
+      "image_sha256": "b5b4bac7be066bf2c6ae3babf1b13f397b2eb3c01fd90dcbe1c980d11b232e8a",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767208795912766_000022",
+      "image": "dataset_use/dataset_004/origin_bev/1788767208795912766_000022.png",
+      "image_sha256": "b4409078e6585307f5bdb2ff1534a8aeb847c353d51327178b80f7d6b336ba68",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921675916374490_000075",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921675916374490_000075.png",
+      "image_sha256": "010c3cb3ec769d10e9c484d843c629769928f4df97c618c57acfbe703f5161d4",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848706055264157_000049",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848706055264157_000049.png",
+      "image_sha256": "80dc421d2c1ebf53dca47796b8efa8454c3783f9014be232b45b83a5910c14f2",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020664765277200_000006",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020664765277200_000006.png",
+      "image_sha256": "7014f759c6fd57f8304eed4957c24849d227f22812994e28183d2adcc4ceef58",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848432980413129_000256",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848432980413129_000256.png",
+      "image_sha256": "4cae7e4674825bc4a33648488141843901888ce63a38331b8d70d9cef7871514",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767040886075205_000027",
+      "image": "dataset_use/dataset_003/origin_bev/1788767040886075205_000027.png",
+      "image_sha256": "ad562b5d101bcb4974f7ed05e599e132907b135a722ff296c0f5157245201167",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848436667870258_000273",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848436667870258_000273.png",
+      "image_sha256": "1aaac9ccdea454eb8485011838c42bf69d3e555a2497b22fd43e63fc2d4c403a",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767100311353389_000248",
+      "image": "dataset_use/dataset_003/origin_bev/1788767100311353389_000248.png",
+      "image_sha256": "03b5b3363d4b518f73dcbcf9735a52e1b1d713c97948defdcd79b5572a798fa4",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767239358012768_000136",
+      "image": "dataset_use/dataset_004/origin_bev/1788767239358012768_000136.png",
+      "image_sha256": "73fd7d4b096ed6e48f806574ae2a28e2a4537c2bc8423b9c1dfc5615b464cbdf",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767049473621936_000059",
+      "image": "dataset_use/dataset_003/origin_bev/1788767049473621936_000059.png",
+      "image_sha256": "a167c535c3f28fe3f7c78a17fc7aaf55c064114d83b78320f50af663d6bc33cb",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921701341444973_000084",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921701341444973_000084.png",
+      "image_sha256": "9513d354f86319a570b5c26c16c73241b60c303fe16d58b27c8ee4cf73c8e7a4",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_exception__dataset_009__1788771356011839563_000032",
+      "image": "dataset_exception/dataset_009/origin_bev/1788771356011839563_000032.png",
+      "image_sha256": "625780ffd9e672b79cb0cefc7cb1b88c58fa13f738b91504edb389f63ded0e11",
+      "source": "dataset_exception",
+      "group": "dataset_exception/dataset_009",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767487322617362_000122",
+      "image": "dataset_use/dataset_005/origin_bev/1788767487322617362_000122.png",
+      "image_sha256": "c2ed72d91424cafeaab7e6f0357bbdab9b9d1d4485742423add2e5937eaed9e2",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767044111076426_000039",
+      "image": "dataset_use/dataset_003/origin_bev/1788767044111076426_000039.png",
+      "image_sha256": "b92ab8cb8c69aca89ead71f66b4f6c696650c8782bb0ea03244ec39596473a36",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921470553876818_000012",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921470553876818_000012.png",
+      "image_sha256": "3339ec7a9325f69d40f2d2abdcfc6e84acd588fe0437ec942ea452a412d9f07d",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848471105500574_000431",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848471105500574_000431.png",
+      "image_sha256": "823af4a49f6ba6616020b5b3fe848b6a44e605fae5e74f01e5055f35a264739e",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766906351314372_000012",
+      "image": "dataset_use/dataset_002/origin_bev/1788766906351314372_000012.png",
+      "image_sha256": "ffc5a9ec94f3ee097cd9556ce81e3ad3a4d766d1bf614081db779b136add010c",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767494885067270_000150",
+      "image": "dataset_use/dataset_005/origin_bev/1788767494885067270_000150.png",
+      "image_sha256": "2115aeaeccf2f24e68373c79ba05b40ce2da8b1304ded4e43cbaad0926a3ec70",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848407905392656_000141",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848407905392656_000141.png",
+      "image_sha256": "5951cd402c35a7a05b3b96736db3c7034cbaf241b6da95058bffbda23700be25",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767505072561326_000188",
+      "image": "dataset_use/dataset_005/origin_bev/1788767505072561326_000188.png",
+      "image_sha256": "a5a859e9db40a825e47aca8fb58fd3e57a79c1f1b6a252a06a7739c15f32a1b9",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921220550841086_000004",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921220550841086_000004.png",
+      "image_sha256": "cd64f786d6017886d6ca119f2869c32445627a6c3a3b75c611dc6056f6f5f505",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921570166368979_000046",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921570166368979_000046.png",
+      "image_sha256": "628db0473f26b51e3fd71afe642a63a9f1adb41c173c0155403901d642c80a4d",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_exception__dataset_009__1788771292761253331_000013",
+      "image": "dataset_exception/dataset_009/origin_bev/1788771292761253331_000013.png",
+      "image_sha256": "3e922f9905332d7c51e3d193d40ac3363cc80666138feeb5a694551739f16758",
+      "source": "dataset_exception",
+      "group": "dataset_exception/dataset_009",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767498935065636_000165",
+      "image": "dataset_use/dataset_005/origin_bev/1788767498935065636_000165.png",
+      "image_sha256": "c70fe2c1cf471351f89d83ee8eb775f758380033a24b11ac28d31a27b7d67b1a",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020209375803977_000033",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020209375803977_000033.png",
+      "image_sha256": "552ebd567b8ed96ca4ad7fbd87c71581462a65305063eb66dcec676d6382e679",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921604828856286_000058",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921604828856286_000058.png",
+      "image_sha256": "a887b6835521b52977fb108c9f71603abb0d090baf7ad95de7aa0ae66013a1af",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921632616387043_000069",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921632616387043_000069.png",
+      "image_sha256": "db6f1c69307412b82c3924dba719633cb9fed6ab4260791366548a80ba89466f",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766933551548399_000113",
+      "image": "dataset_use/dataset_002/origin_bev/1788766933551548399_000113.png",
+      "image_sha256": "649774ab16239ac2ed4c1b4f0a233f1a5d174def09da4e7a46752741329a0290",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020350606609899_000074",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020350606609899_000074.png",
+      "image_sha256": "df1edef30a0a25f1001f802b784af0bd27306505cfc8298643ac65e41f9f69ae",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847614938638175_000078",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847614938638175_000078.png",
+      "image_sha256": "120a23029db3ef7ccfa7f01d6a62baa92a8d5ece6a4de878a078017f0101f57e",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767207445921254_000017",
+      "image": "dataset_use/dataset_004/origin_bev/1788767207445921254_000017.png",
+      "image_sha256": "e57ec0a80f1dc3ccc5fc337b2cd92f23af7877c27ae0661b2eae5a10914c1d26",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921738228907666_000099",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921738228907666_000099.png",
+      "image_sha256": "6852428db3c1d4c79e8afd5bf833b9ff9fb3bde2949accb1f0356783319fd24b",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766959564155122_000210",
+      "image": "dataset_use/dataset_002/origin_bev/1788766959564155122_000210.png",
+      "image_sha256": "b34e905217b014abfb0b2cc0c7c899ec70ba8fa94612c9a57aba51b9cf0f0151",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767214983413450_000045",
+      "image": "dataset_use/dataset_004/origin_bev/1788767214983413450_000045.png",
+      "image_sha256": "849114cef50d962f9c76883c69592f6a5dd0f3b7bbca832dd6ba24a649b81901",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020659347000916_000003",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020659347000916_000003.png",
+      "image_sha256": "940404fa60c4428d97827645deec1d91f7393988eea220131f5062a5b8f64a71",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921634591384789_000070",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921634591384789_000070.png",
+      "image_sha256": "9ab93ae41def668739a1d92772b9da6efa2329d7f3bbaa4cb0ecca7e4a3c7ca2",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848422567901096_000208",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848422567901096_000208.png",
+      "image_sha256": "84ee789b44001958a53b2b6774171fd185f1de57d2a19cb806204a0790b36a9b",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766952239108077_000183",
+      "image": "dataset_use/dataset_002/origin_bev/1788766952239108077_000183.png",
+      "image_sha256": "10520a4019e5696f8e06378b28fda048a8364b0470d07d9e2ef81f110376a08b",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_exception__dataset_009__1788771487512850376_000057",
+      "image": "dataset_exception/dataset_009/origin_bev/1788771487512850376_000057.png",
+      "image_sha256": "ce0db5e5b332ebd0d5d9ae58e6453119e6c157f78b2b2033bfb18fdd46d1445a",
+      "source": "dataset_exception",
+      "group": "dataset_exception/dataset_009",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020308792123775_000063",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020308792123775_000063.png",
+      "image_sha256": "16edaee21bb6c3166a5d25f66e532cfdd7eed67b478a009f93dc3edd085c2abe",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766790036335748_000004",
+      "image": "dataset_use/dataset_001/origin_bev/1788766790036335748_000004.png",
+      "image_sha256": "5693965c95e0e53f0a53bf67635a15d6ae687e7cbdcbc4ea20028599d95a81e2",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767208520916571_000021",
+      "image": "dataset_use/dataset_004/origin_bev/1788767208520916571_000021.png",
+      "image_sha256": "f4a9c17f367536dcc4ecb2191ff566e74e1cbe4fc9fa43ec2cc801f3363d8909",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766817173879304_000105",
+      "image": "dataset_use/dataset_001/origin_bev/1788766817173879304_000105.png",
+      "image_sha256": "bdbc28e169d38e6ddf3344a35cf635aba6b7afa0b92e6fd3176cc25bcc418102",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848432542911694_000254",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848432542911694_000254.png",
+      "image_sha256": "b8587610039ad4ec908393b6e4882255b76dec3ce87474daddfbaf12076a117c",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020249090065866_000045",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020249090065866_000045.png",
+      "image_sha256": "3145f481d39c3c0463ec2eda396511399bbb671be6dfd14a4234a60faba4c5f3",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020816486439357_000043",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020816486439357_000043.png",
+      "image_sha256": "dd049b0989afd766bd80fb60235011a1e089475c85262a9282b59ac154ea3419",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766940176523187_000138",
+      "image": "dataset_use/dataset_002/origin_bev/1788766940176523187_000138.png",
+      "image_sha256": "fc76274f66166fed93b32fdf5eda384be420d99b91a57bbb1899b5ac309bf59f",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848386805493811_000044",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848386805493811_000044.png",
+      "image_sha256": "46c8d151d6b2170e59c38505245fe8bf0a31000c6db88f75a3bd9694f964221c",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767046536121573_000048",
+      "image": "dataset_use/dataset_003/origin_bev/1788767046536121573_000048.png",
+      "image_sha256": "fdd40d8574b5b1c6bd0658112c631580bc23b1edd6d39c474b4da6801ff7c20b",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767053223615447_000073",
+      "image": "dataset_use/dataset_003/origin_bev/1788767053223615447_000073.png",
+      "image_sha256": "b7a0989beb7ef21de4e4aa8e2bcea2c2a7a2dd9f3bfef6c6fa789092c1a9ccba",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_exception__dataset_009__1788771262836108369_000005",
+      "image": "dataset_exception/dataset_009/origin_bev/1788771262836108369_000005.png",
+      "image_sha256": "2c247bd29c6e0a32dfb4f487e5e0d0eb023f6671234fc8e2f458d84af36638ee",
+      "source": "dataset_exception",
+      "group": "dataset_exception/dataset_009",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_005__1788849231938859046_000021",
+      "image": "dataset_0908/dataset_005/origin_bev/1788849231938859046_000021.png",
+      "image_sha256": "6330c3e25a5afac415da51695ea950b3fcb4ecfcb6d38638bb6c38b5b4181327",
+      "source": "dataset_0908",
+      "group": "dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020238276674497_000040",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020238276674497_000040.png",
+      "image_sha256": "6fbd01f9d33136fed64a00e617b1134f324cf302b1dc0bcdc3e2008fd08b95bd",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848472205497542_000436",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848472205497542_000436.png",
+      "image_sha256": "38e95d887ef183f965dd8d6a886a7bf04108ffdeaa598872834b7a8162a969ea",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767235058075691_000120",
+      "image": "dataset_use/dataset_004/origin_bev/1788767235058075691_000120.png",
+      "image_sha256": "0eccd7cf3ca9ddf0b8fab861e3bb9cb9535373c983d5d7577ba667c0731897c3",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921244838364176_000012",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921244838364176_000012.png",
+      "image_sha256": "585cab7c46eb8f57735c42cadeb26115f512e142cf18373262e64e7c928c3ab4",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921270525825600_000019",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921270525825600_000019.png",
+      "image_sha256": "45c8eef2b3f1936e605e73a362ebf22e76f314bbb8a610c5309871faf076f7de",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921533178886747_000028",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921533178886747_000028.png",
+      "image_sha256": "67e6fdd3f426b1a1c8012072e7254211689a2acd67442e6ef6e65e55e45d1c5a",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848471330494676_000432",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848471330494676_000432.png",
+      "image_sha256": "0508d01af261f5a00425969b25bfcbdc2929cff44bdcefe6328a12f07c03c22e",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847828473325865_000116",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847828473325865_000116.png",
+      "image_sha256": "95096a44aa481f59548ba68605826cf7edb4ca5818896615535e155200a3276e",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020294891881648_000056",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020294891881648_000056.png",
+      "image_sha256": "de8f744310ae284796832b51a7b1f0c00b85cd44345048f08a404654f3037919",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848483455586697_000488",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848483455586697_000488.png",
+      "image_sha256": "080b6094eba8304716159b29001babb6c77628d968102f58fc467742de920706",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848440817905154_000292",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848440817905154_000292.png",
+      "image_sha256": "5594d80f78c0f3fbef3e0ffa72e4198c10811da02125326305793bf9a531b8bd",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767260032792493_000213",
+      "image": "dataset_use/dataset_004/origin_bev/1788767260032792493_000213.png",
+      "image_sha256": "f4cdbacc5358c488c8f5d7dc26751dc84d060e55d0393c4d90f1c6ec8ead4bf8",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848695467677328_000001",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848695467677328_000001.png",
+      "image_sha256": "cbde061726602354cb8f30e8e47d9f28d6e2b001e6f056c8dfd6c07845c9d7ca",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020319592763987_000067",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020319592763987_000067.png",
+      "image_sha256": "2bfd96e535051bd8cdbaa390a477e7903309ee3d859a8adc6704308cba4f2c16",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767231295579731_000106",
+      "image": "dataset_use/dataset_004/origin_bev/1788767231295579731_000106.png",
+      "image_sha256": "904b621e95d3c072c4e164d3dc84624c0c85a12a4b444481876b57f2c79477be",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767249295406303_000173",
+      "image": "dataset_use/dataset_004/origin_bev/1788767249295406303_000173.png",
+      "image_sha256": "54b483d56b7facf8829613cdaf241ade6d71ea7cc080372b07b9c438115e7059",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020804974015878_000040",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020804974015878_000040.png",
+      "image_sha256": "0e311b6c71b327b00ddf90d6e922948b1dc3ec2149b3543d42ee59113699323f",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848479330611562_000469",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848479330611562_000469.png",
+      "image_sha256": "87152fadf5db2ac2f4761d4525b4a903420508724b0add3dd60c8d32ca50937b",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766903388815595_000001",
+      "image": "dataset_use/dataset_002/origin_bev/1788766903388815595_000001.png",
+      "image_sha256": "b7f3621deada064523297f2ac624fce203a299636a67aecfd163873420c71499",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767265707736117_000234",
+      "image": "dataset_use/dataset_004/origin_bev/1788767265707736117_000234.png",
+      "image_sha256": "a97d101260d5ade8a5a70ad0a7e8612486561d48366e3b4e053a05a8001cf3cf",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766792736337976_000014",
+      "image": "dataset_use/dataset_001/origin_bev/1788766792736337976_000014.png",
+      "image_sha256": "a2dc3ae716e656aad0ac5134dabdd8681146fe9b11cb667e9116faebc7f3f321",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921348275893939_000037",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921348275893939_000037.png",
+      "image_sha256": "806f37d13fc1433248f63d14c579d2f1d8e33cb82cd303d115afc087af225d68",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767204783510446_000007",
+      "image": "dataset_use/dataset_004/origin_bev/1788767204783510446_000007.png",
+      "image_sha256": "257ed15bf281f1d2ef0e54372c15aed75cde9bf1867c9901d0b2ba5d46f5d4ee",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767455997849307_000005",
+      "image": "dataset_use/dataset_005/origin_bev/1788767455997849307_000005.png",
+      "image_sha256": "13f4134d4e3f4afcc98aed893abce3dad4eafd9e4012a873ee3cf1c9df2bdd19",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848723518118587_000129",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848723518118587_000129.png",
+      "image_sha256": "691de41fa702e540d037907f8788d06a7e293f2bf29466ab7ecc5c5c18d8cd0f",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766961714155902_000218",
+      "image": "dataset_use/dataset_002/origin_bev/1788766961714155902_000218.png",
+      "image_sha256": "e5fd2178a158537aa853830aaea82d861016877765a75d50ef3903a849c3657d",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766927088970983_000089",
+      "image": "dataset_use/dataset_002/origin_bev/1788766927088970983_000089.png",
+      "image_sha256": "91f2b4459b1cfbef87c4add759040cf4655d822b025693f8b40fc675289e5b3e",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_005__1788849256250958178_000028",
+      "image": "dataset_0908/dataset_005/origin_bev/1788849256250958178_000028.png",
+      "image_sha256": "e1d4ee3fe2c90d428ef76b15f0900ae31a8a1ed0ac4752e75ab7514602b5122e",
+      "source": "dataset_0908",
+      "group": "dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921756378873580_000106",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921756378873580_000106.png",
+      "image_sha256": "db20def0eff5a62fc94e0bd5c4aa9fe731a9c53cd239006f3b7e6a09a210d21b",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020306954623369_000062",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020306954623369_000062.png",
+      "image_sha256": "76537a91e236faa1238d1358cbe7fc02919d3be6faef246b444d22e113c28484",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766914913867750_000044",
+      "image": "dataset_use/dataset_002/origin_bev/1788766914913867750_000044.png",
+      "image_sha256": "0db26e4fc1b0745f28aaed0cd145aba021052b29ced08a568de3f7d8aacc6203",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847488332938972_000051",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847488332938972_000051.png",
+      "image_sha256": "85f2ba1f8283d7df0902d1f9ee44a70854a724b31703a48b08947ea248735173",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020657634498541_000002",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020657634498541_000002.png",
+      "image_sha256": "0ad833c4878241c3284dc4d100d100932f5fdd9bcd1ce8abf659acbe30780928",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766928988964993_000096",
+      "image": "dataset_use/dataset_002/origin_bev/1788766928988964993_000096.png",
+      "image_sha256": "ec937043aae8fa27e69dbb08043f9369a0258cf5b440fa96afffedcbd08e64b3",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767223045711263_000075",
+      "image": "dataset_use/dataset_004/origin_bev/1788767223045711263_000075.png",
+      "image_sha256": "8610450ffed2f6f9094e2a9883e39dce7dcce6ef77671666b75fd7704bcc1ae5",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766926813969130_000088",
+      "image": "dataset_use/dataset_002/origin_bev/1788766926813969130_000088.png",
+      "image_sha256": "df3b02d6306ec6e3ec3e6179520ed3b0c5dcbcba7a78dadb3325ef3f4c20f933",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767483035174065_000106",
+      "image": "dataset_use/dataset_005/origin_bev/1788767483035174065_000106.png",
+      "image_sha256": "1bf1547a15ecfc05204cccbe19743d92397996b7db01566cafc4edd3756f306e",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766834486553858_000169",
+      "image": "dataset_use/dataset_001/origin_bev/1788766834486553858_000169.png",
+      "image_sha256": "98fe455eb4c06a075eb26105fefd43a6407d41b86c3b34c8170f1424ff3a0132",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020170161664736_000021",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020170161664736_000021.png",
+      "image_sha256": "807a33b506485a134722489794e5c577e8abf6dbd5f7c2ffbee95d9bfd129436",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020279466222270_000048",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020279466222270_000048.png",
+      "image_sha256": "61f82d911b4c2a63c732b6072f78de5ffd1efa0cd0900e3ab859d70e45f12b4e",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766827186569038_000142",
+      "image": "dataset_use/dataset_001/origin_bev/1788766827186569038_000142.png",
+      "image_sha256": "95ddcb72e142bedd6c488069216bf0ed775b034ec45ca2f985f40af933a68ec7",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020301566870638_000059",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020301566870638_000059.png",
+      "image_sha256": "d11fde0a1f8aa50ca68c82e89887997741ea8b154dd1d70facd3c4f6ba8a3283",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848458930474763_000375",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848458930474763_000375.png",
+      "image_sha256": "28e2fcd046a918b72b94aa2f409fe52972f8b52b9ed1cf67cded33f43802e104",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921562928857834_000042",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921562928857834_000042.png",
+      "image_sha256": "3830b930e44f7dffa2d6efb730096b48c9465fd20ceac419d5b1610388f3917f",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020717893457263_000017",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020717893457263_000017.png",
+      "image_sha256": "1aa62f87692030b3e63262c9fa8d1110745e6d68f9c69daa1fca05baa388cdd5",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921515591366215_000021",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921515591366215_000021.png",
+      "image_sha256": "88950b5e7c16439205033c738339303d57010161611f01bf42b14e309c3b4da9",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848451780435458_000342",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848451780435458_000342.png",
+      "image_sha256": "51f0591bd1b6a39fe84f63633b68cc7bafa0162bcf79e37f86ae67cb409dc88c",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921337900893106_000033",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921337900893106_000033.png",
+      "image_sha256": "a4dc0edbb1c823c978bae31119d5497bda939e848dbb0f58fabb61f339bf8b95",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020837348883937_000051",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020837348883937_000051.png",
+      "image_sha256": "62613d9bd34586063d886d81eded09a9a3175d300080fb5c8b8da723bb45ff42",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767261632796751_000219",
+      "image": "dataset_use/dataset_004/origin_bev/1788767261632796751_000219.png",
+      "image_sha256": "595dc3dc837d751d6a78a3edb3b84d4e329dfa1b597ef76695880e8f3106086a",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848466980539328_000412",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848466980539328_000412.png",
+      "image_sha256": "b6d20de5af5dfa178dcf881a4d65e12237a088d0792db7cc8ed168663b8fee97",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848417105445982_000183",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848417105445982_000183.png",
+      "image_sha256": "b1a6308cd7b735750fef712d704dc381bc573048db5aa4ee34192a019b45a1af",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766919801426873_000062",
+      "image": "dataset_use/dataset_002/origin_bev/1788766919801426873_000062.png",
+      "image_sha256": "fd5bbfc30f1d9f15e297f1cd511208b149df8476bec88ff4699fcb594f9d5a3f",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020342831220813_000070",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020342831220813_000070.png",
+      "image_sha256": "b281ef05fc07aebca346fabdecfa4428bc6c6b42447fa4f22311241f2ece3479",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020755348168719_000025",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020755348168719_000025.png",
+      "image_sha256": "89a062bcd9a0aac18d3922c7c7be6ea57b78236a6ee9ee9763b1722c91f10d84",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020769298654139_000032",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020769298654139_000032.png",
+      "image_sha256": "fdb9ee0f13d5bc007eda996ef77c44051cf260bd06c9f1ca4272640f41cc7732",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848438192873215_000280",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848438192873215_000280.png",
+      "image_sha256": "6d4f313d7be8a5c6bcb2fdf2228869642f32407b1edd6489cfc061bd392e9a90",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020140685399724_000008",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020140685399724_000008.png",
+      "image_sha256": "4e74023363a9fb8cdcd70bab9cc79774fc8020ae82ee3c2bd33b12eef2a70095",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848719355623718_000110",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848719355623718_000110.png",
+      "image_sha256": "87c5685eef620cae3fe9d38687bad8234b7e7ced0acfc54daf052725b9e84273",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766838486551170_000184",
+      "image": "dataset_use/dataset_001/origin_bev/1788766838486551170_000184.png",
+      "image_sha256": "5036e580c3bb0e98c50abf4d133844c7e02046f908a735fa6fa691b2312ee1f5",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921763653889273_000108",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921763653889273_000108.png",
+      "image_sha256": "3f78cd8568cdee2738bdb84737cf7108cb541ef3a954fd751afe5d0ee3942bbc",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847820210528320_000114",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847820210528320_000114.png",
+      "image_sha256": "5ca5c490d7f6400531f6dd863083f92ace43bde604e80f5e4fb53e82bd1c3a80",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_005__1788849404724468331_000070",
+      "image": "dataset_0908/dataset_005/origin_bev/1788849404724468331_000070.png",
+      "image_sha256": "eef1f0b4da1788424466d6717c5c64f4adbaa32c11da75d7cc2fc9d0e0c1cbf8",
+      "source": "dataset_0908",
+      "group": "dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767060748629900_000101",
+      "image": "dataset_use/dataset_003/origin_bev/1788767060748629900_000101.png",
+      "image_sha256": "f648969e67ecfd61b9bb85c0d3e3d39187d17a01d3a8b760a1387f8e218ba605",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921771091470704_000111",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921771091470704_000111.png",
+      "image_sha256": "eae5d6a9690112224db87be9552fa8469a150c79398408b05670a529d5edc761",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847833561255887_000118",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847833561255887_000118.png",
+      "image_sha256": "1e6f03ceabc0eab21c88eaaff5872be08c050f1abe817fe85d4be2b943912949",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921438253783014_000003",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921438253783014_000003.png",
+      "image_sha256": "d3d22ffa0690fc807ad216ebb1e8156e6c6c67406c276666cf236d785b413e1f",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020144110729913_000010",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020144110729913_000010.png",
+      "image_sha256": "81cd5ea0fcf6610eb1a749dd59494e67b30d193f5f671ebb3a0ed3def92339d5",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766941776632904_000144",
+      "image": "dataset_use/dataset_002/origin_bev/1788766941776632904_000144.png",
+      "image_sha256": "0061c3611aad79ae3bb40ff32aeb52291825d8976f970b9c87b13ee1859b527f",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921724441419239_000093",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921724441419239_000093.png",
+      "image_sha256": "d4627571c799d3a5358e43cc698877fa7c7772b1a86611e43045608298eff0bc",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020376169956913_000085",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020376169956913_000085.png",
+      "image_sha256": "65f805ac21e4842f5e078f94b24d3974b809d236a354983362865e03ced9b54d",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020167824170913_000020",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020167824170913_000020.png",
+      "image_sha256": "f8c880590f813132c69502658509bb0f8a0d8cbf16ab933e0dd9b7714ad75b15",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921677491389185_000076",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921677491389185_000076.png",
+      "image_sha256": "c457b79495768ef671a0a9a8d5dc56a5e1955f01c95057d2d3257a98db8fafbd",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848705842765012_000048",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848705842765012_000048.png",
+      "image_sha256": "20b46b4950262d47c34028c146aa7580fb2b5a625bf10a5739d1f45f3664b3bf",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848716080522491_000095",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848716080522491_000095.png",
+      "image_sha256": "56701d5843b5165074bcde32b70b2d4dad98f1ccc0d610234af5e2c10329d8df",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767507522518026_000197",
+      "image": "dataset_use/dataset_005/origin_bev/1788767507522518026_000197.png",
+      "image_sha256": "968fd85446b94f79178943ffb6370d6ddb97dc5b87fe40ecea9c1602ed488b13",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921329213423187_000030",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921329213423187_000030.png",
+      "image_sha256": "928463b23a997f7bd786ff9eb332821505b8437b038b7c8b8252a9652087b5c0",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921598066394235_000055",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921598066394235_000055.png",
+      "image_sha256": "1471e9d1035ebcf720e652b873955bed9ebcd2caad380515c38fe933d802e376",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767100048861693_000247",
+      "image": "dataset_use/dataset_003/origin_bev/1788767100048861693_000247.png",
+      "image_sha256": "68cd8ee9c61edfa79cb39e5e02a7754555cbaa8b5327e012f0616e27251c708d",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020673868784887_000010",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020673868784887_000010.png",
+      "image_sha256": "d684ae1fea6ff23a014e23b4c8e743a68391eaf2d89a933da34265ed670bcf52",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848702980270544_000035",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848702980270544_000035.png",
+      "image_sha256": "c02f2ccfee6d5414fc1aa0d6cd614ef195e85ee7e7e5d3c95f54ed7823fa57ed",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766836086546907_000175",
+      "image": "dataset_use/dataset_001/origin_bev/1788766836086546907_000175.png",
+      "image_sha256": "030cee088312a23afb5bf8f547b457fb5dfc4bc6299581de5989dddfb6250a8a",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767065073650649_000117",
+      "image": "dataset_use/dataset_003/origin_bev/1788767065073650649_000117.png",
+      "image_sha256": "05cf020c6bb22405e8096dc13ec77404d1ef8b7ca926c29f36e2859f8957f50f",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848392030415901_000068",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848392030415901_000068.png",
+      "image_sha256": "e92711f3c63d42174f01e39bc45d4248a42696fe43e59cd1f035ca8291536002",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921630453883955_000068",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921630453883955_000068.png",
+      "image_sha256": "fe26ef1634de92461ee7facc3ea71c85555446acaaefd0db0601e3f9181352e9",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766914101368701_000041",
+      "image": "dataset_use/dataset_002/origin_bev/1788766914101368701_000041.png",
+      "image_sha256": "3a53d1bd2f4dcd97ec100da292719ad4175ab735ffda447d7a00800546bbf21e",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766790848838067_000007",
+      "image": "dataset_use/dataset_001/origin_bev/1788766790848838067_000007.png",
+      "image_sha256": "7d9e65892ddc89b89edce9bae1b1134e7fd349f467afff6a5496487bf7d1878f",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767460810256654_000023",
+      "image": "dataset_use/dataset_005/origin_bev/1788767460810256654_000023.png",
+      "image_sha256": "f5112c97444fb137cac57cd5b1db7433d4258a413985d2c51f28079a240dff38",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_exception__dataset_009__1788771502100494375_000060",
+      "image": "dataset_exception/dataset_009/origin_bev/1788771502100494375_000060.png",
+      "image_sha256": "772f500737ee91c12ff0a44df50a2af10b3d69e73389ac7ac72b18ff412b53e2",
+      "source": "dataset_exception",
+      "group": "dataset_exception/dataset_009",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847566711463583_000067",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847566711463583_000067.png",
+      "image_sha256": "9c1fea23d9508da771124902c09e09dd734e773397ae79d409a49e57b8f060a7",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767207970916773_000019",
+      "image": "dataset_use/dataset_004/origin_bev/1788767207970916773_000019.png",
+      "image_sha256": "c8be4fbefbb6534e436a43e82129591e975006f9fa94c559cf1da4b4ed06044f",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921484503786714_000018",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921484503786714_000018.png",
+      "image_sha256": "03862d9e2b56ad261b5ab7e8409732ce5964e623596b5d56b79257d2772cf52c",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921365551127659_000044",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921365551127659_000044.png",
+      "image_sha256": "420c1345e7830d0c72343e7621e1c7cd836685662a8f2a7317ea1e46d8b295ea",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767048936120568_000057",
+      "image": "dataset_use/dataset_003/origin_bev/1788767048936120568_000057.png",
+      "image_sha256": "50f700f9bff29117dd3f21a2f15460d6fe48cf2d6d73ec3266dcc5588df2c319",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766920076418263_000063",
+      "image": "dataset_use/dataset_002/origin_bev/1788766920076418263_000063.png",
+      "image_sha256": "d8cf37720153224340b2361a51fc8a0efb076daa42b2db7fc48c633939d6b312",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020145748226351_000011",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020145748226351_000011.png",
+      "image_sha256": "154695c46c9716c195a80710afe42cea5d2261f4d7a5289b07f1233fe564de42",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848401192918115_000110",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848401192918115_000110.png",
+      "image_sha256": "cfef8ee9b5454d071c22cf2bf9b26b133adcf8282865108fb8e3048ddd72ba08",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767495947567731_000154",
+      "image": "dataset_use/dataset_005/origin_bev/1788767495947567731_000154.png",
+      "image_sha256": "379a1c372111f713b28313f07acfa8fcb8b073cac1141202426db939d28aa09c",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020226901471234_000034",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020226901471234_000034.png",
+      "image_sha256": "36f804bf9d3c148fb3e8bde0b5db8850a0219f59ec1aa19a2969bbb46a4f8870",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921612191355670_000061",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921612191355670_000061.png",
+      "image_sha256": "0ea1254ffe711cc9163d812002e1ba2f0a298ba877ee424bbc889f14df95caf7",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921610491358521_000060",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921610491358521_000060.png",
+      "image_sha256": "5e1a0aaad24daf3008dd37cf1763c39ade6ae6d77328a82c6f3e660c0d674354",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020147935723313_000012",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020147935723313_000012.png",
+      "image_sha256": "7dada2d284b59b6c3c8f425320ca33731eef4fd7a7ad88e5bdeb9c51fce3b3fe",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921487791281718_000020",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921487791281718_000020.png",
+      "image_sha256": "681e685e56403c04f150b23dc721f389b87d93e79f790f512f318dc2c1de792f",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767468822725399_000053",
+      "image": "dataset_use/dataset_005/origin_bev/1788767468822725399_000053.png",
+      "image_sha256": "8132ed68a5521f84abf29b8f835f31b5a655fc5df946478b9e608dc95b19432f",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848718055621467_000104",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848718055621467_000104.png",
+      "image_sha256": "682e97a9a8f2729b20e976371c7169a663cd0f066e1567e5a2d7da47a366c140",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848454605481193_000355",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848454605481193_000355.png",
+      "image_sha256": "3e84783d1dfe6b9260d3b7869b5f1fdde4704ced662156838365e43c93f0ba73",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921614203854778_000062",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921614203854778_000062.png",
+      "image_sha256": "aafef818117f1073f29fd2b6eafdff510355bcf55895209117917583d8a2828a",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766799423832556_000039",
+      "image": "dataset_use/dataset_001/origin_bev/1788766799423832556_000039.png",
+      "image_sha256": "b43991c3589237af0d3c060b601d64081e05506a0dd957a50b014847a61e8f6d",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848461105548043_000385",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848461105548043_000385.png",
+      "image_sha256": "1cc1c12371fcb8181e6b31d3a264da91d085816e294be148e8d6db4dbd5908ff",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020795936710954_000037",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020795936710954_000037.png",
+      "image_sha256": "1b0c425b62e46852f5a57ef45c001e571acb3dc939fbb26c1c2e766ca5d39c6e",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921278825874438_000023",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921278825874438_000023.png",
+      "image_sha256": "36a937cde81e6bed4b07684692e84eb0a2af7c6bbd99768f0b0ac13b06edb1c7",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921568291367613_000045",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921568291367613_000045.png",
+      "image_sha256": "bda4a690cc778c9fbf2b6a68eb777dacf3ed72b8d335a8ad17cf398826ff10bc",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921626503880687_000066",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921626503880687_000066.png",
+      "image_sha256": "219f2fa348e8b654b86ac528307ae0e28b6013b6ffb1c287e90caef98a2639c5",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921242463324150_000011",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921242463324150_000011.png",
+      "image_sha256": "e0cbba7443a00d21cbc202fbd952f0d5787b42782a29182ce385399ac4c899c2",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766957364158881_000202",
+      "image": "dataset_use/dataset_002/origin_bev/1788766957364158881_000202.png",
+      "image_sha256": "890ee48956ac7cec128c0354d7c4a836a09d401a7c645d6869bef07911276091",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848381168042544_000018",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848381168042544_000018.png",
+      "image_sha256": "80aa6fdccd44f7225a21eb75e36d03140697dc781230c499a373e06745e4b8d0",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020675768784518_000011",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020675768784518_000011.png",
+      "image_sha256": "a3a74c9d05a89ae1eb284ebf415d91b2d2ba6f154d63e4a8b638f12770dd9ed7",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766914651368504_000043",
+      "image": "dataset_use/dataset_002/origin_bev/1788766914651368504_000043.png",
+      "image_sha256": "7c783f3c1037680d5dc7221efe1e9d653b9008578e90c82b426fd4fb397a2400",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020766911155611_000031",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020766911155611_000031.png",
+      "image_sha256": "55c46bc18d562e6235d6f9c91d775bee0462a0d6d5fe457fae167e736afdbe0a",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020228713970491_000035",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020228713970491_000035.png",
+      "image_sha256": "49c61445e01e539c3c3d30b59b702d6cf85261b8fbeb82782994a330ff153398",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767512872506222_000217",
+      "image": "dataset_use/dataset_005/origin_bev/1788767512872506222_000217.png",
+      "image_sha256": "c37c08e6fbed5f087f0952f54d2bc32d6c32f9ea69fded52c32d7fa792f57d86",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921685504082112_000079",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921685504082112_000079.png",
+      "image_sha256": "b9df18fdf979df59f978f54a2eeb9fc7081dac7376c04549f79a0d734960f8bd",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767078873806611_000168",
+      "image": "dataset_use/dataset_003/origin_bev/1788767078873806611_000168.png",
+      "image_sha256": "c301801da0cd901a8c56563bfaee2e005a4557bed7f4cb5c5d431fcce773e1af",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921545178865986_000033",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921545178865986_000033.png",
+      "image_sha256": "bb564ed9286962c810eb4815860f988a278359bf89c9863aba7d343b5ca2e5e0",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766795148832622_000023",
+      "image": "dataset_use/dataset_001/origin_bev/1788766795148832622_000023.png",
+      "image_sha256": "4d824582fd512f551f18930e832cd4fc56005d981c9cade5161564b1424d2f6a",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767482497684065_000104",
+      "image": "dataset_use/dataset_005/origin_bev/1788767482497684065_000104.png",
+      "image_sha256": "915e37084e209fb4b282ce6e1144cb5a22ea3210f1c88011f0e3ce025b026665",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767039523573235_000022",
+      "image": "dataset_use/dataset_003/origin_bev/1788767039523573235_000022.png",
+      "image_sha256": "72ee6e372b9660f2ecba22f6fe24ab65ce272188ead5164f9e4e5c087261a702",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767490047610616_000132",
+      "image": "dataset_use/dataset_005/origin_bev/1788767490047610616_000132.png",
+      "image_sha256": "ee671724e1578d8c5e196438e67b383470d2eefb6c753b82ba4fa1b60db05937",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767493535068693_000145",
+      "image": "dataset_use/dataset_005/origin_bev/1788767493535068693_000145.png",
+      "image_sha256": "02e2285e63131fbd74ba980677d0ff06b66562c9e0e016de5623c98bc06f6bd7",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921560203905737_000040",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921560203905737_000040.png",
+      "image_sha256": "95bdb976f15f882f7dba610a430d9e663a96a1c3df61a69f94896e260f9a6fcf",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766854861653497_000245",
+      "image": "dataset_use/dataset_001/origin_bev/1788766854861653497_000245.png",
+      "image_sha256": "b085ff553df6f059f30d1da228ea3dcbd15344b9f16ee07106aff1d49aeab63c",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848710205531261_000068",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848710205531261_000068.png",
+      "image_sha256": "f640863fd20a7a78c1f6fcf3c9ed2dc224e07cceb6d2d2187b268240692833cf",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921464641285075_000011",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921464641285075_000011.png",
+      "image_sha256": "4f065c9e4023b22847983900dce8d398d853a8ea6337cac4760f0f44115983f2",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767500810066548_000172",
+      "image": "dataset_use/dataset_005/origin_bev/1788767500810066548_000172.png",
+      "image_sha256": "dc5376bf5bc07b32266c441c5fd05c2e664703cb50fa107f9a63d65e40acfa80",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848709305527721_000064",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848709305527721_000064.png",
+      "image_sha256": "66dbc7796e1147f1d6ef0b446f9c1640c5c248803ba2cf7fff88e2a750d96c1a",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767497860065583_000161",
+      "image": "dataset_use/dataset_005/origin_bev/1788767497860065583_000161.png",
+      "image_sha256": "d32f52aa4efcae6123aaac457ae7d2ab9abe12136569c62776c826bd1fd38ad9",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767207708414198_000018",
+      "image": "dataset_use/dataset_004/origin_bev/1788767207708414198_000018.png",
+      "image_sha256": "2edc54da1bcaa26d393c9de3fd6f0e615173abc15e70057a5d9ef25604cf7f5e",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921535466385650_000029",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921535466385650_000029.png",
+      "image_sha256": "c5213aa0696bf2f409920526c0c76b090b5fc49c423ee786a0b78ef4da6a6ed1",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848702092772515_000031",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848702092772515_000031.png",
+      "image_sha256": "a4345349d88f812378bbc9c234859fe644acdeceb3dd3aba3a00b05efbd75668",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020362344344544_000078",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020362344344544_000078.png",
+      "image_sha256": "8c4a93eec9f28f97419e26fd148241fac36ea0261d5cfb10cb3cf0c8d548dacb",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921272338326238_000020",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921272338326238_000020.png",
+      "image_sha256": "8f57285cee494c82d672161254ffe454f855515a206f971fe19e3e27e0d55848",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020663065276327_000005",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020663065276327_000005.png",
+      "image_sha256": "be83983099edddabe58dfdd0f5220e908185618337f871918c96ce17d9a845af",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020236314176068_000039",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020236314176068_000039.png",
+      "image_sha256": "cf3d5e4b278b4141c1084f22e75a10e602fae5a2161d1b3d4fc8b5076b7aeeea",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766959826651569_000211",
+      "image": "dataset_use/dataset_002/origin_bev/1788766959826651569_000211.png",
+      "image_sha256": "d3902a6423e9b8f9723f8be528c539fb0eabf687e6ec8e7409bac5122e607355",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767080211336620_000173",
+      "image": "dataset_use/dataset_003/origin_bev/1788767080211336620_000173.png",
+      "image_sha256": "2f71a2e48c93c89684622eb2e6f213a48ebd868a226fb12f4ac8da677dc7a459",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767480072674797_000095",
+      "image": "dataset_use/dataset_005/origin_bev/1788767480072674797_000095.png",
+      "image_sha256": "ec6adeac4e417fbbe86317599bb6eac778693819a75e85c10e01764d2fcdedb9",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921517516364656_000022",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921517516364656_000022.png",
+      "image_sha256": "ad016abb8106cfaadb6edaca05f58d669277655191bc95dbcdf4851534252d5d",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921726641458368_000094",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921726641458368_000094.png",
+      "image_sha256": "43843df2fbfcdf420babae2e73f305b831dbc814443e9b3e843a638c71416690",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020120334719250_000002",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020120334719250_000002.png",
+      "image_sha256": "53f62c7bcd4fdc0642895c9f2b7cc81fa29d7f4b356d97e08a36b03edef10619",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847784108666848_000110",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847784108666848_000110.png",
+      "image_sha256": "58489dfd122cc28ce38f8adf868ee016b03d8a3b6ba132f913ad00682364dc23",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020703465703704_000012",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020703465703704_000012.png",
+      "image_sha256": "bdad3014596b670596ae90951eddb37fe104b90b967aec1e6d08c5b01e197622",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848452430483229_000345",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848452430483229_000345.png",
+      "image_sha256": "8c1638537a62526f58163c3939aa07afdaaeef6240be7d9242eb5b8d463d4e9c",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767247445401133_000166",
+      "image": "dataset_use/dataset_004/origin_bev/1788767247445401133_000166.png",
+      "image_sha256": "89ae489d22e7fc2676fb9bf680b4240ec41a3ecdaf658aa7f5865dda5f648c17",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848413555444236_000167",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848413555444236_000167.png",
+      "image_sha256": "e9542b236422e12fc3bc8ac42f69b8e3ed2ab50bc6caea050c8c158754b1969f",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767263545235981_000226",
+      "image": "dataset_use/dataset_004/origin_bev/1788767263545235981_000226.png",
+      "image_sha256": "7a84afe7b0716bffd71d1c153e1791958dbbf56ef7c0ee37a682a17356df0d27",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766932214032935_000108",
+      "image": "dataset_use/dataset_002/origin_bev/1788766932214032935_000108.png",
+      "image_sha256": "2fa88785c5f009e0df96781d80241a35e4f9dc47250deb9413c67356b2a29736",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767206121008280_000012",
+      "image": "dataset_use/dataset_004/origin_bev/1788767206121008280_000012.png",
+      "image_sha256": "c95b4d12d2d30d13ca95b5664bfbc8aeecabfaba0d04f1a210457836964fb671",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766806423877584_000065",
+      "image": "dataset_use/dataset_001/origin_bev/1788766806423877584_000065.png",
+      "image_sha256": "270a415ab49b79db4fb5b0f35dd9b22e10fb53627c4f51efe2247c923f23938f",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766850049162777_000227",
+      "image": "dataset_use/dataset_001/origin_bev/1788766850049162777_000227.png",
+      "image_sha256": "7b065a5a4716338df4e3ef54840e7423b3549a49aff08f984ba25cffafe10f27",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921740191478235_000100",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921740191478235_000100.png",
+      "image_sha256": "82e44c6117bdcb750848bd0871bb177e3665e6be6d017f361106f9bf80d0479d",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848414430443551_000171",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848414430443551_000171.png",
+      "image_sha256": "3ae2659058ee0c9f35078b7c67f54f9f6e5046d3958fcf8fee4e64818b8b7860",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848707780271658_000057",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848707780271658_000057.png",
+      "image_sha256": "0de1e74a525db7f0b9a027e8e0cf17c90245b97325328344fa968b8e060bfef0",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848437755374676_000278",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848437755374676_000278.png",
+      "image_sha256": "6cb160b5e487cd05aea68fc7bf70247b2519cf43b8c71c4f290f8199977fafd5",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848436242912588_000271",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848436242912588_000271.png",
+      "image_sha256": "8d16ab9acb7ac340ebce8157babf3428cc9707af86b61291be056dce0351820a",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767048673617799_000056",
+      "image": "dataset_use/dataset_003/origin_bev/1788767048673617799_000056.png",
+      "image_sha256": "45475069024438bdc1e3f59816e0573ce5263f5bd282af1cf963a07381b3e346",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921229188304393_000007",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921229188304393_000007.png",
+      "image_sha256": "38d17eb6e342fab03e448f742f56378bd347a650c49a9c027d2133c2d2d8cbf2",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020125922213219_000004",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020125922213219_000004.png",
+      "image_sha256": "84727b912df3cd06b4ea9b281c256b5bb546a440f3cb62be03f6908975251f55",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767234520575119_000118",
+      "image": "dataset_use/dataset_004/origin_bev/1788767234520575119_000118.png",
+      "image_sha256": "ee8285dccb776c382e0e85785c0f617f37e7117d64cc061b73d86a2bd99c2676",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020117746742209_000001",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020117746742209_000001.png",
+      "image_sha256": "39b228566e48129b5680887c021c5903827509a38bb06667ff620b467d98881d",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921753766382446_000105",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921753766382446_000105.png",
+      "image_sha256": "c03911e618632b401e9379f8ed44cb0913cd39e293c70c521a7e30de2111ac47",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020281503715082_000049",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020281503715082_000049.png",
+      "image_sha256": "6db552747339a2503967f675bc51bc45466d9ebb8d141e9a021c7ff76f74224e",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921486003785167_000019",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921486003785167_000019.png",
+      "image_sha256": "db9c0bead8f2a0865e68407549d2d24329ad04cbbf4319a554e89c2e572f9544",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_005__1788849162665220493_000003",
+      "image": "dataset_0908/dataset_005/origin_bev/1788849162665220493_000003.png",
+      "image_sha256": "b2f3420e781beeadf6521b29035748985d698401d1b6c52a6383d7d65c49252b",
+      "source": "dataset_0908",
+      "group": "dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848726380795139_000142",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848726380795139_000142.png",
+      "image_sha256": "1c130f72dc8d96831c0a513d7dbbf5242b1badc5ef41d127a41943782dbc1936",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767253882899779_000190",
+      "image": "dataset_use/dataset_004/origin_bev/1788767253882899779_000190.png",
+      "image_sha256": "7b028ead945b412407e4c5347e362fdd0860bcc272aa2563d1f80ed6e9bab1be",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020232751681597_000037",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020232751681597_000037.png",
+      "image_sha256": "fdc104a14720a6b5191354b30ef95e8351d8fe10d29a6ca86654b8528dccb59d",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766843561667713_000203",
+      "image": "dataset_use/dataset_001/origin_bev/1788766843561667713_000203.png",
+      "image_sha256": "2614260bb824544c1b9a09b9fe27891b49dc860d66409a257c90e638e7df7c82",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767067211148184_000125",
+      "image": "dataset_use/dataset_003/origin_bev/1788767067211148184_000125.png",
+      "image_sha256": "f0b82310031dfd733bc3db1647ab1aaf3f25ab3a658c817a677c60435af148f6",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847283185738989_000011",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847283185738989_000011.png",
+      "image_sha256": "2810cefb0cfa4acf52d50d4372512c9463317a1ce7851176ff0d101b26520a2d",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848394217917756_000078",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848394217917756_000078.png",
+      "image_sha256": "584e6a8194018a00876508b6b804e68e876d2885d934a98b10985aadd9c5e05c",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921236875829020_000009",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921236875829020_000009.png",
+      "image_sha256": "22928303538b9c83b5fbe2d8857c07646e4bf823597392470843aa74e4cd5bb0",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921758228891441_000107",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921758228891441_000107.png",
+      "image_sha256": "e16935d67b9cfe5fef672cebf1581c0f781cf4113c72b6962af1121cde888db9",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921721828922606_000092",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921721828922606_000092.png",
+      "image_sha256": "b666a8e389dcb7ecd547f988c8dee61a151c790e46b38fb3334151e34daa5076",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020240527106116_000041",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020240527106116_000041.png",
+      "image_sha256": "e17ef0d2e919a282879aad6ee9fc45b5775d96e823ab8cf2c09dc0b4ca6988ef",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921252075840917_000014",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921252075840917_000014.png",
+      "image_sha256": "f13a6804dd255fc361553c72c8ff71db920f96611f3211fc1313eff16cc7632b",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767478435181974_000089",
+      "image": "dataset_use/dataset_005/origin_bev/1788767478435181974_000089.png",
+      "image_sha256": "2b6a7de8ddfd4e02955fd3b623e7211e66493d08141ba3f60906850cbc09b800",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766845174170765_000209",
+      "image": "dataset_use/dataset_001/origin_bev/1788766845174170765_000209.png",
+      "image_sha256": "688703760c6a249d1d1e7662b34cf5e4df53d2fa43cf2d14bd8a850b484c2d8d",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767516897435167_000232",
+      "image": "dataset_use/dataset_005/origin_bev/1788767516897435167_000232.png",
+      "image_sha256": "df04236abcd5f843bbff6a5d9f083752b2ead958b46ea8a087e4e928bf89e201",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020828211273542_000046",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020828211273542_000046.png",
+      "image_sha256": "b05d516dc4850ff260a1e43c065b7c375d5728b5ed47e9f81adceaa4c9537939",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020771911891296_000033",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020771911891296_000033.png",
+      "image_sha256": "5adaa2f328b8c86bdb9d45fbc89546de69f2a432bcb05bb4d5d3f5dc2e8bb763",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847260810044147_000010",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847260810044147_000010.png",
+      "image_sha256": "5931f594f28dfd1560cfdc19d07ad9bd75ce2de5901fe0dd9a8cecfbf8d76e2d",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767508860010111_000202",
+      "image": "dataset_use/dataset_005/origin_bev/1788767508860010111_000202.png",
+      "image_sha256": "0ff9938861087da4fbf88815c86838628e013ac474bb839f0944600eadf8c306",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020347131215659_000072",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020347131215659_000072.png",
+      "image_sha256": "807db44cf7fe5f0727453017dd5c5bda70288f3cf2a5a8c547be9aef785784d2",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766925463974662_000083",
+      "image": "dataset_use/dataset_002/origin_bev/1788766925463974662_000083.png",
+      "image_sha256": "ca3ee99bd944d5bf860838e187aaa62aab97e936aa62f2442583f225d6dceb2c",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766797823828579_000033",
+      "image": "dataset_use/dataset_001/origin_bev/1788766797823828579_000033.png",
+      "image_sha256": "e8bd148d15c0c951bf5c3527ab24df3996a3b48c99f9f62bc3a78002c2df6173",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921222300845256_000005",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921222300845256_000005.png",
+      "image_sha256": "13193a86e87a640e6973b3baa02bcbde20abc3efa093588b92779321922ee21c",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766842774173513_000200",
+      "image": "dataset_use/dataset_001/origin_bev/1788766842774173513_000200.png",
+      "image_sha256": "86a86c2bda5abfef3e116cecb80422d12e8bfb0e3c6bbb730bde681829fe396e",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848479968084868_000472",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848479968084868_000472.png",
+      "image_sha256": "23d205d951b2e1d46fc9bc644f4caba6c69012cf57b4abeb4af52a4c653203af",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020831348769760_000048",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020831348769760_000048.png",
+      "image_sha256": "69d29f8e4c8667410704d0de21454cb2c346ab1a04fe285cc4990a5de8d0a952",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020136010400092_000006",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020136010400092_000006.png",
+      "image_sha256": "0a635a1066fffa6665c0f8eac0d23c177f2b81119d168a63b433c950fcf19c29",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767234245577459_000117",
+      "image": "dataset_use/dataset_004/origin_bev/1788767234245577459_000117.png",
+      "image_sha256": "6afc485dc6d099f720ea8049001feadf69aa6d1b72263d805145de5f8f8b105f",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020171949162560_000022",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020171949162560_000022.png",
+      "image_sha256": "4dec0b25adc515b90d77a2d70561e2c71ae1f2db085331f16f9bfc04760c1d10",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847390190872727_000036",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847390190872727_000036.png",
+      "image_sha256": "7ddbe5015e36726d7efafbd345d786685377302524e7799334476e568f94981a",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921551041359644_000036",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921551041359644_000036.png",
+      "image_sha256": "5401f71167709aa827fe13d1406ef7742c9ebb3c4d09d91b4c8cf074b8a4e7b9",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020311030056354_000064",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020311030056354_000064.png",
+      "image_sha256": "61b2f927b2ef7b83deaf3921de8fc5045f3058b87a31b20247e4fb90e259f287",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921361826131232_000042",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921361826131232_000042.png",
+      "image_sha256": "d081ccf2f8403b9f635c3ce66118b2a425a5e1c584c993e11788fe756edadf54",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921472378882367_000013",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921472378882367_000013.png",
+      "image_sha256": "996cc5527e11644d1451b55e05c77e359e2ff60708f68f9d24138d736ccd32d5",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921432216270557_000001",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921432216270557_000001.png",
+      "image_sha256": "e06aee5fb54b5310753f23d4ac51df708c7e2b0fba1ecbc1c86495baae1a2a4b",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921750303880835_000103",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921750303880835_000103.png",
+      "image_sha256": "524503afef245c74195e64b14a021a5860d58aa9e2916c25edc5e6b61a2f9786",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848451567939136_000341",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848451567939136_000341.png",
+      "image_sha256": "baac6e9e99c5a95c15840548a70b8dd047da2af7769d02a735950f4aa339f597",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767454897852900_000001",
+      "image": "dataset_use/dataset_005/origin_bev/1788767454897852900_000001.png",
+      "image_sha256": "331dbbccfc087c762a93a7a38a8ded22b71fc375a63d730d2cb6be1aef925e05",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020378419956137_000086",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020378419956137_000086.png",
+      "image_sha256": "201850388a45ceb117ddb670881acc4b18910a0bf8c121a27525e4eb04ffe95b",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848398780419475_000099",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848398780419475_000099.png",
+      "image_sha256": "4b41cefb10b6030d9cf2ec8637239087bd99784a9089ac431f925ef51f970fd2",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020825836273913_000045",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020825836273913_000045.png",
+      "image_sha256": "d01c3b7117b3e2c51eb9787d79f42f333165106e81aa9922d9b5511d48cf6199",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848382492996359_000024",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848382492996359_000024.png",
+      "image_sha256": "ff653fe63ccab3e276da0640948a77094c9b2ca6a2d8561321487e1ba9105dac",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767041973570472_000031",
+      "image": "dataset_use/dataset_003/origin_bev/1788767041973570472_000031.png",
+      "image_sha256": "f4ab9fc94165f6b3fe37be9d80f16e51584bc616636790dacf03b7d9677bd666",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921679853890757_000077",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921679853890757_000077.png",
+      "image_sha256": "4e407844759843f1e021ffb15f50004cce38d5ea3d807f75d6914b96e767eb26",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848389817926725_000058",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848389817926725_000058.png",
+      "image_sha256": "91ebae9b7a707ed8cba54d7533c876c2c7e910218aa555d3340f95b4d33a5f2e",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767085823871937_000194",
+      "image": "dataset_use/dataset_003/origin_bev/1788767085823871937_000194.png",
+      "image_sha256": "4b91a5e91f4d555614a469bae79b7a04a7319404ef5c818e43c7e3c6207a0d2f",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767090948874364_000213",
+      "image": "dataset_use/dataset_003/origin_bev/1788767090948874364_000213.png",
+      "image_sha256": "62239f3f27879564fcb7891068ebac4f1eb358178c8c476b3270299f8ee29fd9",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848708655532270_000061",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848708655532270_000061.png",
+      "image_sha256": "e5b5bf73df688dad287b5a985d178c7835c178c56a41f44c20335e8a321d04c5",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767048411121832_000055",
+      "image": "dataset_use/dataset_003/origin_bev/1788767048411121832_000055.png",
+      "image_sha256": "d4f43a5fab3d99f146ff9faf260f85d06deae2e1e3e2d43616a914ed7e59aede",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848397905421912_000095",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848397905421912_000095.png",
+      "image_sha256": "b0186a8498c8c7f479afb92d2479199edfdfc0e85e3f9aecebe74007fe67d9f9",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767056161132046_000084",
+      "image": "dataset_use/dataset_003/origin_bev/1788767056161132046_000084.png",
+      "image_sha256": "66b696a92d6024f23b0e8afe23d1a128dc8aa510185b5bdc6f510410644a823e",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848463080544698_000394",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848463080544698_000394.png",
+      "image_sha256": "346696e4d6060eeafaf3aad8f81c2e868eca1e726632f5d7eb4d7f62783295b0",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848437105375885_000275",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848437105375885_000275.png",
+      "image_sha256": "3ec6ed8eadd1bd5a0ba7e62604b0449b4255a51e53fddcb18ce7f99893d87ddb",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921284813375303_000025",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921284813375303_000025.png",
+      "image_sha256": "c22ab04ddc512996c63b0242885a569b3e35e66b6c08bc052c0d2d66a6372d34",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766798623840585_000036",
+      "image": "dataset_use/dataset_001/origin_bev/1788766798623840585_000036.png",
+      "image_sha256": "3ed4abb40c6a430be2c38f2d344da3534a37ea76175c77e44363e11d958899ed",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020753772287218_000024",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020753772287218_000024.png",
+      "image_sha256": "6c351fad5b18099f617d18c17baa8d21c2368d58348ebab6449f7ab08895335f",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847249971748124_000008",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847249971748124_000008.png",
+      "image_sha256": "3a4b56894a6fb0254685486fc0d107e18d86b5b5b915a732dba340f1c932fc33",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020841561573668_000053",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020841561573668_000053.png",
+      "image_sha256": "aabcb968e138a19a374ea0827c0560b263ec2456b4b0eb7a8fc37f0e0d71164f",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921555016412673_000038",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921555016412673_000038.png",
+      "image_sha256": "bfe53745bd5e69751d6c56849fe88e01023fb16d4ccecbf702b726564ece606e",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766808048868023_000071",
+      "image": "dataset_use/dataset_001/origin_bev/1788766808048868023_000071.png",
+      "image_sha256": "e9793ee0d05ce31e32753a64a17c807c6fce451fa6400ccf4a0ce6a1c54736ec",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020708967175088_000013",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020708967175088_000013.png",
+      "image_sha256": "ae1550ae588c619142721f9c911289814522b89e1c113fe6583d7fc80d4864bb",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767462397754511_000029",
+      "image": "dataset_use/dataset_005/origin_bev/1788767462397754511_000029.png",
+      "image_sha256": "b86fd485b630e194c4b25ab49fd8693f0b4b2234b2d0e75cb0f54abdacca444d",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921436028784997_000002",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921436028784997_000002.png",
+      "image_sha256": "a5c89f9822ac6c4941d2dd96ec2b253dd0582b1d5499d00338cd7c6d6112bd99",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848702305266582_000032",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848702305266582_000032.png",
+      "image_sha256": "99cd3ca2d90b599a9a528dd10f24b5b0c860076fd6cccdee8c35215dc8f4b396",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020205387899609_000032",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020205387899609_000032.png",
+      "image_sha256": "0675c37ea09156cb7348adf51e4f66ae13ea2feac7eb567b128cec2ad8d0c911",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020762798659973_000029",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020762798659973_000029.png",
+      "image_sha256": "7d4dd9286c4d3574940943834df370d40ca10e346e12041b2fec25db9d512cad",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020839786382319_000052",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020839786382319_000052.png",
+      "image_sha256": "b84933239932e712ff0d21e2025c60c69c2c833254a783c4034834684a8cbb1e",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921607691359943_000059",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921607691359943_000059.png",
+      "image_sha256": "6e751b3299148c6fcb874ad03061aeed34cb2ce328a2aedd953c4b2215f37181",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766947139129967_000164",
+      "image": "dataset_use/dataset_002/origin_bev/1788766947139129967_000164.png",
+      "image_sha256": "b9c37724946cb23cbfc2d538a30740e416d1ea508d4502b68eaa61007d78e78b",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848413330444604_000166",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848413330444604_000166.png",
+      "image_sha256": "7f0e4e70578d96fdc8ba7a98c4d8c62a077768e05f9b3027c07740984d4a5a27",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766841711673082_000196",
+      "image": "dataset_use/dataset_001/origin_bev/1788766841711673082_000196.png",
+      "image_sha256": "7f7c7515376e7363a8eb2977a043b415161d1f6be74d741f360640de9ab76cb2",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767248757903471_000171",
+      "image": "dataset_use/dataset_004/origin_bev/1788767248757903471_000171.png",
+      "image_sha256": "bccd9479efbd4a9f8b892ac10d833d50bbc9702152f7e47efe955c3d0494a63c",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_exception__dataset_009__1788771283623761405_000008",
+      "image": "dataset_exception/dataset_009/origin_bev/1788771283623761405_000008.png",
+      "image_sha256": "e7147c459a61081792d84c722eb020a7e1eee2c305beb994177979986b5265a2",
+      "source": "dataset_exception",
+      "group": "dataset_exception/dataset_009",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921736566410433_000098",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921736566410433_000098.png",
+      "image_sha256": "d16048b59666d9123edf2b2780361872b342361d0f7be6d902fd7cf512742207",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767088823869206_000205",
+      "image": "dataset_use/dataset_003/origin_bev/1788767088823869206_000205.png",
+      "image_sha256": "d58eca31c5b63b65f0d2bcd62e5e0882f5170a66fed7ad8fa9282066ca221582",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767246633003469_000163",
+      "image": "dataset_use/dataset_004/origin_bev/1788767246633003469_000163.png",
+      "image_sha256": "123712bfdcfa430cd212c2b54387dc7f7d2dfd253c263e12d821d570399b776a",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766922213922159_000071",
+      "image": "dataset_use/dataset_002/origin_bev/1788766922213922159_000071.png",
+      "image_sha256": "f7e6a68093d424c07de247a6c6bd3c6fefded19341d429e258a6c66874efcb9a",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848729455794639_000156",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848729455794639_000156.png",
+      "image_sha256": "9bda51ca0e08906a34e08168f319df3726f6e272cafa29051989185873e1fd0f",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766847636663837_000218",
+      "image": "dataset_use/dataset_001/origin_bev/1788766847636663837_000218.png",
+      "image_sha256": "609253cd69a56c45cfe5d7ef65cadca79998e15a84c4078358822ba7d9beb608",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767037373511436_000014",
+      "image": "dataset_use/dataset_003/origin_bev/1788767037373511436_000014.png",
+      "image_sha256": "59a68fbfd55569e6d9935545e0a3b3e2b186ff66ccd62d695e5585195d9cd39c",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020793474435733_000036",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020793474435733_000036.png",
+      "image_sha256": "c8e4a8fee9f96ba17d7124cf02c6bfe31712c3d926955853b72f635dfe5094b2",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848407042893097_000137",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848407042893097_000137.png",
+      "image_sha256": "4d2f7b1fb893a7d4817d40d78b8407cfe042f9a97cb5daee4f9f163cdb1cbadf",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020251340058083_000046",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020251340058083_000046.png",
+      "image_sha256": "226dd2bc5f906ebf38e492751c77f2393a456aab749732745b57c4e5005fcce6",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767227333203348_000091",
+      "image": "dataset_use/dataset_004/origin_bev/1788767227333203348_000091.png",
+      "image_sha256": "220ee70cf4eade10cb1b63a03a15d14bf79a51543fc123cb560832bf937736e6",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_005__1788849195489481667_000012",
+      "image": "dataset_0908/dataset_005/origin_bev/1788849195489481667_000012.png",
+      "image_sha256": "fd6decbc3376987c92c1b1891b661626af77fadcadf5506ca4431a1148412a67",
+      "source": "dataset_0908",
+      "group": "dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020241939610477_000042",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020241939610477_000042.png",
+      "image_sha256": "9e65a682340f62161352f85c8bc0c9dcea92de2a9f0e560cd63363280e073070",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020809511440824_000042",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020809511440824_000042.png",
+      "image_sha256": "aed89c146b9463cdcaa99f5e1913ce3cbc0c859fbb2e9a0aa41b1dac02a3a540",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767513660008926_000220",
+      "image": "dataset_use/dataset_005/origin_bev/1788767513660008926_000220.png",
+      "image_sha256": "010043da0f46aca67d65fb76874c1621ce51ce1f35917db017e763079acf45fb",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848703630271904_000038",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848703630271904_000038.png",
+      "image_sha256": "75bb6d49760854721817ad19cae1971df92ff5341fe9112b36580ee456068294",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848431242914621_000248",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848431242914621_000248.png",
+      "image_sha256": "ba37cbf71743861f53d115eac0a85bdf599e8ee3bb6431626061329d6570c8cf",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847463506492807_000045",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847463506492807_000045.png",
+      "image_sha256": "99fc17e366091ea4603a789308fc1a5aea824c63b45a98be2722afc88aa94472",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767468547726924_000052",
+      "image": "dataset_use/dataset_005/origin_bev/1788767468547726924_000052.png",
+      "image_sha256": "0714c19d5bc09c5cf774da3c51fa4fc2f7ed702fc2b1289ca96525464fe30e8c",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767470985227197_000061",
+      "image": "dataset_use/dataset_005/origin_bev/1788767470985227197_000061.png",
+      "image_sha256": "d7254437617484723fd3e6925338b95a9f7854b85d8fb4a72a478d38e9cf03da",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921729141458491_000095",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921729141458491_000095.png",
+      "image_sha256": "e194e7b050c4e9ac670624f955e6049c646746a80d0936d7714a188d509d1106",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921733703917750_000097",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921733703917750_000097.png",
+      "image_sha256": "b23e194bcb8163df36c770bd43b05d6581632a520c0f80de3fd56db391ed46e6",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848463943045256_000398",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848463943045256_000398.png",
+      "image_sha256": "1103f289d57d18e317677a97a9e9a0fa43344fa663df22cff382a19102331407",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767235320575193_000121",
+      "image": "dataset_use/dataset_004/origin_bev/1788767235320575193_000121.png",
+      "image_sha256": "fae129ff7f03a364e30ee45843ec57d91d4db689e4c2adfadeb7a3e0c4d26fe8",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766967101731529_000238",
+      "image": "dataset_use/dataset_002/origin_bev/1788766967101731529_000238.png",
+      "image_sha256": "7914eb09bf3b715b1fe6ae47beb3e60737593d8977cd2942176219a523a8f6ec",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767492997567742_000143",
+      "image": "dataset_use/dataset_005/origin_bev/1788767492997567742_000143.png",
+      "image_sha256": "072cc5bf318012c7d96f0fddde8d6f024879814a2a400b4a5351bb8ca4c9d617",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848398992915652_000100",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848398992915652_000100.png",
+      "image_sha256": "f406d9a5798293411fdadad93ad3b55b88fe5ed81b78947d152bdbb6dcb95b02",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848720268122931_000114",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848720268122931_000114.png",
+      "image_sha256": "d654f3566e7cb48bf7eda250870c5406548d584e9b4946c70e7996a314310089",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020354981606629_000076",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020354981606629_000076.png",
+      "image_sha256": "70cfb49d83fbc52c36f5bcaf693894417b90a16e886b3311d045e60277772aac",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848394442916383_000079",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848394442916383_000079.png",
+      "image_sha256": "4e5eae5dc1e3a402b3a9fe66395775a46047cfdd1f41d43bb8945ca3a880f4b2",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020293279073847_000055",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020293279073847_000055.png",
+      "image_sha256": "076689c41e0358b4f72caa86e515fb7395ca0e8b13553b57f2a9638baba8c4b1",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020161398814262_000018",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020161398814262_000018.png",
+      "image_sha256": "de70c54344c7bf924ec2835ce4907b9a6cc76ae2c5f4efeeb80461bbec58dbed",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020847074070023_000056",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020847074070023_000056.png",
+      "image_sha256": "514d3467ac055535ab685f938c7a779f0f7e9f30d05bce3549e3cd06f5dac866",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847593725123148_000071",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847593725123148_000071.png",
+      "image_sha256": "6de19675a9efb2c09c5d72d81008655651bb14425fd66f1d024fc9f8d36a187b",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_005__1788849401411970987_000068",
+      "image": "dataset_0908/dataset_005/origin_bev/1788849401411970987_000068.png",
+      "image_sha256": "9e3eaedaf9262cd836c455d71cc7ef134196d4fa098da8a27f4462a96166b9c7",
+      "source": "dataset_0908",
+      "group": "dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921233375802777_000008",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921233375802777_000008.png",
+      "image_sha256": "daa3a5a56484ee2dfc587e7383b533773a90c6e57ada2ac4d2a2db4b13950506",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921768941475736_000110",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921768941475736_000110.png",
+      "image_sha256": "48d408a35d1fb62d53f515a8a0b0fdc8491dd0b359cb5ee27eb75c0b50bf2a60",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767267845227730_000242",
+      "image": "dataset_use/dataset_004/origin_bev/1788767267845227730_000242.png",
+      "image_sha256": "ac7e67352f8df925b498267719f1eae3cab5f1e8934dda40f8bbd290cd7aa755",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848382917994465_000026",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848382917994465_000026.png",
+      "image_sha256": "53b3cafce03be93a3d03e08ab7bbc6404752dabd6fe33bddd4cbc7c7e6a3e4cc",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_005__1788849344499857277_000049",
+      "image": "dataset_0908/dataset_005/origin_bev/1788849344499857277_000049.png",
+      "image_sha256": "ef62617993b8eba030126d4768346a0880e39ebd88d9b87418398fd277e346d0",
+      "source": "dataset_0908",
+      "group": "dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766950351604586_000176",
+      "image": "dataset_use/dataset_002/origin_bev/1788766950351604586_000176.png",
+      "image_sha256": "524b702799dd6a8c67484fce45063b2f254c9554fe0c236b674aed536016bd45",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921377013335143_000049",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921377013335143_000049.png",
+      "image_sha256": "ed1a66cbfa87368a2c763514e693d62999f32b091ddc448daf96712cacc66a78",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020151698584562_000014",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020151698584562_000014.png",
+      "image_sha256": "cf7932a157d2926e3c652cd3e38dd26250f14a04cd022bb90a8ed4dab4f98047",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020721630953623_000018",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020721630953623_000018.png",
+      "image_sha256": "c79cba399b949d70d1ab1b0f6671dad6a2598a790b836bb33b4d469edfb5ca14",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921346463397349_000036",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921346463397349_000036.png",
+      "image_sha256": "375361f35a5ec638be8ad042a02df11b1c00d4597a221f4ded97c378b010393e",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766909813874292_000025",
+      "image": "dataset_use/dataset_002/origin_bev/1788766909813874292_000025.png",
+      "image_sha256": "7068bfb4056b2cf6659b941b78bbcc8b01601ff45f21ac99851e2649d0899360",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921746166467335_000101",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921746166467335_000101.png",
+      "image_sha256": "1f2598d2234207f69dd89fcd0af12fe74d13a6d862def78c5f922355722f9392",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767255745302631_000197",
+      "image": "dataset_use/dataset_004/origin_bev/1788767255745302631_000197.png",
+      "image_sha256": "35fbaa23ef28d896226dca4a0a633cf8643834019ee4e848652f6da8987065a7",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847900964415225_000137",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847900964415225_000137.png",
+      "image_sha256": "6064b3d12d39f5db0904ec5cb29bd282beacfa4d3875f9f96de5c7eb65b56709",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020848999065625_000057",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020848999065625_000057.png",
+      "image_sha256": "a2a73f348a0e58c7ef6c5f114e5b93700002e7f447a79c925c800173699c4a31",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921765691479595_000109",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921765691479595_000109.png",
+      "image_sha256": "d0f21df2777059883d7b1f839364db565428e3b04d26afbb53e124a3bc21cb11",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020759210669468_000027",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020759210669468_000027.png",
+      "image_sha256": "f7b447d5c2253e18a7978dea75cb78dc883313cde05999334c76bdd95afa9ad0",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766920888917428_000066",
+      "image": "dataset_use/dataset_002/origin_bev/1788766920888917428_000066.png",
+      "image_sha256": "aae6b8d821b2f0e66c36cdf3bf730e58dbfa56f9e0fe146b640f4c312c608048",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767486797614638_000120",
+      "image": "dataset_use/dataset_005/origin_bev/1788767486797614638_000120.png",
+      "image_sha256": "6d18dcee61c6dadc461c5ca148c2fbcbebcc4366adef76d56368ea1ddb00e64d",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921247563368729_000013",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921247563368729_000013.png",
+      "image_sha256": "5c86dfd45e4c6da5ffffce04854b291c88893a1e6c46bfbc7ed9679ae33d05a2",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921280825877861_000024",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921280825877861_000024.png",
+      "image_sha256": "9a95cd4ef359088f64933a19d5f99a47ffbd7e4442be8aff494095a47c717e72",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921697703946363_000083",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921697703946363_000083.png",
+      "image_sha256": "853baccb02059d12d5bd05e5e18ed3cc78c7f142ee30155c1d33669b2e0937a1",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767494060067885_000147",
+      "image": "dataset_use/dataset_005/origin_bev/1788767494060067885_000147.png",
+      "image_sha256": "10608ec34d5bc9b4695a4c4f7b77e3a04af8e4112a247011104e56345cb004a5",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848429730418075_000241",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848429730418075_000241.png",
+      "image_sha256": "0a67482591d1492a0741ff1c2238b0dbed4d750c66c84534af83d0a8deea4f0e",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020344968713957_000071",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020344968713957_000071.png",
+      "image_sha256": "10db143404f9440b20f06d18f3b0e836533ef6d5058ec4c316dea9444c09a32f",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848378118049240_000004",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848378118049240_000004.png",
+      "image_sha256": "5718276e54853886ffe972828fa03f50e2b8cad7ef173c1b037bf5974cd33a34",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847292373961291_000013",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847292373961291_000013.png",
+      "image_sha256": "428233ae1495f9cfb0906463f3cf48bdbc8eb08a68860870fe67e4f84a2575a9",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767205596008329_000010",
+      "image": "dataset_use/dataset_004/origin_bev/1788767205596008329_000010.png",
+      "image_sha256": "c28bd27dab4f672a138c8f0cdabd25dec0050e3c0130ce5959cef373ba39c208",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767474472718404_000074",
+      "image": "dataset_use/dataset_005/origin_bev/1788767474472718404_000074.png",
+      "image_sha256": "1200f43b8d464f35de730e17b2fd4fd22ab729f0c05298d5435938351a97cf3d",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848467630502563_000415",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848467630502563_000415.png",
+      "image_sha256": "714f8d83a92435f092d073b7a57e069de11a4edbe595613fade2dd8c025c1fca",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766830711571228_000155",
+      "image": "dataset_use/dataset_001/origin_bev/1788766830711571228_000155.png",
+      "image_sha256": "45ea80e6018df00fa145b8287806f02a52140ab5cb166922993c0b846b9f9ffb",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848448292941911_000326",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848448292941911_000326.png",
+      "image_sha256": "2d3f311e19760f838a221191d06a1bc3ecede83c869bf081951009c498103e3b",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848458505473540_000373",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848458505473540_000373.png",
+      "image_sha256": "bf4602f474dbbed0ff7fa8c94e4de9847fc143230132b8e8582fdb81588daabb",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767225470705185_000084",
+      "image": "dataset_use/dataset_004/origin_bev/1788767225470705185_000084.png",
+      "image_sha256": "a56b29f2772d224f1e478e71c6c4eda3a2d3661f6bc3d1b0072eb53a13a37ff2",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767477897680747_000087",
+      "image": "dataset_use/dataset_005/origin_bev/1788767477897680747_000087.png",
+      "image_sha256": "6b499c247f1f79470fc7c8844dc3d633f06ad06c39fe94d5727889566931cdfb",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767255207799128_000195",
+      "image": "dataset_use/dataset_004/origin_bev/1788767255207799128_000195.png",
+      "image_sha256": "09e32885db6994df67b04b46a3c964b5996d74f60464b0ac8d26dbc6385fdf49",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767262457739532_000222",
+      "image": "dataset_use/dataset_004/origin_bev/1788767262457739532_000222.png",
+      "image_sha256": "aa4d57054a89b88bc44d69bc0946e5f962a60aad4eac898542b2442e993389c3",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848469593002776_000424",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848469593002776_000424.png",
+      "image_sha256": "6f306fb6f72cd2075b90bda70d31843573277bac3ba45609b3932acd84876d80",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848450017944972_000334",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848450017944972_000334.png",
+      "image_sha256": "ce3099d6c9f85266e2b0acd54259209442e1c49557595636304e9a83518a5d6c",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766815561387324_000099",
+      "image": "dataset_use/dataset_001/origin_bev/1788766815561387324_000099.png",
+      "image_sha256": "a481974d75de9218b425e81ac217bd81ecdeebc4ededf59537b08da6a1e8259f",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921325000950313_000029",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921325000950313_000029.png",
+      "image_sha256": "6dcd3b8ab87b3fe5c592c112c00ef0971792f05f6ea60d237e29075e7527e262",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766793798832083_000018",
+      "image": "dataset_use/dataset_001/origin_bev/1788766793798832083_000018.png",
+      "image_sha256": "5cc5a8acf69af4f822631be224fdef06133efba6cdd5cd243efff7445d0fbd77",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766938864028485_000133",
+      "image": "dataset_use/dataset_002/origin_bev/1788766938864028485_000133.png",
+      "image_sha256": "b9ebc9b0d223a1600d4726618b1a4d74900008f9b6b8ebabaf4fc660dbb481f6",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767218783242206_000059",
+      "image": "dataset_use/dataset_004/origin_bev/1788767218783242206_000059.png",
+      "image_sha256": "330b8d4ae9c9599ac7101f83f79ebe8d49c029c52b1adff904d038fdfc77855e",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767050286118067_000062",
+      "image": "dataset_use/dataset_003/origin_bev/1788767050286118067_000062.png",
+      "image_sha256": "b03aee96a95b5489a99a05c12c7c298da31b251e178a7d16020a8741d6c64dbb",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921538866402385_000030",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921538866402385_000030.png",
+      "image_sha256": "97cf6ec80bbe29a0b44fc7169d4afa3c9cfc3e41e2e4ae95c8409911d56fd2ca",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766833674067873_000166",
+      "image": "dataset_use/dataset_001/origin_bev/1788766833674067873_000166.png",
+      "image_sha256": "0a3dee6165079f44b8e889c981fa90a9d30a2819f10ad6ae2e5a98ee18079abe",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766809648871446_000077",
+      "image": "dataset_use/dataset_001/origin_bev/1788766809648871446_000077.png",
+      "image_sha256": "209c159a1343800d04b8a87fcc36e3b3ab25dd38d55e51a7becc38fa78c47126",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921719541423147_000091",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921719541423147_000091.png",
+      "image_sha256": "74da936d8052eeb6057cbd3e3911ce5277daabf907873464d3538119d0fe7378",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020373007466946_000083",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020373007466946_000083.png",
+      "image_sha256": "2f4c3a372a667e8549824bd3f14b625cce93cd7f1487277a538a621c87e77191",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921442266280120_000005",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921442266280120_000005.png",
+      "image_sha256": "349d56d263cbf3fdfaa0b1d0a0ce8eaf8ecd94fb9e5c17fb063b1900596c48fa",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020321467760215_000068",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020321467760215_000068.png",
+      "image_sha256": "dce907b51e43f417080d566034beaca24c3742d4bc4af63480b393506d85adbb",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020159661074349_000017",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020159661074349_000017.png",
+      "image_sha256": "e867376c31ad0045543e096e87fe6c1d775e0b9d81d90804f356724fe45283ea",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848414205447163_000170",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848414205447163_000170.png",
+      "image_sha256": "539ca70acd9f946c7317243926b6f784b782042a389aaed3e6b534fe7f38ee82",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848443242867380_000303",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848443242867380_000303.png",
+      "image_sha256": "bff8b691e3511c12a533b4a1d47e6dd279116b6b19370afc5562e7e33af38e52",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020283541212582_000050",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020283541212582_000050.png",
+      "image_sha256": "8e6ad9b5e604bcf053a1051caba722211a312b454c6f343102184a620befc0ef",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766955726661185_000196",
+      "image": "dataset_use/dataset_002/origin_bev/1788766955726661185_000196.png",
+      "image_sha256": "c4bad275fde399983e106faf90f9e665b75cff84ba31d51edf4e26a56f3f14f9",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921353575906677_000039",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921353575906677_000039.png",
+      "image_sha256": "859ffc8f53eef59fc8f7c85c96eb7b60c81fb0545d2f603ed601dd9baf168d12",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020764986161046_000030",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020764986161046_000030.png",
+      "image_sha256": "bb3f49f2463dc2e936a03f7960ddd14c348f6de9b978ff12ddde2cc2d553799f",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848393355416979_000074",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848393355416979_000074.png",
+      "image_sha256": "e1937f687689059e311d73bb3d13cdc2bdec52939384cdb87f2fbf2f1005042f",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847895801583203_000134",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847895801583203_000134.png",
+      "image_sha256": "696165b60f4133629b276d6940389c2f6874fd4ea25e5f40a11dbe9c0029b052",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020177011968008_000024",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020177011968008_000024.png",
+      "image_sha256": "ffe36789a8806d394024c1be542c7f45d9ed66b9004a87e814c38a197d6c2840",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020714129662658_000015",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020714129662658_000015.png",
+      "image_sha256": "37bf6e94d087a8c7d1169a5732ffa1b7b9bcfb2bf1e7837dad1cd4cb36af5d20",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020317117553323_000066",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020317117553323_000066.png",
+      "image_sha256": "4d189810b1b3c0f6e8d2242a4a2ae321fe466fc6274d156cdda926c9d46b6a0e",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921207500774385_000001",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921207500774385_000001.png",
+      "image_sha256": "cd8eb4b81e17b24cfcd754a612c8e8e1e369891b62bd653a10cd05e0bcf44f91",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921344700902615_000035",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921344700902615_000035.png",
+      "image_sha256": "0528d46ab2617e7ab8c085667f89bc180112d8758f90b79e5f4d11df59cda3f2",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921260413351524_000016",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921260413351524_000016.png",
+      "image_sha256": "169737baf709be73f82b8ad78991203589c6b2b3a3a77aa9d1f1e235da978ce5",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767033886020855_000001",
+      "image": "dataset_use/dataset_003/origin_bev/1788767033886020855_000001.png",
+      "image_sha256": "1d394327f9534ebbdd9bbe3c0d8decc8a91b9010de67bbd4a607bb80fe03fd17",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767268945231307_000246",
+      "image": "dataset_use/dataset_004/origin_bev/1788767268945231307_000246.png",
+      "image_sha256": "58921dba462a6db1fe6a03cbfbc614067460d37327f00756fcd2b8965a4269e8",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921561503856442_000041",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921561503856442_000041.png",
+      "image_sha256": "d1f56077608dbe757378f640122fcd77720ee7e1d126bc59702348629cd97fa2",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766915476370620_000046",
+      "image": "dataset_use/dataset_002/origin_bev/1788766915476370620_000046.png",
+      "image_sha256": "b49cdfe165a8684f3b51bb24ae038ee39b3af27ff9c8e64c7aa99c58ffb4c83e",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848472842996368_000439",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848472842996368_000439.png",
+      "image_sha256": "ad946fc3789e3d410bddef8a63a287c27e9bd26f78248b5b52441de9c7437c95",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921587528908093_000050",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921587528908093_000050.png",
+      "image_sha256": "64ba96ee6fbc2d479b638712a563866a3de22b2968e145d97e36f6e712484357",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848696580168235_000006",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848696580168235_000006.png",
+      "image_sha256": "820f5bcb1f6712b8c8ab82b05496b5af68e71634aea6f293aaa1d96c6670c63e",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766911451373267_000031",
+      "image": "dataset_use/dataset_002/origin_bev/1788766911451373267_000031.png",
+      "image_sha256": "e264981e1368ccd369793b9daca871b091d1a97b2e7f6e6a4adff89cada87c44",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921531453892149_000027",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921531453892149_000027.png",
+      "image_sha256": "efcfd2bd2fb8a19a8da063584d20dcc21fa4b2aabbece091201cdf3b364cf2a3",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921444366374648_000006",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921444366374648_000006.png",
+      "image_sha256": "46bacfbead3473b3bcdb0ba9845d7253c5a58ec713b4f1921cbc61956028aea5",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767050548617476_000063",
+      "image": "dataset_use/dataset_003/origin_bev/1788767050548617476_000063.png",
+      "image_sha256": "14fb753b449ce4fcdf6338caefff65c08529a40af0fe0014cd976fb308012037",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848400105417088_000105",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848400105417088_000105.png",
+      "image_sha256": "6d8ab2dcc97cebabe94f1cde0444e18a15fc2e90f59af014ffa0a45e762db9b3",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848425180396522_000220",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848425180396522_000220.png",
+      "image_sha256": "9d6c5846633e51b6d0b5488d4f54ce282ce0628e5154190a3d550f2fb632d679",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767043298574675_000036",
+      "image": "dataset_use/dataset_003/origin_bev/1788767043298574675_000036.png",
+      "image_sha256": "6bb55639b8e07c52bfd4b32e75f6abdc4aa32d730adb37f56f0fba53c8ca7392",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921291125896194_000027",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921291125896194_000027.png",
+      "image_sha256": "bbd6ecaa491ec639a2087cbe926281c36794c3bb7ded203d545d4c303630196f",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848434917919638_000265",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848434917919638_000265.png",
+      "image_sha256": "cb96bf519135b1ac20eaa9d5d76dbad91c462fb5918328e95c902a18f9b30c7a",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766804523873277_000058",
+      "image": "dataset_use/dataset_001/origin_bev/1788766804523873277_000058.png",
+      "image_sha256": "53adba8b48ddb87d691502ae040f95b7d6ea1887fbf852aed6b8fcc87e965b59",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766819886467186_000115",
+      "image": "dataset_use/dataset_001/origin_bev/1788766819886467186_000115.png",
+      "image_sha256": "b9ce25b730703f03ffb8dff9258049646f3a182177bacddf695d7b95476a8fa2",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848695917671780_000003",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848695917671780_000003.png",
+      "image_sha256": "d218158a55b686a9ce5b049d7e60e9a213ff51d7ec9de28b7b4ce386652aded1",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767042511075395_000033",
+      "image": "dataset_use/dataset_003/origin_bev/1788767042511075395_000033.png",
+      "image_sha256": "b63a3198b02abae9da0b2f39a6551fdc8bd9562f34a6dcc98cc8a500b2447b33",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020247215066361_000044",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020247215066361_000044.png",
+      "image_sha256": "6bd446a5b84dc0bf37ebcf5313da5ac61fb0b49d5525503a83b4290e2bb4835e",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767098186358736_000240",
+      "image": "dataset_use/dataset_003/origin_bev/1788767098186358736_000240.png",
+      "image_sha256": "096d91efe52b4663f854851474ff40cb543e0b53dc89ae9fad7a8e7f48a63333",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766848174163197_000220",
+      "image": "dataset_use/dataset_001/origin_bev/1788766848174163197_000220.png",
+      "image_sha256": "2fdcde88ebda1d43ad21fdc087a3fbbcd9ca57c3c56530bb16c0d3cb44f28797",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_003__1788848714793022525_000089",
+      "image": "dataset_0908/dataset_003/origin_bev/1788848714793022525_000089.png",
+      "image_sha256": "65833bf9c1e42e4e05942a4daca1b9372c80a349beda5f33f1fac416d11dc6af",
+      "source": "dataset_0908",
+      "group": "dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020200762905700_000030",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020200762905700_000030.png",
+      "image_sha256": "7ab535cd5c5d9b497a06c158f5117341cc27536b11460985c9a1b65289708fb6",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848395305416643_000083",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848395305416643_000083.png",
+      "image_sha256": "1f8c09df369e756411153685feee317da955f0830c8c316106a919c8511b830b",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847620226515844_000081",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847620226515844_000081.png",
+      "image_sha256": "f7fe887f3c57037b23489432aeb022487ce538d3c05ffa1a8f56c8435522d5ec",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848470680499863_000429",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848470680499863_000429.png",
+      "image_sha256": "ae78f6bb36443cbd662ce8c8f4b766321e0a492613758c2fd46ba48d668ba303",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921670491369696_000073",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921670491369696_000073.png",
+      "image_sha256": "5fd5dbe03fd6a9be8e76b1a44d5394a47b8bd8aa901990ca0bbc5336850dec68",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767500010060701_000169",
+      "image": "dataset_use/dataset_005/origin_bev/1788767500010060701_000169.png",
+      "image_sha256": "2658f059b1c78e89781b289bc98ec5c713cd172a1d794881cd8cae29f50ffe92",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_exception__dataset_009__1788771486362853939_000056",
+      "image": "dataset_exception/dataset_009/origin_bev/1788771486362853939_000056.png",
+      "image_sha256": "3da09c0da5e65859c383a1fb7bf85ef2e22b2958a3578ffd0fed664c6b23edab",
+      "source": "dataset_exception",
+      "group": "dataset_exception/dataset_009",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767040336076776_000025",
+      "image": "dataset_use/dataset_003/origin_bev/1788767040336076776_000025.png",
+      "image_sha256": "10f4c12e975437f4ffd1119d2df2d52b5e91bd003cb150f6452a51944858eef6",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921341800894559_000034",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921341800894559_000034.png",
+      "image_sha256": "02e409eb21fc57acec524c18c125d9f6cea8964debb8d8adabded8443923729a",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921716266426605_000090",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921716266426605_000090.png",
+      "image_sha256": "71a7618c1fd1ac1246e0f2bfc6ec45f2be08b1660188ab965d1f3d2097614790",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848438630369689_000282",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848438630369689_000282.png",
+      "image_sha256": "509ba7617480fe81a1dd9cc49e1084dc6b02380697def51a046a07649e7b9789",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_001__1788921333338419386_000031",
+      "image": "dataset_0909/dataset_001/origin_bev/1788921333338419386_000031.png",
+      "image_sha256": "7055fa82ee17998c88a8ddac40c551cb6173d19ed35fbfd58cdac09a98b54088",
+      "source": "dataset_0909",
+      "group": "dataset_001",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020322930263217_000069",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020322930263217_000069.png",
+      "image_sha256": "ca9de0d3769e8041a0bbcefc27f2321d2d75b5c0398260f895d61fd0ebcb7f7b",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767217970741839_000056",
+      "image": "dataset_use/dataset_004/origin_bev/1788767217970741839_000056.png",
+      "image_sha256": "4952899dc6af7dab589fa98f4f6a8e2e86490e346c0fdc2f978121cabe23ac18",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848454817982470_000356",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848454817982470_000356.png",
+      "image_sha256": "49013d2a6b4764f8e49e9e110c37be724301a2626061b484eab70f3e5d5e14d0",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767479247679870_000092",
+      "image": "dataset_use/dataset_005/origin_bev/1788767479247679870_000092.png",
+      "image_sha256": "351222ed42b1defe95f4b59ca17cd96baa106abbb4fe901080e3184c1e1b2a5d",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_exception__dataset_009__1788771351886751053_000030",
+      "image": "dataset_exception/dataset_009/origin_bev/1788771351886751053_000030.png",
+      "image_sha256": "81dcf650762849f1e4ee73b74ea620a317c1bc604c96e98f324f092646956978",
+      "source": "dataset_exception",
+      "group": "dataset_exception/dataset_009",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020287816582920_000052",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020287816582920_000052.png",
+      "image_sha256": "cdf4f50ae949a390482de45573682af3fd5d6f83d39026e3d84ac53a39c82197",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767036286015415_000010",
+      "image": "dataset_use/dataset_003/origin_bev/1788767036286015415_000010.png",
+      "image_sha256": "01790f86110e3830b86773339b4b811c75c5de75ee8762811b6db99cf30747c8",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020370832121124_000082",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020370832121124_000082.png",
+      "image_sha256": "d2234695f263e6d83c9f36d03555f0970ed6fa3f52d5ce1b7355fda6f7f340bd",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766819348961985_000113",
+      "image": "dataset_use/dataset_001/origin_bev/1788766819348961985_000113.png",
+      "image_sha256": "ad5f3733bb5ddde497323db171f267a1a6f436d97a5f95f519477940862eb0e3",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767251170405296_000180",
+      "image": "dataset_use/dataset_004/origin_bev/1788767251170405296_000180.png",
+      "image_sha256": "3730e645f8ca3a8f526413d39f1740ff0845cda22c53e56a6cd6c8da9cb82e9d",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020203600399177_000031",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020203600399177_000031.png",
+      "image_sha256": "dd4fe24912d96aacedb9fbb84ca3fb8abef0abbd3af4114708a8f0bf5d78ee2c",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766930326462313_000101",
+      "image": "dataset_use/dataset_002/origin_bev/1788766930326462313_000101.png",
+      "image_sha256": "ce40f883ce2de7d2a78693121c50409ecb5df51f99b11cf9a603301f415d9573",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020654384503807_000001",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020654384503807_000001.png",
+      "image_sha256": "1d1aadf4c63254831717dbb74f14cc0bef44285c7213e1accbb126832cdd4a11",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766809123871938_000075",
+      "image": "dataset_use/dataset_001/origin_bev/1788766809123871938_000075.png",
+      "image_sha256": "bd2a3a3c829fd765fed7ac558e7ad1ba7191ee78cf96ac5c332626b8299603bf",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767502922565925_000180",
+      "image": "dataset_use/dataset_005/origin_bev/1788767502922565925_000180.png",
+      "image_sha256": "2a1a7e78c8ab4cb81f28e0edb07da4696cf9bba8099a04681ab67c5c81aba060",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848377455549002_000001",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848377455549002_000001.png",
+      "image_sha256": "a1ea0bf04b645404b4a30fd03cd36a3e10540e758592e5d56da5e486ea7472ca",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847683305068701_000098",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847683305068701_000098.png",
+      "image_sha256": "66c4cc0d6f9d5f5f573cf46e71d0a8e5a7109bf5b467250abadc63726544a22b",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020393045628431_000092",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020393045628431_000092.png",
+      "image_sha256": "d4f2aed0d4f5051c63ff54560767712d93716b1806b257da5fb26e149c584103",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020710629669388_000014",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020710629669388_000014.png",
+      "image_sha256": "487f441c1db3c359b7aaed02cc7d0cb4552c4d26164dcf6fd553797e870c2c68",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848380730547509_000016",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848380730547509_000016.png",
+      "image_sha256": "09c1f2fb9b5ef25235497529fe2a91fdf4536b4dc268eb6e07183573b81dd402",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848456330478661_000363",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848456330478661_000363.png",
+      "image_sha256": "ea113960438b12023cde010c31e88f82ceb15e76e5059075f893124dd687aff3",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767498135065754_000162",
+      "image": "dataset_use/dataset_005/origin_bev/1788767498135065754_000162.png",
+      "image_sha256": "820152eed95eba8e2a83816d867d3178afc92eb807b11b6382ea6de1b1518e0f",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766910363868875_000027",
+      "image": "dataset_use/dataset_002/origin_bev/1788766910363868875_000027.png",
+      "image_sha256": "1ada9f7678d67ba48737346c1997f99e65ea7fa2929e6938147e9701f6f9b5d5",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921564603855839_000043",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921564603855839_000043.png",
+      "image_sha256": "40b6021c7ba16ea8156ab1b7051b07d3c5db8c2694ae702c7152033d95c3d5c3",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_001__1788847241046411456_000006",
+      "image": "dataset_0908/dataset_001/origin_bev/1788847241046411456_000006.png",
+      "image_sha256": "14a6804d0c2ae982bfe070b6dcc0360d003a7c5d2de0e89c3b3d753701c75243",
+      "source": "dataset_0908",
+      "group": "dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848481705579334_000480",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848481705579334_000480.png",
+      "image_sha256": "141e35428980241b1a58d8c998163b9d3d34d9ae519ecdd4cbaf7da79140b893",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767204246013324_000005",
+      "image": "dataset_use/dataset_004/origin_bev/1788767204246013324_000005.png",
+      "image_sha256": "94e730c89e913198d3a6bc91e326ff203265d6935e62b99c9b014116275b11ee",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848460030545836_000380",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848460030545836_000380.png",
+      "image_sha256": "a91f91e67f69a9f6487c4888c6b2490cd65998a5509bfe0b19f28640eb29219e",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020138747902538_000007",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020138747902538_000007.png",
+      "image_sha256": "ca0d1e5f0ba31467162f7ead9d9548db204b455634b2a0a7fb2c04505ead277a",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020291354075365_000054",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020291354075365_000054.png",
+      "image_sha256": "71fb5334ca36039775c1c5bdcef0f18cfb8095f86e81bbeda65caa40cc023744",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767077773803937_000164",
+      "image": "dataset_use/dataset_003/origin_bev/1788767077773803937_000164.png",
+      "image_sha256": "52573e43377bb215799fecf6e964a95ec489ebe1490bd37e805a8cfc1beec96f",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921673391369394_000074",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921673391369394_000074.png",
+      "image_sha256": "5021deefb433419a1112f8e62e0c61a32239cb3ce06394ea0d41e9249c0d61d6",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_004__1788767232108079821_000109",
+      "image": "dataset_use/dataset_004/origin_bev/1788767232108079821_000109.png",
+      "image_sha256": "551031b1c3bef4900179dff4d72915239d29084064cb30a6acd5e0adb1a893f7",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_004",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921730853954427_000096",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921730853954427_000096.png",
+      "image_sha256": "dbd5cebf8f6cc89d18a9230a4d376673c69106ece6b420886caec8acc5d30486",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_005__1788767504535059020_000186",
+      "image": "dataset_use/dataset_005/origin_bev/1788767504535059020_000186.png",
+      "image_sha256": "8d776a8a41afc88daa226020688c1aaa23f662e2a59da468276f840ff9a59a41",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_005",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020391270626512_000091",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020391270626512_000091.png",
+      "image_sha256": "bef17eab379b8abd70821f99ad91c9aec76cf2d157bf8e730e92efb246965905",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767036023513887_000009",
+      "image": "dataset_use/dataset_003/origin_bev/1788767036023513887_000009.png",
+      "image_sha256": "8769f3d23b8e813e135cdc0909387c99a97d38699c05d60a68c05a1e559737b7",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766806161370294_000064",
+      "image": "dataset_use/dataset_001/origin_bev/1788766806161370294_000064.png",
+      "image_sha256": "1561d27fa078ba17842aefbdd41e334741a23afdfa97254d7d9de53e146ca8ea",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020142360393628_000009",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020142360393628_000009.png",
+      "image_sha256": "929ea273d9eb88a7a73a988d7701b943c546392a9a1328ccbb770fed6c378075",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0910__dataset_006__1789020801049209087_000038",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_006/origin_bev/1789020801049209087_000038.png",
+      "image_sha256": "3c5ed52a45a5ee8a3c5323d141e3aac729481b33e6d002f1174a3d7f68c6b3a5",
+      "source": "dataset_0910",
+      "group": "dataset_006",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848388955494739_000054",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848388955494739_000054.png",
+      "image_sha256": "e21cdba3a0a9154185898a58b9606ecd8c30e2f53717e12a844dbb7fa89c4816",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0910__dataset_005__1789020153723579954_000015",
+      "image": "dataset_0910_labeled/dataset_0910/dataset_005/origin_bev/1789020153723579954_000015.png",
+      "image_sha256": "858d8483e95bbde37ff5bdb01de903df65ee673e4cae024bd4b5e95084a14fca",
+      "source": "dataset_0910",
+      "group": "dataset_005",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766965464233941_000232",
+      "image": "dataset_use/dataset_002/origin_bev/1788766965464233941_000232.png",
+      "image_sha256": "4c29453cfaa58643f6654d4fe07ca080cca60e66080075e4301c4098b8b18d11",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0908__dataset_002__1788848473930500010_000444",
+      "image": "dataset_0908/dataset_002/origin_bev/1788848473930500010_000444.png",
+      "image_sha256": "8eed4cbc3558342c5283fa0a8b3845538e6a397411edde38cf20d3ebd0b583a4",
+      "source": "dataset_0908",
+      "group": "dataset_002",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_0909__dataset_002__1788921689691581094_000081",
+      "image": "dataset_0909/dataset_002/origin_bev/1788921689691581094_000081.png",
+      "image_sha256": "b62dc19437685d3d934d74fdc49a6f0754f3595d249a1d3729035f8119998d94",
+      "source": "dataset_0909",
+      "group": "dataset_002",
+      "has_stop_line": true
+    },
+    {
+      "id": "dataset_use__dataset_003__1788767096298865129_000233",
+      "image": "dataset_use/dataset_003/origin_bev/1788767096298865129_000233.png",
+      "image_sha256": "897a9053ae32898614479147126a6d26bb857bbc3676a4d02b6d2b161c3d016e",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_003",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_001__1788766801586330586_000047",
+      "image": "dataset_use/dataset_001/origin_bev/1788766801586330586_000047.png",
+      "image_sha256": "cd6b47000f5babbcaca63c7daa6fb1507096cc3cb8ee25c1312efe4f464a972b",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_001",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_exception__dataset_009__1788771396112142622_000039",
+      "image": "dataset_exception/dataset_009/origin_bev/1788771396112142622_000039.png",
+      "image_sha256": "9d1e477a2cb33df33fda858d29f7fbfe169f1d10ab715cbf1527054477612059",
+      "source": "dataset_exception",
+      "group": "dataset_exception/dataset_009",
+      "has_stop_line": false
+    },
+    {
+      "id": "dataset_use__dataset_002__1788766923038919114_000074",
+      "image": "dataset_use/dataset_002/origin_bev/1788766923038919114_000074.png",
+      "image_sha256": "d0f157c7d99e394c0f6d276b95b6379aa98f90bb76cc5b5b6c4744ce46376a3b",
+      "source": "dataset_use",
+      "group": "dataset_use/dataset_002",
+      "has_stop_line": false
+    }
+  ]
+}

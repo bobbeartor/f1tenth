@@ -1,0 +1,8 @@
+# Development/export only. NOT ROS runtime dependencies.
+torch>=2.9,<3
+numpy>=1.24
+opencv-python>=4.8
+onnx>=1.16,<2
+onnxruntime>=1.18,<2
+# onnxruntime.quantization supplies the explicit Q/DQ INT8 PTQ path.
+# Optional NVIDIA alternative: pip install "nvidia-modelopt[onnx]"

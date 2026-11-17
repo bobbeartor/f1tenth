@@ -1,0 +1,112 @@
+<div id="vfh-course-sim">
+  <style>
+    #vfh-course-sim { color:var(--foreground); }
+    #vfh-course-sim .sim-top { display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding-right:90px; margin-bottom:12px; }
+    #vfh-course-sim .sim-panes { display:grid; grid-template-columns:minmax(0,1fr) 180px; gap:20px; align-items:start; }
+    #vfh-course-sim canvas { display:block; max-width:100%; }
+    #vfh-course-sim .sim-world { width:100%; touch-action:none; }
+    #vfh-course-sim .sim-bev { width:180px; height:450px; image-rendering:pixelated; }
+    #vfh-course-sim .sim-hist { width:100%; height:115px; }
+    #vfh-course-sim .sim-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px 14px; margin:12px 0; }
+    #vfh-course-sim .sim-fields label { min-width:0; }
+    #vfh-course-sim .sim-fields input { width:100%; box-sizing:border-box; }
+    #vfh-course-sim .sim-status { margin:10px 0; min-height:1.5em; }
+    #vfh-course-sim .sim-legend { display:flex; flex-wrap:wrap; gap:12px; margin:8px 0; }
+    #vfh-course-sim .sim-legend span::before { content:'●'; padding-right:5px; }
+    #vfh-course-sim .sim-legend .obs::before { color:var(--viz-series-2); }
+    #vfh-course-sim .sim-legend .mem::before { color:var(--viz-series-3); }
+    #vfh-course-sim .sim-legend .path::before { color:var(--viz-series-1); }
+    #vfh-course-sim details { margin:12px 0; }
+    #vfh-course-sim summary { font-weight:500; }
+    #vfh-course-sim textarea { width:100%; min-height:140px; box-sizing:border-box; }
+    @media(max-width:600px) { #vfh-course-sim .sim-panes { grid-template-columns:1fr; } #vfh-course-sim .sim-bev-pane { justify-self:center; } }
+  </style>
+  <div class="sim-top">
+    <button type="button" class="btn btn-primary" data-act="play">주행 시작</button>
+    <button type="button" class="btn" data-act="step">0.1초 진행</button>
+    <button type="button" class="btn" data-act="reset">차량 처음으로</button>
+    <span class="tabular-nums" data-out="clock">0.00초 · 0.00m</span>
+  </div>
+  <div class="viz-controls">
+    <label class="form-label">장면
+      <select class="form-select" data-field="preset"><option value="user">사용자 배치</option><option value="track">도면 순환 트랙 · 장애물</option><option value="guidance">유도 경로</option><option value="static">정지 장애물</option><option value="empty">빈 코스</option><option value="blocked">통로 차단</option></select>
+    </label>
+    <label class="form-label">편집 도구
+      <select class="form-select" data-field="tool"><option value="move">선택·이동</option><option value="circle">원형 장애물 추가</option><option value="box">사각 장애물 추가</option><option value="chain">촘촘한 콘 배열 그리기</option><option value="marker" hidden>통과 영역 추가 (평가용)</option></select>
+    </label>
+    <label class="form-label">새 장애물 크기(m)<input class="form-control" type="number" min="0.04" max="1.5" step="0.01" value="0.13" data-field="size"></label>
+    <label class="form-label" hidden>통과 영역 지름(m)<input class="form-control" type="number" min="0.04" max="2" step="0.01" value="0.20" data-field="marker-size"></label>
+    <button type="button" class="btn" data-act="delete">선택 삭제</button>
+    <button type="button" class="btn" data-act="clear">장애물 비우기</button>
+    <label class="form-check"><input type="checkbox" class="form-check-input" data-field="lane-visible" checked><span class="form-check-label">차선 관측</span></label>
+  </div>
+  <div class="viz-controls">
+    <label class="form-label">설정 프리셋<select class="form-select" data-field="planning-profile" aria-describedby="vfh-profile-detail"></select></label>
+    <span class="text-small">선택 즉시 설정 적용 · 차량 초기화 · 장애물·통과 영역 유지</span>
+  </div>
+  <div id="vfh-profile-detail" class="text-small tabular-nums" data-out="profile-detail" role="status" aria-live="polite"></div>
+  <div class="text-small">편집 도구에서 원형·사각형 추가를 선택해 지도를 클릭하세요. 촘촘한 콘 배열은 드래그로 그립니다. 선택·이동으로 배치를 수정할 수 있습니다. 통과 영역은 평가 전용이며 VFH 주행에는 전달되지 않습니다.</div>
+  <div class="text-small" data-out="markers" hidden></div>
+  <div class="text-small tabular-nums" data-out="policy-source" role="status"></div>
+  <div class="sim-status tabular-nums" data-out="status" role="status" aria-live="polite"></div>
+  <div class="sim-panes">
+    <div>
+      <div data-out="course-label">16m 코스 · 클릭 배치 / 드래그 이동·콘 배열</div>
+      <canvas class="sim-world cursor-interaction" data-canvas="world" role="img" aria-label="16m 직선 코스 장애물 편집 지도. 차량 궤적과 이동하는 BEV 관측 영역 표시."></canvas>
+      <div class="sim-legend text-small"><span class="obs">현재 관측</span><span class="mem">유지·기억 장애물</span><span class="path">선택 경로·주행 궤적</span><span>점선: 차선 기준</span></div>
+      <div class="text-small" data-out="selected">선택한 장애물 없음</div>
+      <div class="sim-fields" data-area="object">
+        <label class="form-label">X 위치(m)<input class="form-control" data-object="x" type="number" step="0.01" min="0" max="16"></label>
+        <label class="form-label">Y 위치(m)<input class="form-control" data-object="y" type="number" step="0.01" min="-1.4" max="1.4"></label>
+        <label class="form-label">지름 / 전후 길이(m)<input class="form-control" data-object="w" type="number" step="0.01" min="0.04" max="2"></label>
+        <label class="form-label">사각형 좌우 폭(m)<input class="form-control" data-object="h" type="number" step="0.01" min="0.04" max="3"></label>
+      </div>
+      <div>VFH 극좌표 히스토그램 · 음영=차폭·여유 반영 차단 방향</div>
+      <canvas class="sim-hist" data-canvas="hist" role="img" aria-label="VFH 방향별 장애물 밀도와 선택한 진행 방향"></canvas>
+    </div>
+    <div class="sim-bev-pane">
+      <div>차량 BEV · 120×300</div>
+      <canvas width="120" height="300" class="sim-bev" data-canvas="bev" role="img" aria-label="현재 terrain 격자의 BEV 표시. 장애물 가림 적용."></canvas>
+      <div class="text-small" data-out="terrain-size">가로 1.2m · 전방 3m</div>
+      <div class="text-small tabular-nums" data-out="visibility"></div>
+    </div>
+  </div>
+  <details open>
+    <summary>맥북 측정 · Jetson 비례 예측</summary>
+    <div class="text-small" data-out="perf-source" role="status" aria-live="polite"></div>
+    <div class="viz-controls">
+      <label class="form-label">Jetson 시간 배율 · 미보정 가정<input class="form-control" data-field="jetson-ratio" type="number" min="0.1" max="30" step="0.1" value="4"></label>
+      <span class="text-small">Orin Nano Super 8GB · MAXN SUPER</span>
+    </div>
+    <div class="table-responsive"><table class="table table-sm tabular-nums">
+      <thead><tr><th>측정 구간</th><th>맥북 평균 / P95</th><th>Jetson 가정 평균 / P95</th></tr></thead>
+      <tbody data-out="perf-rows"></tbody>
+    </table></div>
+    <div class="text-small tabular-nums" data-out="perf-budget"></div>
+    <div class="text-small">Jetson 시간 = 맥북 시간 × 배율. 기본 ×4는 임의 시나리오이며 기기 성능 실측값이 아닙니다.</div>
+    <div class="text-small">공통 C++ 계획기 및 센서 모사의 로컬 시간 · 실카메라·DepthAI·신경망·ROS·GPU 부하 제외</div>
+  </details>
+  <details>
+    <summary>주행·차량·VFH 설정</summary>
+    <div class="text-small">출발 전에 적용하세요. 주행 중 설정은 잠깁니다. 차선 관측 체크는 인식 상황을 바꾸는 실험 입력입니다.</div>
+    <div class="sim-fields" data-area="settings"></div>
+    <label class="form-check"><input type="checkbox" class="form-check-input" data-field="occlusion" checked><span class="form-check-label">가까운 장애물에 의한 가림 적용</span></label>
+    <div class="viz-row"><button type="button" class="btn" data-act="apply">설정 적용 · 차량 초기화</button><button type="button" class="btn" data-act="track-tuning" hidden>기본값 복원</button><span class="text-small" data-out="limit"></span></div>
+  </details>
+  <details>
+    <summary>장면·설정 JSON</summary>
+    <textarea class="form-control" data-field="json" aria-label="장애물·통과 영역 배치와 설정 JSON"></textarea>
+    <div class="viz-row"><button type="button" class="btn" data-act="export">현재 배치 복사 준비</button><button type="button" class="btn" data-act="import">JSON 적용</button></div>
+  </details>
+  <div class="text-destructive" data-out="error" role="alert"></div>
+  <div class="text-small sim-footer">실차 공통 C++ VFH 정책 · 정상 센서 입력과 이상적인 위치 추정 · 차량 속도 응답은 가감속 모델 · 마킹은 평가 전용</div>
+</div>
+<script>
+/*__SIM_CORE__*/
+/*__SIM_SCENE__*/
+/*__SIM_BENCHMARK__*/
+/*__SIM_PROFILES__*/
+</script>
+<script>
+/*__SIM_UI__*/
+</script>

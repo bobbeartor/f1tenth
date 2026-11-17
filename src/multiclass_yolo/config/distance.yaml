@@ -1,0 +1,18 @@
+yolo_distance:
+  ros__parameters:
+    mode: collect  # collect | infer | evaluate
+    sequence: session_001  # must be new for each independent recording
+    output_directory: distance_data
+    distance_model: ''
+    backend: TENSORRT
+    width: 1280
+    height: 800
+    fps: 30.0
+    preview: true
+    sync_ms: 20.0
+    core_fraction: 0.6
+    min_valid_ratio: 0.1  # 400p depth is sparse when projected into 1280x800 RGB
+    min_pixels: 20
+    min_depth_m: 0.2
+    max_depth_m: 10.0
+    max_relative_spread: 0.15

@@ -1,0 +1,190 @@
+{
+  "model_id": "20261023_140042_191723_aug",
+  "source_checkpoint": "/Users/ojeonghun/Desktop/디자인프로젝트/tunnel_rgb_tcn/tunnel_analysis_team_20261001/brightness_analysis/rgb_tcn_runs/20261023_140042_191723_aug/final_model.pt",
+  "checkpoint_sha256": "ee22aa68ba49f9a0a15a4f742bcd18af6bf3b579031a5d6abd7356d1e9850f30",
+  "onnx_sha256": "d1f342305dd60af6c3f297fa14af4fa8797c4956594d97db49e00f501bbb5a4f",
+  "golden_sha256": "5a86743c59e7efb32d9dc76b37cbcff119069cb176966d919ac4d21cf9094565",
+  "config_sha256": "33fe42b6fa4ea4320686556c29646a8207a8f40308cf4f83ec32be62223f3dfb",
+  "precision": "FP32 (no INT8 quantization)",
+  "torch_version": "2.14.1",
+  "onnx_version": "1.23.2",
+  "opset": 13,
+  "replay_items": [
+    {
+      "id": "20260923_115757__rgb",
+      "fps": 10.0,
+      "frames": 762,
+      "samples": 762,
+      "role": "external_unlabeled",
+      "expected_events": [
+        {
+          "label": "진입",
+          "time_s": 2.7,
+          "score": 0.9292852878570557
+        },
+        {
+          "label": "탈출",
+          "time_s": 9.3,
+          "score": 0.7742989659309387
+        },
+        {
+          "label": "진입",
+          "time_s": 19.7,
+          "score": 0.9946175217628479
+        },
+        {
+          "label": "탈출",
+          "time_s": 30.6,
+          "score": 0.5117539167404175
+        },
+        {
+          "label": "진입",
+          "time_s": 41.0,
+          "score": 0.9989803433418274
+        },
+        {
+          "label": "탈출",
+          "time_s": 60.9,
+          "score": 0.8808452486991882
+        }
+      ]
+    },
+    {
+      "id": "20260923_120556__rgb",
+      "fps": 10.0,
+      "frames": 652,
+      "samples": 652,
+      "role": "final_refit_training",
+      "expected_events": [
+        {
+          "label": "진입",
+          "time_s": 10.3,
+          "score": 0.9999934434890747
+        },
+        {
+          "label": "탈출",
+          "time_s": 13.9,
+          "score": 0.7374420166015625
+        },
+        {
+          "label": "진입",
+          "time_s": 21.0,
+          "score": 0.9988037347793579
+        },
+        {
+          "label": "탈출",
+          "time_s": 25.1,
+          "score": 0.5514830946922302
+        },
+        {
+          "label": "진입",
+          "time_s": 33.5,
+          "score": 0.5108467936515808
+        },
+        {
+          "label": "탈출",
+          "time_s": 36.6,
+          "score": 0.9785358309745789
+        },
+        {
+          "label": "진입",
+          "time_s": 44.1,
+          "score": 0.9585494995117188
+        },
+        {
+          "label": "탈출",
+          "time_s": 48.4,
+          "score": 0.9044376611709595
+        },
+        {
+          "label": "진입",
+          "time_s": 58.3,
+          "score": 0.9999988079071045
+        },
+        {
+          "label": "탈출",
+          "time_s": 61.5,
+          "score": 0.9274501800537109
+        }
+      ]
+    },
+    {
+      "id": "20260923_113130__rgb",
+      "fps": 10.0,
+      "frames": 375,
+      "samples": 375,
+      "role": "external_unlabeled",
+      "expected_events": [
+        {
+          "label": "진입",
+          "time_s": 0.0,
+          "score": 0.9966152310371399
+        },
+        {
+          "label": "탈출",
+          "time_s": 5.5,
+          "score": 0.5441185235977173
+        },
+        {
+          "label": "진입",
+          "time_s": 15.0,
+          "score": 0.9989126920700073
+        },
+        {
+          "label": "탈출",
+          "time_s": 20.3,
+          "score": 0.6979783177375793
+        },
+        {
+          "label": "진입",
+          "time_s": 28.2,
+          "score": 0.9992604851722717
+        },
+        {
+          "label": "탈출",
+          "time_s": 32.7,
+          "score": 0.5623644590377808
+        }
+      ]
+    },
+    {
+      "id": "20260923_120108__rgb",
+      "fps": 10.0,
+      "frames": 572,
+      "samples": 572,
+      "role": "external_unlabeled",
+      "expected_events": [
+        {
+          "label": "진입",
+          "time_s": 2.1,
+          "score": 0.9875234961509705
+        },
+        {
+          "label": "탈출",
+          "time_s": 17.9,
+          "score": 0.9509857296943665
+        },
+        {
+          "label": "진입",
+          "time_s": 28.2,
+          "score": 0.9093787670135498
+        },
+        {
+          "label": "탈출",
+          "time_s": 40.3,
+          "score": 0.5270183682441711
+        },
+        {
+          "label": "진입",
+          "time_s": 49.1,
+          "score": 0.8866217136383057
+        },
+        {
+          "label": "탈출",
+          "time_s": 54.6,
+          "score": 0.9857263565063477
+        }
+      ]
+    }
+  ]
+}

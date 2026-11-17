@@ -1,0 +1,49 @@
+# Copy this file, edit values, and restart the node with params_file:=/absolute/path.yaml.
+# Unspecified parameters use node defaults; explicit launch arguments override YAML.
+line_detactor:
+  ros__parameters:
+    input_topic: "/camera/image_bev"
+    connection_enabled: true
+    connection_skeleton_downsample_factor: 1  # Try 2; range 1..4, original labels preserved.
+    result_padding_px: 30
+    preview_enabled: true
+    preview_result_only_enabled: true
+    preview_scale: 2.0
+    result_publish_enabled: true
+
+    centerline_enabled: true
+    centerline_sample_spacing_m: 0.015
+    centerline_output_spacing_m: 0.01         # Try 0.02; range 0.005..0.10m.
+    centerline_clearance_check_spacing_m: 0.005 # Try 0.01; range 0.001..0.05m.
+    centerline_lane_width_m: 0.65
+    # Match the physical UNPADDED source BEV; default source = 120x300 at 1 cm/px.
+    centerline_bev_width_m: 1.2
+    centerline_bev_height_m: 3.0
+    centerline_line_width_px: 2
+    centerline_min_clearance_m: 0.16
+    centerline_max_gap_m: 0.12
+    centerline_max_start_distance_m: 0.65
+    centerline_outside_margin_m: 0.12
+    centerline_width_tolerance_m: 0.12
+    centerline_tangent_window_m: 0.06
+
+    # Prefer the observed OUTER boundary shape in corners; fade with local support/turn.
+    centerline_corner_outer_enabled: true
+    centerline_corner_outer_weight: 0.85
+    centerline_corner_outward_offset_m: 0.05
+    # Ramp outward before the observed corner; 0 disables this entry extension.
+    centerline_corner_entry_distance_m: 0.40
+    centerline_corner_outer_window_m: 0.60
+    centerline_corner_outer_tangent_window_m: 0.15
+    centerline_corner_outer_min_length_m: 0.30
+    centerline_corner_outer_min_turn_deg: 8.0
+    centerline_corner_outer_full_turn_deg: 25.0
+
+    centerline_smoothing_enabled: true
+    centerline_smoothing_strength: 1.0       # 0..1, lower = less final smoothing.
+    centerline_smoothing_sigma_m: 0.04
+    centerline_smoothing_window_m: 0.65     # Larger = suppress longer straight-section ripples.
+    centerline_smoothing_max_shift_m: 0.03  # Per stage, two stages; endpoints fixed.
+    centerline_straight_turn_deg: 12.0
+    centerline_corner_turn_deg: 35.0
+    centerline_turn_window_m: 0.30

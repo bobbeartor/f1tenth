@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-09-11T01:43:31.958183+00:00",
+  "source": "C:\\Users\\godld\\Desktop\\f1tenth_project_repo\\src\\traffic_detection_test\\models\\traffic_light_yolox_s_640x160_batch_1.onnx",
+  "source_sha256": "bea0b3bc57a1e6cda996a9df51d1948bc61cb5919bd379840b0fdea35600f195",
+  "output": "C:\\Users\\godld\\Desktop\\f1tenth_project_repo\\src\\traffic_detection_test\\models\\traffic_light_yolox_s_640x160_batch_1.int8.qdq.onnx",
+  "output_sha256": "8461ecbc280f2516aba80a81dc458cde76639e77ceb53c7b11fc90c68b78c78e",
+  "format": "explicit Q/DQ INT8 PTQ",
+  "source_opset": 11,
+  "quantized_opset": 13,
+  "deployment_roi_xywh": [
+    0,
+    65,
+    640,
+    160
+  ],
+  "calibration_method": "MinMax",
+  "calibration_count": 128,
+  "calibration_manifest": "C:\\Users\\godld\\Desktop\\traffic\\traffic_light_fine_detector\\training\\artifacts\\int8_ptq\\calibration_manifest.json",
+  "source_conv_count": 83,
+  "floating_prediction_conv_count": 9,
+  "quantized_conv_count": 74,
+  "qdq_counts": {
+    "QuantizeLinear": 135,
+    "DequantizeLinear": 209
+  },
+  "all_zero_points_are_zero": true,
+  "quantized_bias": false,
+  "tensorrt_int32_dequantize_count": 0,
+  "source_bytes": 35816346,
+  "output_bytes": 9274936,
+  "smoke_test": "passed on ONNX Runtime CPU"
+}

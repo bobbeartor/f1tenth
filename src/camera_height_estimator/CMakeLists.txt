@@ -13,14 +13,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(depthai 3 CONFIG QUIET)
-if(NOT depthai_FOUND)
-  message(FATAL_ERROR
-    "DepthAI C++ 3.x was not found. camera_height_estimator links directly "
-    "against depthai::core. Install the same DepthAI C++ library used by "
-    "camera_driver and provide depthai_DIR."
-  )
-endif()
+include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/DepthaiWorkspace.cmake")
 
 add_library(camera_height_geometry STATIC
   src/camera_height_geometry.cpp

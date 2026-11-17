@@ -1,0 +1,79 @@
+/**:
+  ros__parameters:
+    # Current vehicle default: vesc_bridge reads VESC telemetry through UART.
+    # "slcan" reads CANable 2 directly with python-can when the Jetson kernel
+    # has no slcan module. "socketcan" keeps the kernel CAN path available.
+    input_mode: "ros_topic"
+    can_interface: "can0"
+    can_controller_id: 0
+    slcan_channel: "/dev/ttyACM0"
+    slcan_bitrate: 500000
+
+    measured_erpm_topic: "/vesc/measured_erpm"
+    connection_status_topic: "/vesc/connected"
+    commanded_duty_topic: "/manual/current_duty"
+    servo_position_topic: "/vesc/servo_position"
+    imu_topic: "/camera/imu"
+
+    acceleration_topic: "/vehicle/dynamics/acceleration"
+    speed_topic: "/vehicle/dynamics/speed_mps"
+    longitudinal_acceleration_topic: "/vehicle/dynamics/longitudinal_acceleration_mps2"
+    lateral_acceleration_topic: "/vehicle/dynamics/lateral_acceleration_mps2"
+    yaw_rate_topic: "/vehicle/dynamics/yaw_rate_radps"
+    motor_rpm_topic: "/vehicle/dynamics/motor_rpm"
+    wheel_rpm_topic: "/vehicle/dynamics/wheel_rpm"
+    motor_current_topic: "/vehicle/dynamics/motor_current_a"
+    input_current_topic: "/vehicle/dynamics/input_current_a"
+    input_voltage_topic: "/vehicle/dynamics/input_voltage_v"
+    duty_cycle_topic: "/vehicle/dynamics/duty_cycle"
+    fet_temperature_topic: "/vehicle/dynamics/fet_temperature_c"
+    motor_temperature_topic: "/vehicle/dynamics/motor_temperature_c"
+    diagnostics_topic: "/vehicle/dynamics/diagnostics"
+    vehicle_frame_id: "base_link"
+
+    publish_rate_hz: 80.0
+    status_log_rate_hz: 2.0
+    diagnostic_rate_hz: 2.0
+
+    # The installed servo linkage has not been angle-calibrated, so do not use
+    # its normalized 0..1 command for lateral acceleration by default.
+    # After measuring the left/right tire angles, "auto" enables steering as a
+    # fallback when fresh gyro data is unavailable.
+    # /camera/imu is in camera_optical_frame, whose vehicle-up axis is normally -Y.
+    yaw_rate_source: "imu"
+    imu_yaw_axis: "y"
+    imu_yaw_rate_sign: -1.0
+    imu_yaw_rate_bias_radps: 0.0
+    imu_timeout_sec: 0.10
+    steering_timeout_sec: 0.15
+
+    # Traxxas Slash 4X4 Ultimate drivetrain initial calibration.
+    wheel_diameter_m: 0.1095
+    motor_pole_pairs: 2
+    motor_pinion_teeth: 13
+    spur_gear_teeth: 54
+    differential_pinion_teeth: 13
+    differential_ring_teeth: 37
+    erpm_direction_sign: 1.0
+    speed_scale_correction: 1.0
+
+    speed_deadband_mps: 0.03
+    speed_filter_time_constant_sec: 0.05
+    acceleration_filter_time_constant_sec: 0.12
+    maximum_speed_mps: 6.0
+    maximum_longitudinal_acceleration_mps2: 15.0
+    maximum_lateral_acceleration_mps2: 15.0
+    maximum_yaw_rate_radps: 8.0
+    maximum_sample_interval_sec: 0.10
+    sample_timeout_sec: 0.15
+
+    # Uncalibrated steering fallback placeholders copied from the existing
+    # auto_control configuration. 30 degrees is not a verified Traxxas spec.
+    # Measure wheelbase and effective left/right tire angles before selecting
+    # yaw_rate_source=steering or auto.
+    wheelbase_m: 0.324
+    maximum_left_steering_angle_deg: 30.0
+    maximum_right_steering_angle_deg: 30.0
+    servo_left: 1.0
+    servo_center: 0.46
+    servo_right: 0.0

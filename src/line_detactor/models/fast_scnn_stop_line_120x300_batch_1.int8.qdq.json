@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-09-11T01:54:26.149961+00:00",
+  "source_onnx": "C:\\Users\\godld\\Desktop\\f1tenth_project_repo\\src\\line_detactor\\models\\fast_scnn_stop_line_120x300_batch_1.onnx",
+  "source_onnx_sha256": "abdd5485fa85342b12cd7086004bf04aed4754c1c2fb93b6abfea8d51619e061",
+  "output_onnx": "C:\\Users\\godld\\Desktop\\f1tenth_project_repo\\src\\line_detactor\\models\\fast_scnn_stop_line_120x300_batch_1.int8.qdq.onnx",
+  "output_onnx_sha256": "df8470c517099f094d62ebe81a69e212cfc5b5e12218754e21a22cffef248871",
+  "format": "explicit Q/DQ INT8 PTQ",
+  "calibration_method": "minmax",
+  "calibration_manifest": "C:\\Users\\godld\\Desktop\\f1tenth_project_repo\\src\\line_detactor\\tools\\int8_calibration_manifest.json",
+  "calibration_manifest_sha256": "2558c12a0f382dea64f65cc7714920200a634fd288800b0782096d76cbcdaa7c",
+  "calibration_count": 512,
+  "calibration_stop_positive_count": 200,
+  "quantized_op_types": [
+    "Conv"
+  ],
+  "source_conv_count": 50,
+  "floating_point_exclusions": [
+    "/model/decoder_classifier/decoder_classifier.1/Conv",
+    "/model/decoder_half/decoder_half.0/decoder_half.0.0/Conv",
+    "/model/decoder_half/decoder_half.0/decoder_half.0.2/decoder_half.0.2.0/Conv",
+    "/model/decoder_half/decoder_half.1/decoder_half.1.0/Conv",
+    "/model/decoder_half/decoder_half.1/decoder_half.1.2/decoder_half.1.2.0/Conv"
+  ],
+  "floating_point_exclude_prefixes": [
+    "/model/decoder_half/"
+  ],
+  "qdq_counts": {
+    "QuantizeLinear": 82,
+    "DequantizeLinear": 127
+  },
+  "quantized_bias": false,
+  "tensorrt_int32_dequantize_count": 0,
+  "tensorrt_uint8_qdq_count": 0,
+  "input": [
+    1,
+    3,
+    300,
+    120
+  ],
+  "output": [
+    1,
+    3,
+    300,
+    120
+  ],
+  "onnx": "1.22.0",
+  "onnxruntime": "1.29.0",
+  "smoke_test": "CPU ONNX Runtime output is finite; this is not a TensorRT latency test"
+}

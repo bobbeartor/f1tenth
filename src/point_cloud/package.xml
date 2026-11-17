@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>point_cloud</name>
+  <version>0.1.0</version>
+  <description>Configurable OAK stereo depth point clouds for resolution and IR illumination comparison.</description>
+  <maintainer email="ojeonghun@example.com">ojeonghun</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>rcl_interfaces</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2</depend>
+  <depend>visualization_msgs</depend>
+  <depend>oak_startup</depend>
+  <test_depend>libopencv-dev</test_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <depend>depthai</depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

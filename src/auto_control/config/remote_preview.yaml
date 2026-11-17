@@ -1,0 +1,9 @@
+# remote_preview 노드 설정. auto_drive.launch.py remote_preview_params_file:=<경로>로 교체 가능.
+# lane_width_m를 0으로 두면 launch가 line_detactor YAML의 centerline_lane_width_m를 사용한다.
+remote_preview:
+  ros__parameters:
+    port: 8765                  # 브라우저 접속 포트 http://<jetson-ip>:8765
+    bind: "0.0.0.0"             # 특정 인터페이스만 열려면 해당 IP
+    frame_rate_hz: 30.0         # 단말로 보내는 프레임 주기 (1~60)
+    lane_width_m: 0.0           # 프리뷰 도로 폭 가정값(m). 0 = line_detactor 값 사용
+    link_loss_stop_sec: 1.0     # STARTED 중 heartbeat 끊김 → STOP. 0 = 끄기

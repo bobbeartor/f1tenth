@@ -1,0 +1,18 @@
+{
+  "seed": 42,
+  "calibration_count": 512,
+  "calibration_stop_positive_count": 200,
+  "calibration_method": "minmax",
+  "floating_point_exclude_prefixes": [
+    "/model/decoder_half/"
+  ],
+  "target_width": 3,
+  "threshold": 0.5,
+  "tolerance_px": 2,
+  "gates": {
+    "maximum_stop_f1_drop": 0.01,
+    "maximum_lane_macro_f1_drop": 0.01,
+    "maximum_negative_stop_frame_fp_rate_increase": 0.01,
+    "maximum_positive_stop_frame_hit_rate_drop": 0.01
+  }
+}

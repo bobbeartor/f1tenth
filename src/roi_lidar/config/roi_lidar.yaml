@@ -1,0 +1,100 @@
+# 이 파일을 직접 수정한 뒤 실행:
+# ros2 launch roi_lidar roi_lidar.launch.py config_file:=/absolute/path/roi_lidar.yaml
+# profile 기본값 yaml: 이 파일의 값을 그대로 사용. 저장 후 노드 재시작(재빌드 불필요).
+roi_lidar:
+  ros__parameters:
+    device_id: ""
+    # Request, not a measured/guaranteed device rate. 'fast' profile disables subpixel.
+    camera.resolution: "400p"
+    camera.fps: 60.0
+    depth.mode: "high_density"
+    depth.subpixel: true
+    depth.subpixel_fractional_bits: 3
+    depth.extended_disparity: false
+    depth.median_filter: "off"
+    depth.confidence_threshold: 200
+    depth.left_right_check: true
+    depth.left_right_threshold: 10
+    depth.ir_dot_projector_intensity: 0.7
+    depth.ir_flood_light_intensity: 0.0
+    # Startup IR is separate. Set both intensities to 0.0 on a non-Pro device.
+    measurement_ir_dot_projector_intensity: 0.7
+    measurement_roi_preview_enabled: true # Same oak_startup ROI preview; closes after startup measurement.
+
+    # Normalized image ROI: top-left X/Y and width/height in [0,1].
+    # Screenshot ROI: near-full width, lower 55% of image. Drag to override at runtime.
+    roi.x: 0.01
+    roi.y: 0.43
+    roi.width: 0.98
+    roi.height: 0.55
+    points.pixel_stride: 1
+    points.min_depth_m: 0.1
+    points.max_depth_m: 20.0
+    # 시작 평면 모드 OFF 또는 RANSAC 실패/적용 범위 밖에서 사용하는 시작 지면 기준 제거 두께:
+    # min(max_distance_m, distance_m + distance_per_meter * 수평거리).
+    # 현재 1m에서 7cm, 3m에서 9cm, 6m 이상에서 최대 12cm. 낮은 장애물도 제외될 수 있음.
+    # Per-frame bounded RANSAC. Changing these values does not reopen the camera.
+    ground.use_startup_plane: true
+    ground.ransac_enabled: false
+    ground.ransac_distance_m: 0.06 # Plane-fitting tolerance only, NOT obstacle height.
+    obstacle.min_height_m: 0.06 # Obstacle if above fitted plane by >6cm; must be < height.max_m.
+    ground.ransac_max_range_m: 3.0 # Do not extrapolate the fitted plane beyond this radius.
+    ground.ransac_max_tilt_deg: 10.0
+    ground.ransac_max_offset_m: 0.08
+    ground.ransac_min_inlier_ratio: 0.5
+    ground.ransac_max_iterations: 60
+    ground.ransac_max_samples: 700
+    # 3D radius support among non-ground returns only; excludes the query itself.
+    outlier.enabled: true
+    outlier.radius_m: 0.08
+    outlier.min_neighbors: 8
+    ground.enabled: true
+    ground.distance_m: 0.06
+    ground.distance_per_meter: 0.01 # 거리 1m마다 제거 높이 1cm 증가. 0이면 고정 두께.
+    ground.max_distance_m: 0.12 # 제거 높이 증가 상한. distance_m 이상.
+    height.max_m: 1.0
+    range.min_m: 0.1
+    range.max_m: 12.0               # Software limit, NOT a guaranteed detection range.
+    scan.angle_min_deg: -70.0
+    scan.angle_max_deg: 70.0
+    scan.bins: 281                  # 0.5-degree bins; unsupported directions remain NaN.
+    scan.min_samples: 2             # 같은 방향·최근접 거리 주변의 최소 depth 픽셀 수. 시간 필터 아님.
+    scan.support_distance_m: 0.15   # Other samples must be near the nearest return.
+    input.max_age_sec: 0.25
+
+    # 장애물 군집: 높이 근거가 있는 2D 스캔점만 연결. 바닥 점을 연결 경로로 쓰지 않음.
+    cluster.enabled: false         # 기본 BEV는 군집 없이 모든 높이 필터 통과 XY 포인트를 표시.
+    cluster.tolerance_m: 0.15       # 이웃 반환점 XY 간격 15cm 이내. 크면 서로 다른 물체도 합쳐짐.
+    cluster.min_bins: 2             # 최소 스캔 방향 수(depth 픽셀 수 아님). 1은 고립점도 허용.
+    cluster.max_gap_bins: 1         # 연결 사이에 허용하는 미관측/제외 방향 개수.
+    cluster.min_height_m: 0.10      # 선택 거리 주변에서 지면 위 10cm 이상의 높이 근거 필요.
+
+    # 현재 프레임 실제 depth 끝점을 집계한 뒤 작은 내부 구멍만 선택적으로 보정.
+    terrain.fill_enabled: true # Small enclosed holes only; false preserves raw cells.
+    terrain.fill_max_cells: 2 # 1..16, 8-connected component size at current cell resolution.
+    terrain.fill_clearance_cells: 1 # 0..4, hazard exclusion radius in cells.
+    terrain.cell_m: 0.07
+    terrain.below_ground_m: 0.30 # 지면 아래 30cm 초과 관측은 함몰/위험 근거.
+    terrain.min_ground_samples: 2
+    terrain.min_obstacle_samples: 8
+    terrain.vehicle_width_m: 2.0 # 폭 눈금만 표시. 차량 통과/안전 여유 판정에는 미적용.
+    preview.show_terrain: true # 초록=관측 바닥, 빨강=높이/함몰 위험, 회색=미관측·근거부족.
+    preview.show_projected_points: true # 각도별 최근접점으로 줄이지 않은 XY 포인트 전체.
+    preview.terrain_alpha: 0.8 # 0이면 원본 RGB BEV를 유지. 포인트는 별도 표시.
+    preview.point_radius: 2
+
+    # Separate RGB/GUI rates preserve headroom for depth processing.
+    preview.show_raw_points: false # true: 군집 전 스캔점도 회색으로 비교 표시.
+    # RGB BEV 영상 보간만 변경. 장애물 좌표/클러스터에는 영향 없음.
+    # nearest: 최근접 / linear: 쌍선형(기본) / cubic: 3차 / lanczos4: Lanczos 4
+    preview.interpolation: "linear"
+    preview.gui: true
+    preview.show_bev_window: true # VFH launch hides only this duplicate BEV window.
+    preview.publish: true
+    preview.camera_image: true     # Rectified-right grayscale ROI; false uses depth colors, saves USB.
+    preview.fps: 15.0
+    preview.rgb_fps: 15.0           # 640x400 undistorted CAM_A; same device session as stereo.
+    preview.max_sync_sec: 0.08      # Suppress overlay if RGB/depth timestamps differ more than this.
+    preview.width_m: 1.5 # Vehicle Y: -0.75..+0.75m. Display only.
+    preview.forward_m: 4.0 # Vehicle X: 0..4m. Scan range remains independent.
+    preview.size_px: 800           # Long-side pixel budget including header/footer.

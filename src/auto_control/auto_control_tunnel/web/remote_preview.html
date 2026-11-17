@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Remote Preview</title>
+<style>
+:root{
+  --bg:#F4F6F8; --panel:#FFFFFF; --ink:#263140; --muted:#64748B; --line:#E3E7EC;
+  --road:#EEF1F4; --edge:#C7CCD4; --blue:#2699E6; --ok:#28A36B; --warn:#E0A100; --bad:#EB5757;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font:14px/1.35 -apple-system, "SF Pro Text", "Apple SD Gothic Neo", system-ui, sans-serif;
+  -webkit-tap-highlight-color:transparent}
+.app{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:12px;
+  height:100%;padding:12px max(12px,env(safe-area-inset-right)) 12px max(12px,env(safe-area-inset-left))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px}
+/* ---- BEV ---- */
+.bev{position:relative;overflow:hidden;min-height:420px;color:var(--ink);--hud-bg:#FFFFFF;--hud-bg2:#FFFFFFDD}
+.bev canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hud{position:absolute;pointer-events:none;font-variant-numeric:tabular-nums}
+.speed{top:14px;right:14px;text-align:center;background:var(--hud-bg);
+  border:1px solid var(--line);border-radius:999px;width:96px;height:96px;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;box-shadow:0 1px 3px #0001}
+.speed b{font-size:28px;font-weight:600;line-height:1}
+.speed span{font-size:11px;color:var(--muted)}
+.speed small{font-size:11px;color:var(--muted);margin-top:2px}
+.signal{top:122px;right:48px;width:28px;height:28px;border-radius:50%;border:2px solid var(--edge);background:var(--hud-bg)}
+.signal.red{background:var(--bad);border-color:var(--bad)} .signal.green{background:var(--ok);border-color:var(--ok)}
+.sigtag{top:154px;right:38px;width:48px;text-align:center;font-size:10px;color:var(--muted)}
+.lt{top:14px;left:14px;display:grid;grid-template-columns:auto auto;gap:2px 12px;background:var(--hud-bg2);
+  border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px}
+.lt dt{color:var(--muted)} .lt dd{margin:0;text-align:right;font-family:var(--mono)}
+.badge{bottom:12px;left:14px;font-size:11px;color:var(--muted);font-family:var(--mono)}
+.nopath{top:50%;left:50%;transform:translate(-50%,-50%);font-weight:600;color:var(--muted);
+  letter-spacing:.08em;display:none}
+.stale{color:var(--stale,#A8B0BB)!important}
+.tunnel{top:14px;left:50%;transform:translateX(-50%);padding:5px 12px;border-radius:999px;font-size:11px;
+  font-weight:700;letter-spacing:.12em;background:#0B1220;color:#F5C451;border:1px solid #F5C45155;opacity:0}
+/* ---- side ---- */
+.side{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto}
+.sec{padding:12px 14px}
+.sec h3{margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--muted)}
+.step{display:grid;grid-template-columns:20px 1fr auto;align-items:start;gap:8px;padding:6px 0;border-top:1px solid var(--line)}
+.step:first-of-type{border-top:0}
+.dot{width:12px;height:12px;border-radius:50%;margin-top:3px;background:var(--edge)}
+.dot.ok{background:var(--ok)} .dot.run{background:var(--warn);animation:pulse 1s infinite} .dot.bad{background:var(--bad)}
+@keyframes pulse{50%{opacity:.35}}
+.step .name{font-weight:600;font-size:13px}
+.step .detail{color:var(--muted);font-size:12px}
+.step .st{font-size:11px;font-weight:600;font-family:var(--mono);color:var(--muted)}
+.models{margin:4px 0 0;padding:0;list-style:none;font-size:12px;color:var(--muted)}
+.models li{display:flex;justify-content:space-between;font-family:var(--mono)}
+.ctrl{font-family:var(--mono);font-size:12px;padding:8px 10px;border-radius:8px;background:var(--bg);margin-bottom:10px;word-break:break-word}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{font:inherit;font-weight:700;font-size:18px;letter-spacing:.06em;border:0;border-radius:12px;
+  height:64px;color:#fff;cursor:pointer;touch-action:manipulation}
+button:active{transform:scale(.98)}
+#start{background:var(--ok)} #start:disabled{background:#C9D3DB;cursor:not-allowed}
+#stop{background:var(--bad)}
+.reply{font-size:12px;color:var(--muted);margin-top:8px;min-height:16px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+td{padding:3px 0;font-size:12px;border-top:1px solid var(--line)}
+tr:first-child td{border-top:0}
+td:first-child{color:var(--muted)} td.v{text-align:right;font-family:var(--mono)}
+table.stages thead td{font-size:11px;color:var(--muted);border-top:0;padding-bottom:4px}
+table.stages tr.total td{font-weight:600;color:var(--ink)}
+.stagefoot{margin-top:6px;font-size:11px;color:var(--muted);font-family:var(--mono)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+/* link lost overlay */
+.lost{position:fixed;inset:0;background:#263140cc;color:#fff;display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:6px;z-index:9;text-align:center}
+.lost b{font-size:30px;letter-spacing:.1em} .lost span{opacity:.8}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr;height:auto}
+  .bev{height:62vh}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card bev" id="bevCard">
+    <canvas id="bev"></canvas>
+    <div class="hud speed"><b id="spd">--</b><span>m/s</span><small id="tgt">target --</small></div>
+    <div class="hud signal" id="sig"></div><div class="hud sigtag" id="sigtag">--</div>
+    <dl class="hud lt">
+      <dt>Duty</dt><dd id="duty">--</dd>
+      <dt>Servo</dt><dd id="servo">--</dd>
+      <dt>Steer</dt><dd id="steer">--</dd>
+      <dt>Stop line</dt><dd id="stopl">--</dd>
+      <dt>CTE</dt><dd id="cte">--</dd>
+      <dt>Lane</dt><dd id="lanest">--</dd>
+    </dl>
+    <div class="hud tunnel" id="tunnelTag">TUNNEL · IR</div>
+    <div class="hud nopath" id="nopath">NO PATH</div>
+    <div class="hud badge" id="badge">preview -- FPS · data -- ms</div>
+  </div>
+
+  <div class="side">
+    <div class="card sec">
+      <h3>실행 점검</h3>
+      <div class="step"><div class="dot" id="d1"></div>
+        <div><div class="name">CAMERA ATTITUDE</div><div class="detail" id="t1">waiting for camera measurement</div></div>
+        <div class="st" id="s1">WAIT</div></div>
+      <div class="step"><div class="dot" id="d2"></div>
+        <div><div class="name">INFERENCE MODELS</div><ul class="models" id="models"></ul></div>
+        <div class="st" id="s2">WAIT</div></div>
+      <div class="step"><div class="dot" id="d3"></div>
+        <div><div class="name">DEPARTURE</div><div class="detail" id="t3">camera · models · VESC · ERPM · lane</div></div>
+        <div class="st" id="s3">WAIT</div></div>
+    </div>
+
+    <div class="card sec">
+      <h3>주행</h3>
+      <div class="ctrl" id="ctrl">WAITING | waiting for controller</div>
+      <div class="btns">
+        <button id="start" disabled>START</button>
+        <button id="stop">STOP</button>
+      </div>
+      <div class="reply" id="reply"></div>
+    </div>
+
+    <div class="card sec">
+      <h3>단계별 연산 시간</h3>
+      <table class="stages"><thead><tr><td>구간</td><td class="v">연산 ms</td><td class="v">FPS (1000/ms)</td><td class="v">실제 FPS (Hz)</td></tr></thead>
+        <tbody id="stages"></tbody></table>
+      <div class="stagefoot" id="stagefoot"></div>
+    </div>
+
+    <div class="card sec">
+      <h3>시스템 · 링크</h3>
+      <div class="grid2">
+        <table id="sysA"></table>
+        <table id="sysB"></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="lost" id="lost"><b>LINK LOST</b><span>Jetson과 연결이 끊겼습니다 · 재연결 중…</span><span id="lostStop"></span></div>
+
+
+<script type="module">
+/* ===== @pure-begin: 순수 함수 (test/tunnel/remote_preview_geometry.test.mjs) ===== */
+export function laneEdges(points, widthM){
+  const n = points.length, left = [], right = [];
+  if (n < 2) return {left, right};
+  const h = widthM / 2;
+  for (let i = 0; i < n; i++){
+    const a = points[Math.max(0, i-1)], b = points[Math.min(n-1, i+1)];
+    const dx = b[0]-a[0], dy = b[1]-a[1], L = Math.hypot(dx, dy) || 1;
+    const nx = -dy/L, ny = dx/L;            // 진행방향(x 전방, y 좌측)의 좌측 법선
+    left.push([points[i][0]+nx*h, points[i][1]+ny*h]);
+    right.push([points[i][0]-nx*h, points[i][1]-ny*h]);
+  }
+  return {left, right};
+}
+export function display(value, digits, ageMs){
+  return (value == null || !Number.isFinite(value) || ageMs > 500) ? '--' : value.toFixed(digits);
+}
+
+export function laneFresh(lane, elapsedMs = 0){
+  return lane?.valid === true && Number.isFinite(lane.age_ms) && lane.age_ms >= 0 &&
+    lane.age_ms + Math.max(0, elapsedMs) <= 500;
+}
+
+// 브라우저 표시 전용 필터. ROS 경로와 제어값은 변경하지 않는다.
+// 3점 공간 평활화는 최대 1.5cm, 시간 평활화(tau=65ms)의 위치 지연은 최대 3cm.
+const LANE_FILTER = {spatialM:0.015, lagM:0.03, tauMs:65, resetM:0.12, gapMs:250};
+const distance = (a,b) => Math.hypot(a[0]-b[0], a[1]-b[1]);
+function limitedMix(current, target, weight, maxM){
+  const delta = distance(current, target);
+  const k = delta > 0 ? Math.min(weight, maxM/delta) : 0;
+  return current.map((v,i) => v + (target[i]-v)*k);
+}
+export function smoothLaneSpatial(points){
+  return points.map((p,i) => {
+    if (i === 0 || i === points.length-1) return [...p];
+    const target = p.map((v,j) => (points[i-1][j] + 2*v + points[i+1][j])/4);
+    return limitedMix(p, target, 1, LANE_FILTER.spatialM);
+  });
+}
+function arcLengths(points){
+  const arc = [0];
+  for (let i=1; i<points.length; i++) arc.push(arc[i-1] + distance(points[i-1], points[i]));
+  return arc;
+}
+// 누적 거리로 대응점을 찾는다. 점 개수·간격 변화와 x가 되돌아가는 급커브도 처리한다.
+function alignLane(previous, current){
+  const oldArc = arcLengths(previous), arc = arcLengths(current);
+  let j = 0;
+  return current.map((p,i) => {
+    const s = arc[i];
+    if (s > oldArc.at(-1)) return p;  // 새로 보인 구간에는 이전 경로를 외삽하지 않는다.
+    while (j < previous.length-2 && oldArc[j+1] < s) j++;
+    const span = oldArc[j+1]-oldArc[j], k = span > 0 ? (s-oldArc[j])/span : 0;
+    return previous[j].map((v,n) => v + (previous[j+1][n]-v)*k);
+  });
+}
+export class PreviewLaneFilter {
+  constructor(){ this.clear(); }
+  clear(){ this.points = []; this.sampleMs = null; this.key = null; }
+  update(lane, sampleMs){
+    const raw = lane?.points;
+    if (!laneFresh(lane) || !Number.isFinite(sampleMs) || !Array.isArray(raw) || raw.length < 2 ||
+        !raw.every(p => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite))){
+      this.clear(); return [];
+    }
+    const key = `${lane.source}/${lane.state}/${lane.lane_width_m}`;
+    const current = smoothLaneSpatial(raw), dt = sampleMs-this.sampleMs;
+    const continuous = this.points.length >= 2 && key === this.key && dt >= 0 && dt <= LANE_FILTER.gapMs;
+    // 같은 관측을 SSE로 재전송해도 중복 필터링하지 않는다(시각 반올림 오차 2ms 허용).
+    if (continuous && dt <= 2) return this.points;
+    let result = current;
+    if (continuous && distance(this.points[0], current[0]) < LANE_FILTER.resetM){
+      const aligned = alignLane(this.points, current);
+      if (current.every((p,i) => distance(p, aligned[i]) < LANE_FILTER.resetM)){
+        const historyWeight = Math.exp(-dt/LANE_FILTER.tauMs);
+        result = current.map((p,i) => limitedMix(p, aligned[i], historyWeight, LANE_FILTER.lagM));
+      }
+    }
+    this.points = result; this.sampleMs = sampleMs; this.key = key;
+    return result;
+  }
+}
+
+// 터널 명암: ENTERING/INSIDE → 어두움(1), EXITING/OUTSIDE → 밝음(0). 상태 없음(null)이면 현재 유지.
+export function tunnelTarget(state, current){
+  if (state === 'ENTERING' || state === 'INSIDE') return 1;
+  if (state === 'EXITING' || state === 'OUTSIDE') return 0;
+  return current;
+}
+// 1차 지연 접근: 1.0s에 95% 도달 (tau=1/ln20≈0.334s, 프레임레이트와 무관)
+export function approach(current, target, dtSec, tauSec = 1.0/Math.log(20)){
+  return target + (current - target) * Math.exp(-Math.max(0, dtSec) / tauSec);
+}
+const DAY = {bg:'#FFFFFF', grid:'#EEF1F4', label:'#A8B0BB', road:'#E9EDF1', edge:'#C7CCD4', center:'#2699E6',
+  car:'#263140', ink:'#263140', muted:'#64748B', line:'#E3E7EC', hud:'#FFFFFF', stale:'#A8B0BB'};
+const NIGHT = {bg:'#0B1220', grid:'#152033', label:'#4A5568', road:'#1A2333', edge:'#3A4658', center:'#5CC8FF',
+  car:'#C7CCD4', ink:'#E6EBF2', muted:'#8A97AB', line:'#253044', hud:'#141C2B', stale:'#4A5568'};
+const hex = (h) => [1,3,5].map(i => parseInt(h.slice(i,i+2),16));
+function mix(a, b, k, alpha = 1){
+  const A = hex(a), B = hex(b), c = A.map((v,i) => Math.round(v + (B[i]-v)*k));
+  return alpha === 1 ? `rgb(${c})` : `rgba(${c},${alpha})`;
+}
+function palette(k){ return Object.fromEntries(Object.keys(DAY).map(n => [n, mix(DAY[n], NIGHT[n], k)])); }
+
+/* ===== @pure-end ===== */
+/* ===== 렌더링 ===== */
+const $ = (id) => document.getElementById(id);
+const cv = $('bev'), ctx = cv.getContext('2d');
+const VIEW = {x0:-0.35, x1:3.0, y:0.9};      // 차량 뒤 0.35m ~ 전방 3.0m, 좌우 ±0.9m
+let frame = null, frameAt = 0, drawn = 0, drawFps = 0, lastFpsT = performance.now();
+const laneFilter = new PreviewLaneFilter();
+let previewPoints = [];
+let odo = 0;   // 조명 스크롤용: 단말에서 speed_mps 적분
+let dark = 0, lastDarkT = performance.now(), pal = palette(0);
+
+function resize(){
+  const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1;
+  cv.width = Math.round(r.width*d); cv.height = Math.round(r.height*d);
+}
+addEventListener('resize', resize); resize();
+
+function project(W, H){
+  const s = Math.min(W/(2*VIEW.y), H/(VIEW.x1-VIEW.x0));
+  const cx = W/2, by = H - (-VIEW.x0)*s - (H - (VIEW.x1-VIEW.x0)*s)/2;
+  return ([x,y]) => [cx - y*s, by - x*s];    // y 좌측(+) → 화면 왼쪽
+}
+function poly(ctx, p, pts){ pts.forEach((q,i)=>{const [u,v]=p(q); i?ctx.lineTo(u,v):ctx.moveTo(u,v);}); }
+
+function draw(){
+  const W = cv.width, H = cv.height, d = devicePixelRatio||1, p = project(W,H);
+  ctx.fillStyle = pal.bg; ctx.fillRect(0,0,W,H);
+  // 거리 눈금
+  ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.label; ctx.lineWidth = 1*d;
+  ctx.font = `${11*d}px -apple-system, system-ui`; ctx.textAlign = 'left';
+  for (let m = 0.5; m <= 3.0; m += 0.5){
+    const [u1,v] = p([m, VIEW.y]), [u2] = p([m, -VIEW.y]);
+    ctx.beginPath(); ctx.moveTo(u1,v); ctx.lineTo(u2,v); ctx.stroke();
+    ctx.fillText(`${m.toFixed(1)}m`, u2 - 34*d, v - 3*d);
+  }
+  const lane = frame?.lane, fresh = laneFresh(lane, performance.now()-frameAt);
+  if (!fresh){ laneFilter.clear(); previewPoints = []; }
+  const pts = fresh ? previewPoints : [];
+  $('nopath').style.display = pts.length < 2 ? 'block' : 'none';
+  if (pts.length >= 2){
+    const {left, right} = laneEdges(pts, lane.lane_width_m);
+    ctx.beginPath(); poly(ctx,p,left);
+    [...right].reverse().forEach(q=>{const [u,v]=p(q); ctx.lineTo(u,v);}); ctx.closePath();
+    ctx.fillStyle = pal.road; ctx.fill();
+    ctx.strokeStyle = pal.edge; ctx.lineWidth = 5*d; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath(); poly(ctx,p,left); ctx.stroke();
+    ctx.beginPath(); poly(ctx,p,right); ctx.stroke();
+    if (dark > 0.02) tunnelLamps(ctx, p, d, left, right, odo);
+    ctx.strokeStyle = pal.center; ctx.lineWidth = 3*d; ctx.setLineDash([10*d, 9*d]);
+    ctx.beginPath(); poly(ctx,p,pts); ctx.stroke(); ctx.setLineDash([]);
+    // 정지선
+    if (lane.stop_line_m != null){
+      const sx = lane.stop_line_m, i = Math.min(pts.length-1, Math.max(0, Math.round((sx-pts[0][0])/0.125)));
+      const c = pts[i][1], w = lane.lane_width_m/2;
+      ctx.strokeStyle = '#EB5757'; ctx.lineWidth = 6*d; ctx.lineCap='butt';
+      ctx.beginPath(); poly(ctx,p,[[sx,c+w],[sx,c-w]]); ctx.stroke();
+      const [u,v] = p([sx, c-w]); ctx.fillStyle='#EB5757'; ctx.font=`600 ${12*d}px -apple-system, system-ui`;
+      ctx.fillText(`${sx.toFixed(2)} m`, u + 8*d, v + 4*d);
+    }
+  }
+  // 차량
+  const car = [[0.12,0.13],[0.12,-0.13],[-0.33,-0.13],[-0.33,0.13]];
+  ctx.fillStyle = pal.car; ctx.beginPath(); poly(ctx,p,car); ctx.closePath(); ctx.fill();
+  const st = frame?.vehicle?.steering_rad ?? 0, [ax,ay] = p([0.06,0]), [bx,by] = p([0.06+0.3*Math.cos(st), 0.3*Math.sin(st)]);
+  ctx.strokeStyle = pal.center; ctx.lineWidth = 3*d; ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
+
+  // 터널 가장자리 비네트
+  if (dark > 0.02){
+    const g = ctx.createRadialGradient(W/2, H*0.6, Math.min(W,H)*0.25, W/2, H*0.6, Math.max(W,H)*0.75);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${0.55*dark})`);
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  }
+}
+// 터널 조명: 양쪽 벽에 0.5m 간격 주황 조명, 주행거리만큼 아래로 흘러감
+function tunnelLamps(ctx, p, d, left, right, odo){
+  const n = left.length, x0 = left[0][0], x1 = left[n-1][0], step = 0.5;
+  for (let x = x0 + step - (odo % step); x < x1; x += step){
+    const i = Math.min(n-1, Math.max(0, Math.round((x - x0) / (x1 - x0) * (n-1))));
+    for (const side of [left, right]){
+      const [u,v] = p(side[i]), r = 14*d;
+      const g = ctx.createRadialGradient(u,v,0,u,v,r);
+      g.addColorStop(0, `rgba(245,196,81,${0.95*dark})`); g.addColorStop(1, 'rgba(245,196,81,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(u,v,r,0,Math.PI*2); ctx.fill();
+    }
+  }
+}
+function applyTheme(){
+  const s = $('bevCard').style;
+  s.setProperty('--ink', pal.ink); s.setProperty('--muted', pal.muted); s.setProperty('--line', pal.line);
+  s.setProperty('--edge', pal.edge); s.setProperty('--stale', pal.stale);
+  s.setProperty('--panel', pal.bg); s.setProperty('--hud-bg', pal.hud);
+  s.setProperty('--hud-bg2', mix(DAY.hud, NIGHT.hud, dark, 0.87));
+  $('tunnelTag').style.opacity = Math.min(1, dark*1.4).toFixed(3);
+}
+
+function setText(id, value, digits, age, suffix=''){
+  const el = $(id), s = display(value, digits, age);
+  el.textContent = s === '--' ? '--' : s + suffix; el.classList.toggle('stale', s === '--');
+}
+function rows(id, list){
+  $(id).innerHTML = list.map(([k,v])=>`<tr><td>${k}</td><td class="v${v==='--'?' stale':''}">${v}</td></tr>`).join('');
+}
+function stepState(text){
+  const tag = (text||'').split('|')[0].trim();
+  return tag==='PASS'||tag==='READY' ? 'ok' : tag==='FAILED'||tag==='FAIL' ? 'bad' : tag==='WAITING'||!tag ? '' : 'run';
+}
+function setStep(n, cls, label, detail){
+  $('d'+n).className = 'dot ' + cls; $('s'+n).textContent = label;
+  if (detail != null && $('t'+n)) $('t'+n).textContent = detail;
+}
+
+function updatePanel(f){
+  const v = f.vehicle, va = v.age_ms, l = f.lane;
+  $('spd').textContent = display(v.speed_mps, 2, va); $('spd').classList.toggle('stale', va>500);
+  $('tgt').textContent = 'target ' + display(v.target_speed_mps, 2, va);
+  setText('duty', v.duty, 3, va); setText('servo', v.servo, 3, va);
+  setText('steer', v.steering_rad==null?null:v.steering_rad*180/Math.PI, 1, va, '°');
+  setText('stopl', l.stop_line_m, 2, l.age_ms, ' m'); setText('cte', v.cte_m==null?null:v.cte_m*100, 1, va, ' cm');
+  $('lanest').textContent = l.age_ms>500 ? '--' : (['NONE','LEFT','RIGHT','BOTH'][l.state]??'--') + ' · ' + l.source;
+  const sig = f.traffic.age_ms<=500 ? f.traffic.state : null;
+  $('sig').className = 'hud signal ' + (sig==='RED'?'red':sig==='GREEN'?'green':'');
+  $('sigtag').textContent = sig ?? '--';
+
+  // 점검 단계
+  const s = f.startup, cam = stepState(s.camera);
+  setStep(1, cam, cam==='ok'?'PASS':cam==='bad'?'FAIL':cam==='run'?'RUN':'WAIT', s.camera.split('|')[1]?.trim());
+  const ms = Object.values(s.models).map(stepState);
+  const mAll = ms.every(x=>x==='ok') ? 'ok' : ms.some(x=>x==='bad') ? 'bad' : ms.some(x=>x) ? 'run' : '';
+  setStep(2, mAll, mAll==='ok'?'PASS':mAll==='bad'?'FAIL':mAll==='run'?'LOAD':'WAIT');
+  $('models').innerHTML = Object.entries(s.models).map(([k,t])=>`<li><span>${k}</span><span>${t.split('|')[0].trim()}</span></li>`).join('');
+  const c = s.controller.split('|')[0].trim();
+  setStep(3, c==='STARTED'?'ok':c==='READY_TO_START'?'ok':c==='MANUAL'?'ok':'',
+    c==='STARTED'?'DRIVE':c==='READY_TO_START'?'READY':c==='MANUAL'?'MANUAL':'WAIT');
+  $('ctrl').textContent = s.controller;
+  $('start').disabled = !s.can_start;
+
+  const msTxt = (x)=>x==null?'--':x.toFixed(2), hz = (x)=>x==null?'--':x.toFixed(1), cell = (t)=>`<td class="v${t==='--'?' stale':''}">${t}</td>`;
+  // FPS here is the compute-time reciprocal (1000 / ms), like the old BEV HUD, not the arrival rate.
+  const fpsTxt = (x)=>x==null||x<=0?'--':(1000/x).toFixed(1);
+  $('stages').innerHTML = f.stages
+    .map(r=>`<tr><td>${r.label}</td>${cell(msTxt(r.ms))}${cell(fpsTxt(r.ms))}${cell(hz(r.hz))}</tr>`).join('')
+    + `<tr class="total"><td>합계 1a~4</td>${cell(msTxt(f.pipeline_total_ms))}${cell(fpsTxt(f.pipeline_total_ms))}${cell('--')}</tr>`;
+  $('stagefoot').textContent = `preview ${drawFps.toFixed(1)} FPS · frame seq ${f.seq} · ms는 최근 1초 평균`;
+  const S = f.system, pc=(x)=>x==null?'--':x.toFixed(0)+' %', tc=(x)=>x==null?'--':x.toFixed(1)+' °C';
+  rows('sysA', [['CPU',pc(S.cpu_pct)],['GPU',pc(S.gpu_pct)],['CPU temp',tc(S.cpu_temp_c)],['GPU temp',tc(S.gpu_temp_c)]]);
+  rows('sysB', [['Power',S.power_w==null?'--':S.power_w.toFixed(1)+' W'],['VESC',v.vesc_connected?'connected':'--'],
+    ['Data age',l.age_ms==null?'--':l.age_ms.toFixed(0)+' ms'],['Clients',String(f.link.clients)],['Metrics', S.error ?? '']]);
+}
+
+const DRAW_INTERVAL_MS = 1000/30;   // 20~30FPS 요구: 120Hz 화면에서도 30FPS 상한
+let lastDraw = 0;
+function loop(now){
+  requestAnimationFrame(loop);
+  if (now - lastDraw < DRAW_INTERVAL_MS - 2) return;
+  lastDraw = now;
+  const target = tunnelTarget(frame?.tunnel?.state ?? null, dark);
+  const dt = (now - lastDarkT)/1000;
+  dark = approach(dark, target, dt); lastDarkT = now;
+  odo += Math.abs(frame?.vehicle?.speed_mps ?? 0) * dt;
+  if (Math.abs(dark - target) < 0.002) dark = target;
+  pal = palette(dark); applyTheme();
+  if (frame) draw();
+  drawn++;
+  if (now - lastFpsT >= 1000){ drawFps = drawn*1000/(now-lastFpsT); drawn = 0; lastFpsT = now; }
+  if (frame) $('badge').textContent = `preview ${drawFps.toFixed(1)} FPS · data ${frame.lane.age_ms==null?'--':frame.lane.age_ms.toFixed(0)} ms · seq ${frame.seq} · 표시 필터`;
+}
+requestAnimationFrame(loop);
+
+/* ===== 데이터 수신 (SSE) · heartbeat · START/STOP ===== */
+let lastFrameAt = 0, linkOk = false;
+function setLost(lost){
+  $('lost').style.display = lost ? 'flex' : 'none';
+  if (lost){ laneFilter.clear(); previewPoints = []; }
+  if (lost && frame) $('lostStop').textContent = frame.startup.started && frame.link.loss_stop_sec > 0
+    ? `주행 중이었다면 Jetson이 ${frame.link.loss_stop_sec.toFixed(1)}s 후 STOP을 보냅니다 · 재연결 후 START 필요` : '';
+}
+function connect(){
+  const source = new EventSource('/events');
+  source.onmessage = (event) => {
+    try { frame = JSON.parse(event.data); } catch { return; }
+    frameAt = performance.now();
+    previewPoints = laneFilter.update(frame.lane, frame.t*1000-frame.lane.age_ms);
+    lastFrameAt = frameAt; linkOk = true; setLost(false); updatePanel(frame);
+    if (frame.startup.message) $('reply').textContent = frame.startup.message;
+  };
+  source.onerror = () => { linkOk = false; setLost(true); };   // EventSource reconnects by itself
+}
+connect();
+setInterval(() => { if (linkOk && performance.now() - lastFrameAt > 1500) { linkOk = false; setLost(true); } }, 250);
+setInterval(() => { fetch('/heartbeat', {method:'POST', keepalive:true}).catch(()=>{}); }, 200);
+
+async function command(path){
+  $('reply').textContent = path === '/start' ? 'START 요청 중…' : 'STOP 요청 중…';
+  try {
+    const reply = await (await fetch(path, {method:'POST'})).json();
+    $('reply').textContent = reply.message || (reply.ok ? 'OK' : 'FAILED');
+  } catch (error) { $('reply').textContent = `${path.slice(1).toUpperCase()} 실패: 연결 끊김`; }
+}
+$('start').onclick = () => command('/start');
+$('stop').onclick = () => command('/stop');
+addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Escape') { e.preventDefault(); command('/stop'); } });
+</script>
+</body>
+</html>

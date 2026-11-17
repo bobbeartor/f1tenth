@@ -1,0 +1,32 @@
+# Copy this file, edit values, and restart the node with params_file:=/absolute/path.yaml.
+# Unspecified parameters use node defaults; explicit launch arguments override YAML.
+line_detactor:
+  ros__parameters:
+    input_topic: "/camera/image_bev"
+    connection_enabled: true
+    result_padding_px: 30
+    preview_enabled: true
+    preview_scale: 1.0
+    result_publish_enabled: true
+
+    centerline_enabled: true
+    centerline_lane_width_m: 0.65
+    # Match the physical UNPADDED source BEV; default source = 120x300 at 1 cm/px.
+    centerline_bev_width_m: 1.2
+    centerline_bev_height_m: 3.0
+    centerline_line_width_px: 2
+    centerline_min_clearance_m: 0.16
+    centerline_max_gap_m: 0.12
+    centerline_max_start_distance_m: 0.65
+    centerline_outside_margin_m: 0.12
+    centerline_width_tolerance_m: 0.12
+    centerline_tangent_window_m: 0.06
+
+    centerline_smoothing_enabled: true
+    centerline_smoothing_strength: 1.0       # 0..1, lower = less final smoothing.
+    centerline_smoothing_sigma_m: 0.04
+    centerline_smoothing_window_m: 0.65     # Larger = suppress longer straight-section ripples.
+    centerline_smoothing_max_shift_m: 0.03  # Per stage, two stages; endpoints fixed.
+    centerline_straight_turn_deg: 12.0
+    centerline_corner_turn_deg: 35.0
+    centerline_turn_window_m: 0.30

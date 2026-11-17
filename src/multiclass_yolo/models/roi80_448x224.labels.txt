@@ -1,0 +1,4 @@
+con
+truck
+sedan
+traffic_light

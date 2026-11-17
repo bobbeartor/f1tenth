@@ -1,0 +1,28 @@
+traffic_light_detector:
+  ros__parameters:
+    # Empty resolves to the bundled traffic_light_yolox_s_640x160_batch_1.int8.qdq.onnx.
+    model_path: ""
+    engine_cache_path: ""
+    tensorrt_workspace_size_mb: 1024
+    # 검출 주기 상한 (0 초과 ~ 80). 실제 FPS는 카메라/추론 속도에 따라 낮아질 수 있음.
+    inference_fps: 30.0
+    max_frame_age_sec: 0.25
+    # Fractions of the full rectified COLOR frame, before BEV/IMU projection.
+    # Equivalent to x=0,y=65,w=640,h=160 on the standalone 640x400 view.
+    roi_left: 0.0
+    roi_top: 0.1625
+    roi_width: 1.0
+    roi_height: 0.4
+    # 검출 점수 하한 (objectness × class probability). 높일수록 더 엄격함.
+    score_threshold: 0.40
+    # false: 한 번의 검출 결과를 즉시 표시. 추후 true로 켜면 아래 조건 적용.
+    confirmation_enabled: false
+    confirmation_frames: 3             # 같은 색 + 이전 박스와 IoU 조건을 만족한 연속 추론 횟수
+    confirmation_min_iou: 0.30         # 0 초과 ~ 1.0
+    confirmation_max_gap_sec: 0.25     # 연속 관측의 촬영 시각 간격 상한
+    # 미검출/오래된 입력/색 변경/박스 불일치 시 재확인. 확인 전에는 UNKNOWN.
+    nms_threshold: 0.65
+    color_min_saturation: 80
+    color_min_value: 60
+    state_topic: "/traffic_light/state"
+    status_log_interval_sec: 2.0

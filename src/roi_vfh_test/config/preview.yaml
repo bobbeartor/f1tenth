@@ -1,0 +1,54 @@
+roi_vfh_test:
+  ros__parameters:
+    gui: true
+    planning_rate_hz: 80.0 # launch inherits obstacles.avoidance.max_fps.
+    preview_fps: 30.0 # launch inherits BEV preview_max_fps; separate from planning.
+    drive_enabled: true # Start enables the existing VESC adapter; false is preview-only.
+    # Shared native simulator/vehicle planning defaults. No mission classifier or departure cap.
+    nominal_speed_mps: 1.2
+    horizon_m: 1.2
+    sample_step_m: 0.03
+    safety_margin_m: 0.02
+    obstacle_uncertainty_m: 0.0 # Extra position uncertainty; editable before Start.
+    vehicle_width_m: 0.30
+    wheelbase_m: 0.33
+    front_overhang_m: 0.05 # Front axle -> front end.
+    rear_extent_m: 0.45 # Front axle -> rear end; total body length is 0.50m.
+    reference_distance_m: 1.0
+    lane_lookahead_m: 0.05
+    histogram_low: 1.0
+    histogram_high: 2.0
+    max_age_sec: 0.30
+    imu_timeout_sec: 0.25 # IMU capture and receipt freshness; seconds.
+    input_resume_stable_sec: 0.50
+    deceleration_mps2: 0.4
+    response_delay_sec: 0.01
+    lane_memory_enabled: 1.0 # 0.0=off (no saved lane direction), 1.0=on; editable after Stop.
+    hazard_filter_enabled: 1.0
+    hazard_confirm_frames: 4.0
+    hazard_small_max_cells: 8.0
+    hazard_match_radius_cells: 1.0
+    hazard_max_gap_sec: 0.15
+    hazard_hold_sec: 0.30 # Confirmed hazard flicker hold; 0 disables short hold.
+    obstacle_memory_enabled: 1.0 # Confirmed near-body hazards; no free-space/global map memory.
+    obstacle_memory_sec: 2.0 # Maximum age since a real confirmed observation.
+    obstacle_memory_distance_m: 1.0 # Maximum distance from current body for longer retention.
+    obstacle_memory_clearance_m: 0.10 # Extra distance past rear end before forgetting.
+    avoidance_curve_enabled: 1.0
+    avoidance_curve_samples: 17.0
+    avoidance_length_slack_m: 0.50
+    avoidance_lane_weight: 2.2
+    avoidance_steering_weight: 0.1
+    avoidance_clearance_weight: 0.6
+
+    # Acceleration/brake/steering GUI defaults come from reference/auto_control_test.yaml.
+    # Optional VFH-only overrides (units and full list: README.md).
+    # target_recovery_acceleration_mps2: 0.8
+    # drive.longitudinal_start_duty: 0.053
+    # drive.duty_rise_rate_per_sec: 0.04
+    # drive.duty_fall_rate_per_sec: 0.03
+    # drive.brake_maximum_current_amps: 2.0
+    # max_steering_deg: 30.0
+    # steering_rate_deg_per_sec: 240.0
+    # steering_current_weight: 0.4
+    # stanley_gain: 1.3

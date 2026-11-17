@@ -1,0 +1,237 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-09-11T01:55:42.020611+00:00",
+  "scope": "fixed clean and deterministic synthetic-occlusion validation; quantization A/B only",
+  "validation_manifest": "C:\\Users\\godld\\Desktop\\traffic\\line_detector\\training\\highres\\stop_line_0910\\prepared\\run_20260910_155954_960947\\val.json",
+  "validation_manifest_sha256": "75509fcda5d6138da644fb84ce8efd84d4a03ea52c9a9067985c13691d1c71da",
+  "calibration_manifest_sha256": "2558c12a0f382dea64f65cc7714920200a634fd288800b0782096d76cbcdaa7c",
+  "calibration_validation_overlap": 0,
+  "reference": {
+    "path": "C:\\Users\\godld\\Desktop\\f1tenth_project_repo\\src\\line_detactor\\models\\fast_scnn_stop_line_120x300_batch_1.onnx",
+    "sha256": "abdd5485fa85342b12cd7086004bf04aed4754c1c2fb93b6abfea8d51619e061",
+    "metrics": {
+      "clean": {
+        "left": {
+          "precision": 0.8087163169130382,
+          "recall": 0.863299365483013,
+          "f1": 0.8351169078106896,
+          "iou": 0.716910489481953,
+          "tolerance_f1": 0.9920231238258418,
+          "truth_pixels": 162801,
+          "predicted_pixels": 173789
+        },
+        "right": {
+          "precision": 0.8368128396919323,
+          "recall": 0.8893849308047155,
+          "f1": 0.8622983324926639,
+          "iou": 0.757930094610768,
+          "tolerance_f1": 0.9950981812340304,
+          "truth_pixels": 195100,
+          "predicted_pixels": 207357
+        },
+        "stop_line": {
+          "precision": 0.7755652173913044,
+          "recall": 0.8062008496791105,
+          "f1": 0.7905863581970483,
+          "iou": 0.6536939313984169,
+          "tolerance_f1": 0.9981043816698892,
+          "truth_pixels": 11063,
+          "predicted_pixels": 11500
+        },
+        "lane_macro_f1": 0.8487076201516768,
+        "negative_stop": {
+          "frames": 435,
+          "frames_with_any_fp": 7,
+          "fp_pixels": 13,
+          "frame_fp_rate": 0.016091954022988506
+        },
+        "positive_stop": {
+          "frames": 61,
+          "frames_with_tolerance_hit": 61,
+          "frame_hit_rate": 1.0
+        },
+        "frames": 496
+      },
+      "occluded": {
+        "left": {
+          "precision": 0.7852856190264503,
+          "recall": 0.8463522951333223,
+          "f1": 0.8146761977402132,
+          "iou": 0.6873026561915451,
+          "tolerance_f1": 0.9877267124552463,
+          "truth_pixels": 162801,
+          "predicted_pixels": 175461
+        },
+        "right": {
+          "precision": 0.8101350996664265,
+          "recall": 0.8701332649923116,
+          "f1": 0.8390629903941441,
+          "iou": 0.7227463535502329,
+          "tolerance_f1": 0.9921750387785413,
+          "truth_pixels": 195100,
+          "predicted_pixels": 209549
+        },
+        "stop_line": {
+          "precision": 0.7315342153684395,
+          "recall": 0.7546777546777547,
+          "f1": 0.7429257875066738,
+          "iou": 0.5909959651730728,
+          "tolerance_f1": 0.9673472946237842,
+          "truth_pixels": 11063,
+          "predicted_pixels": 11413
+        },
+        "lane_macro_f1": 0.8268695940671786,
+        "negative_stop": {
+          "frames": 435,
+          "frames_with_any_fp": 26,
+          "fp_pixels": 218,
+          "frame_fp_rate": 0.059770114942528735
+        },
+        "positive_stop": {
+          "frames": 61,
+          "frames_with_tolerance_hit": 61,
+          "frame_hit_rate": 1.0
+        },
+        "frames": 496
+      }
+    }
+  },
+  "candidate": {
+    "path": "C:\\Users\\godld\\Desktop\\f1tenth_project_repo\\src\\line_detactor\\models\\fast_scnn_stop_line_120x300_batch_1.int8.qdq.onnx",
+    "sha256": "df8470c517099f094d62ebe81a69e212cfc5b5e12218754e21a22cffef248871",
+    "metrics": {
+      "clean": {
+        "left": {
+          "precision": 0.8078226497816493,
+          "recall": 0.8624148500316338,
+          "f1": 0.8342265689058953,
+          "iou": 0.7155992293656538,
+          "tolerance_f1": 0.991964001947875,
+          "truth_pixels": 162801,
+          "predicted_pixels": 173803
+        },
+        "right": {
+          "precision": 0.8374591289879467,
+          "recall": 0.8874577139928241,
+          "f1": 0.8617337898907049,
+          "iou": 0.7570582191032116,
+          "tolerance_f1": 0.9950399570171785,
+          "truth_pixels": 195100,
+          "predicted_pixels": 206748
+        },
+        "stop_line": {
+          "precision": 0.777391001653468,
+          "recall": 0.8074663292054597,
+          "f1": 0.7921433005231888,
+          "iou": 0.6558255634681741,
+          "tolerance_f1": 0.9969682026295514,
+          "truth_pixels": 11063,
+          "predicted_pixels": 11491
+        },
+        "lane_macro_f1": 0.8479801793983002,
+        "negative_stop": {
+          "frames": 435,
+          "frames_with_any_fp": 5,
+          "fp_pixels": 36,
+          "frame_fp_rate": 0.011494252873563218
+        },
+        "positive_stop": {
+          "frames": 61,
+          "frames_with_tolerance_hit": 61,
+          "frame_hit_rate": 1.0
+        },
+        "frames": 496
+      },
+      "occluded": {
+        "left": {
+          "precision": 0.7823117997398626,
+          "recall": 0.8423351207916413,
+          "f1": 0.8112146657872242,
+          "iou": 0.6823895302547771,
+          "tolerance_f1": 0.9874336966887387,
+          "truth_pixels": 162801,
+          "predicted_pixels": 175292
+        },
+        "right": {
+          "precision": 0.8110590224408238,
+          "recall": 0.8654843669912865,
+          "f1": 0.8373882943376015,
+          "iou": 0.7202648057465577,
+          "tolerance_f1": 0.9920118833082218,
+          "truth_pixels": 195100,
+          "predicted_pixels": 208192
+        },
+        "stop_line": {
+          "precision": 0.732719298245614,
+          "recall": 0.7550393202567116,
+          "f1": 0.7437118817611182,
+          "iou": 0.5919914953933381,
+          "tolerance_f1": 0.9652737309120611,
+          "truth_pixels": 11063,
+          "predicted_pixels": 11400
+        },
+        "lane_macro_f1": 0.8243014800624129,
+        "negative_stop": {
+          "frames": 435,
+          "frames_with_any_fp": 29,
+          "fp_pixels": 274,
+          "frame_fp_rate": 0.06666666666666667
+        },
+        "positive_stop": {
+          "frames": 61,
+          "frames_with_tolerance_hit": 61,
+          "frame_hit_rate": 1.0
+        },
+        "frames": 496
+      }
+    }
+  },
+  "candidate_minus_reference": {
+    "clean": {
+      "stop_f1": 0.0015569423261405646,
+      "lane_macro_f1": -0.000727440753376607,
+      "negative_stop_frame_fp_rate": -0.004597701149425287,
+      "positive_stop_frame_hit_rate": 0.0
+    },
+    "occluded": {
+      "stop_f1": 0.0007860942544444249,
+      "lane_macro_f1": -0.0025681140047657536,
+      "negative_stop_frame_fp_rate": 0.006896551724137931,
+      "positive_stop_frame_hit_rate": 0.0
+    }
+  },
+  "pairwise": {
+    "clean": {
+      "mask_difference_pixels": {
+        "left": 5932,
+        "right": 6087,
+        "stop_line": 399
+      },
+      "maximum_absolute_logit_error": 30.960739135742188,
+      "stop_frame_decision_changes": 4
+    },
+    "occluded": {
+      "mask_difference_pixels": {
+        "left": 9361,
+        "right": 10051,
+        "stop_line": 695
+      },
+      "maximum_absolute_logit_error": 33.127601623535156,
+      "stop_frame_decision_changes": 7
+    }
+  },
+  "gates": {
+    "maximum_stop_f1_drop": 0.01,
+    "maximum_lane_macro_f1_drop": 0.01,
+    "maximum_negative_stop_frame_fp_rate_increase": 0.01,
+    "maximum_positive_stop_frame_hit_rate_drop": 0.01
+  },
+  "gate_checks": {
+    "stop_f1_all_modes": true,
+    "lane_macro_f1_all_modes": true,
+    "negative_stop_frame_fp_rate_all_modes": true,
+    "positive_stop_frame_hit_rate_all_modes": true
+  },
+  "accuracy_verdict": "pass",
+  "latency_verdict": "not_tested; benchmark the TensorRT engine on the target Jetson"
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>roi_lidar</name>
+  <version>0.1.0</version>
+  <description>ROI stereo virtual LiDAR with measured ground removal and live RGB BEV obstacle overlay.</description>
+  <maintainer email="ojeonghun@example.com">ojeonghun</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>rcl_interfaces</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>point_cloud</depend>
+  <depend>oak_startup</depend>
+  <depend>libopencv-dev</depend>
+  <depend>depthai</depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

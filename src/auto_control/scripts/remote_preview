@@ -1,0 +1,5 @@
+#!/usr/bin/env python3
+from auto_control_tunnel.remote_preview import main
+
+if __name__ == '__main__':
+    main()

@@ -1,6 +1,6 @@
 # vehicle_test_drive
 
-Starts the VESC serial node, waits for a confirmed serial connection and ROS
+Starts the VESC bridge, waits for a confirmed serial connection and ROS
 command subscribers, then publishes a steering-servo sweep and ERPM ramps using
 the same command path as manual control. Do not run `manual_control` command
 publishers at the same time.
@@ -22,5 +22,5 @@ ros2 launch vehicle_test_drive vehicle_test_drive.launch.py
 Use a different serial port when needed:
 
 ```bash
-ros2 launch vehicle_test_drive vehicle_test_drive.launch.py vesc_port:=/dev/ttyACM1
+ros2 launch vehicle_test_drive vehicle_test_drive.launch.py vesc_port:=/dev/ttyUSB0
 ```

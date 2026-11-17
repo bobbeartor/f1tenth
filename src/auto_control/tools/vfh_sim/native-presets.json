@@ -1,0 +1,5 @@
+{
+  "formatVersion": 1,
+  "scope": "No selectable presets. Native VFH defaults are defined in native.js. Marks are evaluation-only; lane departure has no hard bound.",
+  "profiles": []
+}

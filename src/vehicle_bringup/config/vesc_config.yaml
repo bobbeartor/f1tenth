@@ -1,0 +1,42 @@
+/**:
+  ros__parameters:
+    port: "/dev/ttyTHS1"      # Jetson UART 장치 경로
+    baudrate: 115200          # VESC와 통신할 시리얼 속도
+    serial_timeout: 0.02      # 80Hz telemetry 응답 제한; 오류 시 명령 지연을 20ms로 제한
+    write_timeout: 0.05       # 일시적 스케줄링 지연 여유 50ms; 실패 시 기존 정지/재승인 유지
+    serial_exclusive: true    # Linux UART 독점 사용 및 접근 가능한 /proc 포트 점유 확인
+    startup_delay: 0.2        # 포트 연결 후 안정화를 위해 기다리는 시간(초)
+    connect_on_startup: true  # 노드 시작 시 VESC 포트를 먼저 열어본다.
+    verify_firmware_on_startup: true  # 펌웨어 응답을 받아 실제 VESC인지 확인한다.
+
+    duty_topic: "/vesc/duty"                       # std_msgs/msg/Float32
+    brake_current_topic: "/vesc/brake_current"     # 제동 전류 크기(A), Float32
+    measured_erpm_topic: "/vesc/measured_erpm"     # VESC가 추정한 실제 ERPM, std_msgs/msg/Int32
+    servo_position_topic: "/vesc/servo_position"   # std_msgs/msg/Float32
+    connection_status_topic: "/vesc/connected"     # std_msgs/msg/Bool
+
+    min_duty: -0.08        # 수동 후진 설정과 동일한 하한
+    max_duty: 0.10         # 수동 전진 설정과 동일한 상한
+    max_brake_current_amps: 8.0  # ROS 명령 안전 상한; VESC 자체 한도보다 낮게 유지
+    servo_min: 0.0         # VESC servo position 하한
+    servo_max: 1.0         # VESC servo position 상한
+    command_timeout: 0.3   # 이 시간 동안 새 duty 명령이 없으면 duty 0을 보낸다.
+    log_commands: false    # true이면 시리얼로 전달된 명령을 로그에 표시한다.
+    telemetry_rate_hz: 80.0      # 80FPS 카메라와 같은 속도로 VESC 실제 ERPM 조회
+    telemetry_log_rate_hz: 2.0   # 목표/실제 ERPM 콘솔 출력 주기
+    # 손상/누락 응답은 폐기. 마지막 정상 ERPM의 수명이 끝나면 연결 불가로 전환.
+    # 시리얼 open/read/write 자체 오류는 즉시 연결 불가. auto_control의 erpm_timeout_sec도 유지.
+    telemetry_timeout_sec: 0.15
+
+    packet:
+      start_byte: 2           # VESC short packet 시작 바이트
+      end_byte: 3             # VESC packet 종료 바이트
+      comm_get_firmware_version: 0  # 연결 확인에 사용하는 펌웨어 버전 요청
+      comm_get_values_selective: 50 # 실제 ERPM만 선택해 조회하는 명령 ID
+      comm_set_duty: 5        # 수동 주행 모터 명령(COMM_SET_DUTY)
+      comm_set_current_brake: 7 # 전기 제동(COMM_SET_CURRENT_BRAKE)
+      comm_set_erpm: 8        # 별도 ERPM 시험 경로용
+      comm_set_servo_pos: 12  # 서보 위치 명령 ID(COMM_SET_SERVO_POS)
+      duty_scale: 100000      # duty float를 VESC 정수 payload로 바꾸는 배율
+      brake_current_scale: 1000 # 제동 전류 A를 VESC 정수 payload로 바꾸는 배율
+      servo_scale: 1000       # servo position float 값을 VESC 정수 payload로 바꾸는 배율

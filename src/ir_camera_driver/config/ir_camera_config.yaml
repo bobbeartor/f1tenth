@@ -1,0 +1,127 @@
+ir_camera_driver:
+  ros__parameters:
+    # true: CAM_B/C rectified images and center-aligned disparity are combined
+    # into one virtual-camera preview. false: selected_camera is previewed.
+    reprojection_enabled: true
+    selected_camera: "LEFT"  # LEFT/CAM_B or RIGHT/CAM_C
+
+    # Position between the rectified stereo optical centers.
+    # 0.0=LEFT/CAM_B, 0.5=stereo midpoint, 1.0=RIGHT/CAM_C.
+    virtual_camera_position_ratio: 0.5
+
+    # The tuning package intentionally captures and previews at 30 FPS so that
+    # the original and BEV windows have the same cadence and dark scenes can
+    # use exposure times up to one 30 FPS frame period.
+    width: 1280
+    height: 800
+    reprojection_fps: 30.0
+    single_camera_fps: 30.0
+    undistort_single_camera: true
+    sync_threshold_ms: 2.0
+
+    # Clean CAM_A RGB stream. It shares this DepthAI pipeline with CAM_B/C so
+    # only one process owns the OAK device during tunnel collection.
+    rgb_width: 1280
+    rgb_height: 800
+    rgb_fps: 30.0
+    rgb_undistort_enabled: true
+    rgb_topic: "/camera/image_rect"
+    stereo_topic: "/camera/image_stereo_ir"
+    bev_topic: "/camera/image_bev_ir"
+    rgb_frame_id: "camera_optical_frame"
+    stereo_frame_id: "stereo_center_optical_frame"
+    bev_frame_id: "front_axle_bev"
+
+    # OAK-D Pro W emitters. The dot projector supports stereo matching; the
+    # flood light uniformly illuminates a dark scene and is optional here.
+    ir_enabled: true
+    ir_dot_projector_intensity: 1.0
+    ir_flood_light_intensity: 0.0
+
+    # The live control window can update flood/exposure/ISO while running.
+    # Exposure must fit inside one frame (maximum 33333 us at 30 FPS).
+    manual_exposure_enabled: true
+    manual_exposure_us: 5000
+    manual_sensitivity_iso: 800
+
+    # Both original and BEV previews are updated together at no more than 30 FPS.
+    preview_window_name: "OAK IR center preview"
+    rgb_preview_window_name: "OAK RGB original preview"
+    bev_preview_window_name: "OAK IR BEV preview"
+    controls_window_name: "OAK IR live controls"
+    rgb_preview_enabled: true
+    stereo_preview_enabled: true
+    bev_preview_enabled: true
+    controls_preview_enabled: true
+    preview_max_fps: 30.0
+    preview_max_width: 1280
+    preview_max_height: 800
+    bev_preview_scale: 2.0
+    capture_directory: "."
+    status_log_interval_sec: 1.0
+
+    # Shared bev_processor/oak_startup stationary measurement. In single-lens
+    # mode both stereo cameras run ONLY during automatic height measurement.
+    device_id: ""  # Empty: measure the first OAK, then reopen that same device.
+    bev.startup_measurement_enabled: true
+    measurement_attitude_source: "depth"  # depth plane, IMU quality checked; or imu
+    measurement_manual_camera_height_enabled: false
+    measurement_manual_camera_height_m: 0.20  # CAM_A optical center, if manual
+    measurement_warmup_sec: 2.0
+    measurement_timeout_sec: 45.0
+    # Independent from runtime IR settings; returns to runtime values afterward.
+    measurement_ir_dot_projector_intensity: 1.0
+    measurement_roi_preview_enabled: true
+    measurement_roi_width: 456
+    measurement_roi_height: 228
+    measurement_roi_vertical_offset_px: 80
+    measurement_point_sample_step: 2
+    measurement_minimum_valid_points: 5080
+    measurement_minimum_height_m: 0.10
+    measurement_maximum_height_m: 0.40
+    measurement_plane_ransac_iterations: 200
+    measurement_plane_inlier_threshold_m: 0.008
+    measurement_plane_minimum_inliers: 3656
+    measurement_plane_minimum_inlier_ratio: 0.70
+    measurement_plane_maximum_residual_mad_m: 0.005
+    measurement_plane_maximum_imu_difference_deg: 5.0
+    measurement_imu_sample_count: 1200
+    measurement_imu_max_direction_rms_deg: 0.50
+    measurement_stable_plane_frame_count: 45
+    measurement_maximum_height_stddev_m: 0.003
+    measurement_maximum_plane_normal_rms_deg: 0.25
+
+    # Reuse camera_driver's calibrated gyro/accelerometer tilt estimator.
+    # IMU reports and image exposure midpoints share the DepthAI host clock.
+    imu_stabilization_enabled: true
+    imu_calibration_timeout_sec: 30.0
+    measurement_imu_rate_hz: 400.0
+    measurement_imu_queue_size: 200
+    measurement_imu_max_batch_reports: 5
+    measurement_maximum_imu_pair_skew_sec: 0.003
+    imu_stabilization_startup_discard_duration_sec: 1.0
+    imu_stabilization_reference_calibration_duration_sec: 4.0
+    imu_stabilization_maximum_correction_deg: 3.0
+    imu_stabilization_maximum_frame_imu_wait_sec: 0.001
+    imu_stabilization_maximum_frame_imu_age_sec: 0.006
+    imu_stabilization_maximum_frame_imu_prediction_sec: 0.015
+
+    # Vehicle mounting parameters refer to CAM_A (RGB) optical center, matching
+    # oak_startup/bev_processor. EEPROM extrinsics locate each IR lens from it.
+    # x/y/yaw still require measurement on the vehicle. Height/roll/pitch below
+    # are used only if bev.startup_measurement_enabled is explicitly false.
+    bev.camera_x_m: -0.16
+    bev.camera_y_m: 0.0
+    bev.camera_height_m: 0.20
+    bev.camera_roll_deg: 0.0
+    bev.camera_pitch_down_deg: 14.0
+    bev.camera_yaw_deg: 0.0
+
+    # Same front-axle BEV convention as bev_processor: top=forward, left=left.
+    bev.x_min_m: 0.0
+    bev.x_max_m: 3.0
+    bev.y_min_m: -0.6
+    bev.y_max_m: 0.6
+    bev.meter_per_pixel: 0.01
+    bev.output_width: 120
+    bev.output_height: 300

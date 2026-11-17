@@ -1,0 +1,45 @@
+# These overrides are merged on top of the installed production YAML files.
+ir_camera_driver:
+  ros__parameters:
+    reprojection_enabled: false
+    selected_camera: LEFT
+    rgb_enabled: false
+    single_camera_fps: 30.0
+    manual_exposure_enabled: true
+    manual_exposure_us: 30000
+    manual_sensitivity_iso: 800
+    ir_enabled: true
+    ir_dot_projector_intensity: 0.0
+    ir_flood_light_intensity: 0.5
+    rgb_preview_enabled: false
+    stereo_preview_enabled: false
+    bev_preview_enabled: false
+    controls_preview_enabled: false
+    bev_topic: /camera/image_bev_ir
+    bev_frame_id: front_axle_bev
+line_detactor:
+  ros__parameters:
+    input_topic: /ir_bev_line_detection/image_bgr
+    direct_bev_input_enabled: false
+    engine_precision: fp32
+    preview_enabled: true
+    preview_window_name: IR BEV lane following
+    preview_result_only_enabled: false
+    result_topic: /ir_bev_line_detection/result
+    result_image_topic: /ir_bev_line_detection/result_image
+    # Stereo-only training does not supervise the stop-line channel.
+    stop_line_mask_threshold: 1.0
+    stop_line_distance_enabled: false
+auto_control:
+  ros__parameters:
+    enabled: true
+    control_mode: drive
+    minimum_speed_mps: 0.3
+    maximum_speed_mps: 0.3
+    traffic_stop_enabled: false
+    avoidance_control_enabled: false
+    obstacle_slowdown_enabled: false
+    driving_log_enabled: true
+    driving_log_directory: driving_logs/ir_bev_line_detection
+    lane_result_topic: /ir_bev_line_detection/result
+    lane_result_frame_id: front_axle_bev

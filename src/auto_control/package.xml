@@ -3,19 +3,45 @@
 <package format="3">
   <name>auto_control</name>
   <version>0.0.0</version>
-  <description>Autonomous control package for future AutoDrive nodes.</description>
+  <description>Stanley lateral and curvature-aware speed control.</description>
   <maintainer email="ohslo@example.com">ohslo</maintainer>
   <license>TODO</license>
 
-  <buildtool_depend>ament_python</buildtool_depend>
-
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
   <exec_depend>rclpy</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>ir_camera_driver</exec_depend>
+  <exec_depend>tunnel_tcn_test</exec_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
+  <depend>builtin_interfaces</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
+  <depend>rcl_interfaces</depend>
+  <depend>bev_handoff</depend>
+  <depend>bev_processor</depend>
+  <depend>camera_driver</depend>
+  <depend>point_cloud</depend>
+  <depend>geometry_msgs</depend>
+  <depend>libopencv-dev</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>sensor_msgs</depend>
+  <exec_depend>python3-opencv</exec_depend>
+  <exec_depend>python3-tk</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <depend>line_detactor</depend>
+  <depend>traffic_detection_test</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
   <export>
-    <build_type>ament_python</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>

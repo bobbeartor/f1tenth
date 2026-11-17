@@ -1,0 +1,75 @@
+manual_keymap:
+  controller:
+    model: "8BitDo Ultimate 2 Wireless Controller"
+    mode: "d_input_bluetooth"
+    connection: "bluetooth"
+    sdl_api: "game_controller"
+    name_contains: "8BitDo"
+    note: "Remove the 2.4 GHz receiver before starting the ROS launch."
+
+  # SDL GameController supplies a fixed logical layout over Bluetooth.
+  # This node preserves the former ROS joy stick direction: left/up are +1.
+  axes:
+    left_stick:
+      x:
+        number: 0
+        left: 1.0
+        center: 0.0
+        right: -1.0
+      y:
+        number: 1
+        up: 1.0
+        center: 0.0
+        down: -1.0
+    right_stick:
+      x:
+        number: 2
+        left: 1.0
+        center: 0.0
+        right: -1.0
+      y:
+        number: 3
+        up: 1.0
+        center: 0.0
+        down: -1.0
+  buttons:
+    a: {number: 0, pressed_value: 1, released_value: 0}
+    b: {number: 1, pressed_value: 1, released_value: 0}
+    x: {number: 2, pressed_value: 1, released_value: 0}
+    y: {number: 3, pressed_value: 1, released_value: 0}
+    back: {number: 4, pressed_value: 1, released_value: 0}
+    guide: {number: 5, pressed_value: 1, released_value: 0}
+    start: {number: 6, pressed_value: 1, released_value: 0}
+    left_stick: {number: 7, pressed_value: 1, released_value: 0}
+    right_stick: {number: 8, pressed_value: 1, released_value: 0}
+    lb: {number: 9, pressed_value: 1, released_value: 0}
+    rb: {number: 10, pressed_value: 1, released_value: 0}
+
+  dpad:
+    up: {type: "button", number: 11, pressed_value: 1}
+    down: {type: "button", number: 12, pressed_value: 1}
+    left: {type: "button", number: 13, pressed_value: 1}
+    right: {type: "button", number: 14, pressed_value: 1}
+
+  triggers:
+    lt:
+      axis:
+        number: 4
+        normalized_released: 0.0
+        normalized_pressed: 1.0
+    rt:
+      axis:
+        number: 5
+        normalized_released: 0.0
+        normalized_pressed: 1.0
+
+  manual_control:
+    steering_axis: 0
+    accelerator_axis: 5
+    brake_axis: 4
+    gear_button: 10
+
+  unsupported_standard_slots:
+    note: >-
+      L4, R4 and rear paddles are not part of SDL2's standard GameController
+      layout. Do not assign a safety-critical driving function to them.

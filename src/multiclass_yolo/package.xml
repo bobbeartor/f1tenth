@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>multiclass_yolo</name><version>0.1.0</version>
+  <description>OAK NV12 YOLOX four-class preview with TensorRT and live thresholds.</description>
+  <maintainer email="ohslo@example.com">ohslo</maintainer><license>Proprietary</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend><depend>ament_index_cpp</depend><depend>depthai</depend><depend>opencv4</depend>
+  <depend>point_cloud</depend><depend>roi_lidar</depend><depend>oak_startup</depend>
+  <depend>std_msgs</depend>
+  <depend>nlohmann_json</depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>launch</exec_depend><exec_depend>launch_ros</exec_depend><exec_depend>ament_index_python</exec_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

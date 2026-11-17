@@ -1,0 +1,281 @@
+{
+  "backend": "onnx",
+  "model_id": "20261023_140042_191723_aug",
+  "passed": true,
+  "items": [
+    {
+      "id": "20260923_115757__rgb",
+      "source_frames": 762,
+      "samples": 762,
+      "max_score_error": 4.470348358154297e-07,
+      "event_times_equal": true,
+      "actual_events": [
+        [
+          "entry",
+          2.7
+        ],
+        [
+          "exit",
+          9.3
+        ],
+        [
+          "entry",
+          19.7
+        ],
+        [
+          "exit",
+          30.6
+        ],
+        [
+          "entry",
+          41.0
+        ],
+        [
+          "exit",
+          60.9
+        ]
+      ],
+      "expected_events": [
+        [
+          "entry",
+          2.7
+        ],
+        [
+          "exit",
+          9.3
+        ],
+        [
+          "entry",
+          19.7
+        ],
+        [
+          "exit",
+          30.6
+        ],
+        [
+          "entry",
+          41.0
+        ],
+        [
+          "exit",
+          60.9
+        ]
+      ],
+      "inference_plus_sigmoid_p50_ms": 0.028082984499633312
+    },
+    {
+      "id": "20260923_120556__rgb",
+      "source_frames": 652,
+      "samples": 652,
+      "max_score_error": 1.043081283569336e-06,
+      "event_times_equal": true,
+      "actual_events": [
+        [
+          "entry",
+          10.3
+        ],
+        [
+          "exit",
+          13.9
+        ],
+        [
+          "entry",
+          21.0
+        ],
+        [
+          "exit",
+          25.1
+        ],
+        [
+          "entry",
+          33.5
+        ],
+        [
+          "exit",
+          36.6
+        ],
+        [
+          "entry",
+          44.1
+        ],
+        [
+          "exit",
+          48.4
+        ],
+        [
+          "entry",
+          58.3
+        ],
+        [
+          "exit",
+          61.5
+        ]
+      ],
+      "expected_events": [
+        [
+          "entry",
+          10.3
+        ],
+        [
+          "exit",
+          13.9
+        ],
+        [
+          "entry",
+          21.0
+        ],
+        [
+          "exit",
+          25.1
+        ],
+        [
+          "entry",
+          33.5
+        ],
+        [
+          "exit",
+          36.6
+        ],
+        [
+          "entry",
+          44.1
+        ],
+        [
+          "exit",
+          48.4
+        ],
+        [
+          "entry",
+          58.3
+        ],
+        [
+          "exit",
+          61.5
+        ]
+      ],
+      "inference_plus_sigmoid_p50_ms": 0.02858349762391299
+    },
+    {
+      "id": "20260923_113130__rgb",
+      "source_frames": 375,
+      "samples": 375,
+      "max_score_error": 3.8743019104003906e-07,
+      "event_times_equal": true,
+      "actual_events": [
+        [
+          "entry",
+          0.0
+        ],
+        [
+          "exit",
+          5.5
+        ],
+        [
+          "entry",
+          15.0
+        ],
+        [
+          "exit",
+          20.3
+        ],
+        [
+          "entry",
+          28.2
+        ],
+        [
+          "exit",
+          32.7
+        ]
+      ],
+      "expected_events": [
+        [
+          "entry",
+          0.0
+        ],
+        [
+          "exit",
+          5.5
+        ],
+        [
+          "entry",
+          15.0
+        ],
+        [
+          "exit",
+          20.3
+        ],
+        [
+          "entry",
+          28.2
+        ],
+        [
+          "exit",
+          32.7
+        ]
+      ],
+      "inference_plus_sigmoid_p50_ms": 0.028291018679738045
+    },
+    {
+      "id": "20260923_120108__rgb",
+      "source_frames": 572,
+      "samples": 572,
+      "max_score_error": 4.76837158203125e-07,
+      "event_times_equal": true,
+      "actual_events": [
+        [
+          "entry",
+          2.1
+        ],
+        [
+          "exit",
+          17.9
+        ],
+        [
+          "entry",
+          28.2
+        ],
+        [
+          "exit",
+          40.3
+        ],
+        [
+          "entry",
+          49.1
+        ],
+        [
+          "exit",
+          54.6
+        ]
+      ],
+      "expected_events": [
+        [
+          "entry",
+          2.1
+        ],
+        [
+          "exit",
+          17.9
+        ],
+        [
+          "entry",
+          28.2
+        ],
+        [
+          "exit",
+          40.3
+        ],
+        [
+          "entry",
+          49.1
+        ],
+        [
+          "exit",
+          54.6
+        ]
+      ],
+      "inference_plus_sigmoid_p50_ms": 0.02704199869185686
+    }
+  ],
+  "scope": "Frozen original features -> checkpoint scaler -> history mask/window -> logits -> sigmoid -> alternating crossings. Warmup disabled for reference parity.",
+  "jetson_verified": false
+}

@@ -45,6 +45,13 @@ struct RemapLut
   cv::Mat valid_mask;
 };
 
+struct FusedRemapCoverage
+{
+  int valid_lut_pixels{0};
+  int covered_pixels{0};
+  double coverage_ratio{0.0};
+};
+
 double degToRad(double degrees);
 
 cv::Matx33d rotationX(double angle);
@@ -62,6 +69,13 @@ EulerAngles cameraAttitudeFromSpecificForce(
 RemapLut generateRemap(
   const RectifiedCameraModel & camera,
   const BevConfig & bev);
+
+FusedRemapCoverage assessFusedRemapCoverage(
+  const RemapLut & lut,
+  const cv::Matx33d & source_to_stabilized_homography,
+  int source_width,
+  int source_height,
+  int source_crop_top);
 
 cv::Mat convertToBev(
   const cv::Mat & rectified_image,

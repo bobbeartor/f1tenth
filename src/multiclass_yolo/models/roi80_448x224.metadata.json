@@ -1,0 +1,47 @@
+{
+  "classes": [
+    "con",
+    "truck",
+    "sedan",
+    "traffic_light"
+  ],
+  "input_shape": [
+    1,
+    3,
+    224,
+    448
+  ],
+  "color": "BGR",
+  "layout": "NCHW",
+  "value_range": [
+    0,
+    255
+  ],
+  "normalization": "none",
+  "resize": "aspect-preserving, top-left, pad=114",
+  "output_shape": [
+    1,
+    2058,
+    9
+  ],
+  "output": "decoded cx,cy,w,h in input pixels; objectness; class probabilities",
+  "nms": "class-aware, outside ONNX",
+  "default_score": 0.25,
+  "default_nms": 0.65,
+  "camera": "OAK-D Pro 1280x800 NV12; convert to BGR before tensor preprocessing",
+  "nv12": "respect plane pitch and source color matrix/range; GPU implementation on Jetson",
+  "variant": "tiny",
+  "checkpoint_sha256": "e7b061f0419ff557b53a649b09f5f17aeef86886f97615506bb36f5fdc52e691",
+  "training_scope": "train_with_ten_image_holdout",
+  "source_sha256": "04ec501d2bbef0d384583934e9c32d5defdc74e358a0e6b1bfddd28d89d5c89a",
+  "training_images": 809,
+  "test_images": 10,
+  "final_epoch": 28,
+  "held_out_metrics": null,
+  "roi_top_fraction": 0.2,
+  "roi_rounding": "y0=round(original_height*roi_top_fraction)",
+  "coordinate_restore": "xyxy / letterbox_ratio, then add crop y0 to y coordinates",
+  "experiment": "same trained weights; no ROI fine-tuning",
+  "precision": "FP32; not INT8 quantized",
+  "model_sha256": "332b2a25876560bf421a0acaead7cdcf005e44c2377c89537acc28c75862ebb5"
+}

@@ -1,7 +1,212 @@
-# Legacy guard file.
-# Use bev_config_auto.yaml or bev_config_manual.yaml instead.
-# Keeping this file prevents an older installed copy from surviving a normal
-# colcon rebuild and silently supplying obsolete parameters.
 bev_processor:
   ros__parameters:
-    processor_mode: "legacy_entrypoint_removed"
+    # YAML이 빠지거나 노드명이 맞지 않을 때 C++ 기본값으로 조용히 실행되는 것을 막는다.
+    configuration_version: 4
+
+    # true면 GUI 프리뷰를 강제로 끄고 흔들림 보정 입력부터 BEV 발행까지의
+    # FPS·지연·CUDA 처리 시간을 상태 로그 주기마다 출력한다.
+
+    # camera_driver가 하단 crop NV12와 같은 프레임의 보정 행렬을 함께 보낸다.
+    # CUDA가 이 보정과 고정 BEV LUT를 한 번의 sampling으로 합성한다.
+    input_topic: "/camera/bev_input"
+    output_topic: "/camera/image_bev"
+    output_frame_id: "front_axle_bev"
+    # Latched startup ground normal shared with camera_driver.
+    startup_ground_reference_topic: "/camera/startup_ground_normal"
+    startup_ground_reference_frame_id: "camera_optical_frame"
+    expected_input_fps: 70.0
+    # 0.70이면 1280x800의 하단 560행. 통합 launch에서 카메라와 같이 바뀐다.
+    input_bottom_fraction: 0.70
+
+    # publish_max_fps가 0이면 처리된 프레임을 별도 속도 제한 없이 발행한다.
+    publish_enabled: true
+    # true면 같은 프로세스의 line_detactor에 CUDA BEV 버퍼를 직접 넘긴다.
+    # auto_drive.launch.py는 이 경로를 켜고 ROS BEV 영상 발행을 끄는다.
+    direct_output_enabled: false
+    # true: 로컬 오버레이가 표시할 때만 CPU BEV를 가져오는 함수를 제공한다.
+    # GPU 추론 입력마다 다운로드하지 않으며, 같은 촬영본은 한 번만 복사한다.
+    direct_host_copy_enabled: false
+    publish_max_fps: 0.0
+    preview_enabled: false
+    preview_max_fps: 30.0
+    preview_window_name: "BEV image"
+    # 프리뷰 창에 포커스를 둔 채 Space를 누르면 false를 발행해 자동주행을 정지한다.
+    preview_stop_topic: "/auto/enabled"
+    preview_max_width: 1280
+    preview_max_height: 800
+    # 기본값 "."은 ros2 launch 명령을 실행한 경로이다.
+    capture_directory: "."
+    capture_joy_topic: "/joy"
+    # SDL GameController 표준: A=0, B=1.
+    capture_joy_button: 1
+
+    # true인 실행에서만 root 아래에 dataset_001, dataset_002, ...를
+    # 자동 생성한다. root는 실행 명령이나 실험용 YAML에서 지정한다.
+    dataset_collection_enabled: false
+    # origin_bev 원본만 저장한다. 기존 filtered/result/label은 생성하지 않는다.
+    # 자동 FPS 수집 대신 Joy A 버튼의 상승 에지마다 원본 한 장을 저장한다.
+    # dataset_collection_enabled와 동시에 true로 설정할 수 없다.
+    dataset_collection_manual_capture_mode: false
+    dataset_collection_manual_capture_button: 0
+    dataset_collection_root_directory: "datasets"
+    dataset_collection_fps: 10.0
+    dataset_collection_target_count: 1000
+    # 목표 개수 저장 후 preview_stop_topic(/auto/enabled)에 false를 발행한다.
+    dataset_collection_stop_auto_on_complete: true
+
+    # 고정 BEV LUT가 가정하는 가상 안정화 영상의 유효 내부 파라미터다.
+    # camera_config.yaml의 fixed_view_zoom=1.25가 fx/fy에 반영된 값이며,
+    # 프레임별 역행렬이 이 좌표를 하단 raw crop 좌표로 다시 매핑한다.
+    input_width: 1280
+    input_height: 800
+    fx: 701.751174926
+    fy: 701.420440674
+    cx: 643.032653809
+    cy: 392.621124268
+
+    # 차량 좌표계: 원점=앞차축 지면 중심, +X=전방, +Y=좌측, +Z=상방.
+    # X/Y와 yaw는 시작 측정으로 구하지 않으므로 실제 장착 위치를 직접 잰다.
+    # 자동 모드에서는 높이·roll·하향 pitch를 아래 시작 depth 노면 측정에서 구한다.
+    # 수동 높이 모드에서는 높이는 지정값, roll/pitch는 IMU 측정값을 사용한다.
+    # 카메라 광학 중심은 앞차축 중심에서 뒤쪽으로 9cm에 있다.
+    camera_x_m: -0.09
+    camera_y_m: 0.0
+    camera_yaw_deg: 0.0
+
+    # true면 depth 평면 측정과 IR projector를 사용하지 않고 지정 높이를 쓴다.
+    # 이 경우에도 roll/pitch를 위한 초기 IMU 안정화는 그대로 수행한다.
+    # 실제 장착 높이를 지면에서 카메라 광학 중심까지 수직으로 측정해 입력한다.
+    manual_camera_height_enabled: false
+    manual_camera_height_m: 0.20
+
+    # 수동 높이가 꺼진 경우 시작 시 한 번만 높이·roll·pitch를 측정한다.
+    # 중앙 ROI에 장애물 없이 평평한 노면만 보이게 하고 차량을 정지시킨다.
+    # 측정 성공 후 이 자세로 LUT를 한 번 생성하며 주행 중에는 갱신하지 않는다.
+
+    # 시작 시 한 번만 측정하므로 속도보다 depth 정밀도를 우선한다.
+    measurement_stereo_fps: 30.0
+    measurement_stereo_width: 1280
+    measurement_stereo_height: 800
+    # 작은 depth queue는 오래된 프레임 누적을 줄인다. 처리 누락이 반복될 때만 늘린다.
+    measurement_depth_queue_size: 2
+    # 5-bit subpixel 정밀도를 유지한다. RVC2는 disparity shift 사용 시 RGB depth
+    # alignment를 지원하지 않으므로 CAM_A/IMU 좌표 일치를 위해 shift는 반드시 0이다.
+    measurement_stereo_subpixel_fractional_bits: 5
+    measurement_stereo_left_right_check_threshold: 5
+    # FAST_ACCURACY 기본값과 같은 55: 낮을수록 부정확한 disparity를 더 엄격히 제거한다.
+    measurement_stereo_confidence_threshold: 55
+    measurement_stereo_disparity_shift: 0
+
+    # IMU rate는 실제 OAK IMU 지원 속도로 정한다. sample_count/rate가 평균 시간이다.
+    # calibrated accel/gyro를 동시에 받아 정지 상태를 확인한다.
+    measurement_imu_rate_hz: 400.0
+    measurement_imu_queue_size: 200
+    measurement_imu_max_batch_reports: 5
+    measurement_maximum_imu_pair_skew_sec: 0.003
+    # 전원 인가 직후 stereo 노출과 IMU 과도값을 버리는 시간이다.
+    measurement_warmup_sec: 2.0
+
+    # Pro 모델의 IR dot projector 세기: 0.0=끔, 1.0=최대.
+    # 자동 depth 높이 측정에만 사용하며 수동 높이 모드에서는 켜지 않는다.
+    measurement_ir_dot_projector_intensity: 1.0
+
+    # 영상 중앙에서 평평한 노면만 포함하도록 ROI를 정한다.
+    # 너무 크면 차체·벽·장애물이 섞이고, 너무 작으면 평면 포인트가 부족해진다.
+    measurement_roi_width: 456
+    measurement_roi_height: 228
+    # 중앙 기준 세로 이동량이다. 양수는 아래, 음수는 위로 이동한다.
+    measurement_roi_vertical_offset_px: 80
+    # 시작 depth 측정 중에만 ROI 프리뷰를 띄우고 완료 시 자동으로 닫는다.
+    measurement_roi_preview_enabled: true
+    # 1은 모든 픽셀, 2는 가로·세로 한 칸씩 건너뛴다. 작을수록 정확하지만 느리다.
+    measurement_point_sample_step: 2
+    # 유효 포인트 최소값은 ROI와 sample_step을 바꿀 때 함께 비례 조정한다.
+    # 지나치게 낮추면 sparse depth를 정상 노면으로 오인할 수 있다.
+    measurement_minimum_valid_points: 5080
+
+    # ROI에서 실제 노면까지 관측되는 depth 범위를 포함하도록 정한다.
+    # 범위가 너무 넓으면 장애물이, 너무 좁으면 정상 노면이 제외될 수 있다.
+    measurement_minimum_depth_m: 0.30
+    measurement_maximum_depth_m: 3.00
+    # 줄자로 예상한 실제 카메라 높이를 여유 있게 감싸는 안전 범위다.
+    # 예: 실제 높이가 약 0.17m이면 0.10~0.30m처럼 좁히면 오검출 방지에 유리하다.
+    measurement_minimum_height_m: 0.10
+    measurement_maximum_height_m: 0.40
+
+    # 한 depth 프레임의 노면 평면을 RANSAC으로 찾는다.
+    # 반복 수가 많을수록 outlier에 강하지만 시작 시간이 늘어난다.
+    measurement_plane_ransac_iterations: 200
+    # 포인트와 평면의 허용 거리다. 0.008은 8mm이다.
+    # 거친 노면에서 계속 실패할 때만 0.010~0.015m 정도로 조금씩 완화한다.
+    measurement_plane_inlier_threshold_m: 0.008
+    # 최소 inlier 개수는 ROI/sample_step 변경 비율에 맞춰 조정한다.
+    measurement_plane_minimum_inliers: 3656
+    # 유효 포인트 중 평면에 속해야 하는 최소 비율이다. 낮추면 장애물 오검출 위험이 커진다.
+    measurement_plane_minimum_inlier_ratio: 0.70
+    # inlier 잔차의 MAD 한계다. 평탄한 바닥은 작게, 거친 바닥은 로그를 보고 소폭 늘린다.
+    measurement_plane_maximum_residual_mad_m: 0.005
+    # depth 평면 법선과 IMU 중력 방향이 이 각도보다 다르면 잘못된 평면으로 본다.
+    measurement_plane_maximum_imu_difference_deg: 5.0
+
+    # BEV 절대 roll/pitch는 실제 노면 평면 법선에서 구한다.
+    # IMU는 노면 후보 검증과 정지 상태 판정에만 사용한다.
+    measurement_attitude_source: "depth"
+
+    # IMU 장착 bias = IMU 측정값 - 신뢰하는 실제값. "imu" 선택 시 최종
+    # roll/pitch에 적용되며, "depth" 선택 시에도 노면 평면 검증 기준에 적용된다.
+    # 평평한 기준면에서 반복 측정한 일정한 편차가 확인되기 전에는 0을 유지한다.
+    # 예: IMU pitch=18.8도, 실제 pitch=13.0도이면 pitch bias=+5.8도이다.
+    measurement_imu_roll_bias_deg: 0.0
+    measurement_imu_pitch_bias_deg: 0.0
+
+    # sample_count/rate가 IMU 평균 시간이다. 1200/400 = 3초이다.
+    measurement_imu_sample_count: 1200
+    # 정지 중 중력 방향 RMS 한계다. 실패하면 차량 진동·바닥 흔들림부터 확인한다.
+    measurement_imu_max_direction_rms_deg: 0.50
+    # 정지 상태에서 가속도 크기는 중력가속도 9.81m/s² 근처여야 한다.
+    # 이 범위를 벗어나면 이동·충격·센서 이상으로 보고 측정을 받지 않는다.
+    measurement_imu_accel_min_mps2: 8.30
+    measurement_imu_accel_max_mps2: 11.30
+    measurement_imu_gyroscope_mean_maximum_degps: 0.80
+    measurement_imu_gyroscope_stddev_maximum_degps: 1.40
+
+    # 연속된 평면 여러 장의 높이와 법선이 안정적일 때만 최종값을 채택한다.
+    # 30FPS에서 45프레임은 약 1.5초이다.
+    measurement_stable_plane_frame_count: 45
+    # origin 방식의 depth 평면 offset 높이 표준편차 3mm를 허용한다.
+    # 반복 실패 시 ROI와 정지 상태를 먼저 확인한 뒤 조금씩 완화한다.
+    measurement_maximum_height_stddev_m: 0.003
+    measurement_maximum_plane_normal_rms_deg: 0.25
+    # 워밍업+IMU 평균+평면 수집을 모두 포함한 전체 제한시간이다.
+    measurement_timeout_sec: 45.0
+
+    # BEV 영상 위쪽이 차량 전방, 영상 왼쪽이 차량 좌측이다.
+    x_min_m: 0.0
+    x_max_m: 3.0
+    y_min_m: -0.6
+    y_max_m: 0.6
+    meter_per_pixel: 0.01
+
+    # output_width  = round((y_max_m - y_min_m) / meter_per_pixel)
+    # output_height = round((x_max_m - x_min_m) / meter_per_pixel)
+    output_width: 120
+    output_height: 300
+
+    # bilinear: 2x2, bicubic: Catmull-Rom 4x4, adaptive: edge-aware bicubic.
+    # adaptive는 먼 거리의 방향성 엣지에서 엣지 횡단 샘플의 가중치를 줄인다.
+    # 색 경계 번짐을 막기 위해 UV는 모든 모드에서 bilinear로 유지한다.
+    bev_interpolation: "bilinear"
+    edge_adaptive_start_x_m: 1.20
+    edge_adaptive_full_x_m: 2.00
+    edge_adaptive_strength: 0.75
+    edge_gradient_low: 8.0
+    edge_gradient_high: 32.0
+    edge_coherence_minimum: 0.30
+    edge_maximum_anisotropy: 3.0
+
+    # BEV geometry only; ML lanes and centerline are configured in line_detactor.
+    status_log_interval_sec: 5.0
+    startup_timeout_sec: 12.0
+    # camera_driver의 기존 1초 폐기+4초 기준 측정은 그대로 두고,
+    # 이 기간의 안정화 전 영상을 BEV 출력에서만 제외한다.
+    stabilization_settle_sec: 5.5

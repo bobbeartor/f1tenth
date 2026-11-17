@@ -1,0 +1,47 @@
+/**:
+  ros__parameters:
+    # /joy를 직접 읽는다: RT 가속, LT 감속, 왼쪽 스틱 조향, RB 전후진 전환.
+    joy_topic: "/joy"
+    joy_steering_axis: 0
+    # SDL GameController standard: LT=axis4, RT=axis5, RB=button10.
+    joy_accelerator_axis: 5
+    joy_brake_axis: 4
+    joy_gear_button: 10
+    # auto_drive의 auto_handover_node 전용. 일반 수동주행에는 적용하지 않는다.
+    handover_button: 2                 # SDL X: 자동주행 종료 -> 제동 -> 수동
+    handover_stopped_erpm: 100.0       # |ERPM|이 이 값 이하인 상태를 확인
+    handover_stop_hold_sec: 0.5
+    handover_telemetry_timeout_sec: 0.3 # 수신이 끊기면 수동 전환을 보류하고 제동 유지
+    joy_trigger_released: 0.0
+    joy_trigger_pressed: 1.0
+    current_duty_topic: "/manual/current_duty"     # 현재 duty 명령
+    current_brake_current_topic: "/manual/current_brake_current"
+    gear_state_topic: "/manual/gear"               # FORWARD 또는 REVERSE
+    duty_topic: "/vesc/duty"
+    brake_current_topic: "/vesc/brake_current"
+    servo_position_topic: "/vesc/servo_position"
+
+    forward_max_duty: 0.10
+    reverse_max_duty: 0.08
+    start_duty: 0.05                    # 전진 RT 입력 시 즉시 적용
+    reverse_start_duty: 0.05            # 후진 RT 입력 시 -0.05 적용
+    acceleration_duty_per_sec: 0.03     # 최대 전진 duty까지 약 1.7초
+    # immediate_stop_on_accelerator_release=false일 때만 사용하는 자연 감속률
+    coast_deceleration_duty_per_sec: 0.04
+    # VESC 한도(-69.67A motor/-60A regen)보다 보수적인 LT 전기제동값.
+    # LT 100%에서 8A, 약 0.5초에 도달하고 0.25초에 해제한다.
+    maximum_brake_current_amps: 8.0
+    brake_current_rise_amps_per_sec: 16.0
+    brake_current_fall_amps_per_sec: 32.0
+    control_rate_hz: 80.0
+    status_log_rate_hz: 2.0
+    input_timeout_sec: 0.30
+    # true: RT를 놓으면 다음 제어 주기(80 Hz)에서 duty를 즉시 0으로 만든다.
+    # false: 아래 coast_deceleration_duty_per_sec 속도로 천천히 0까지 줄인다.
+    immediate_stop_on_accelerator_release: false
+
+    servo_left: 1.0
+    servo_center: 0.46
+    servo_right: 0.0
+    pedal_deadzone: 0.01
+    steering_deadzone: 0.04

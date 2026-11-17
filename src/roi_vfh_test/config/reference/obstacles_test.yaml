@@ -1,0 +1,87 @@
+camera_driver:
+  ros__parameters:
+    obstacles.depth.enabled: true
+    obstacles.camera.resolution: "400p"
+    obstacles.camera.fps: 40.0
+    obstacles.depth.mode: "high_density"
+    obstacles.depth.ir_dot_projector_intensity: 0.7
+    obstacles.depth.ir_flood_light_intensity: 0.0
+    obstacles.depth.confidence_threshold: 200
+    obstacles.depth.left_right_check: true
+    obstacles.depth.left_right_threshold: 10
+    obstacles.depth.subpixel: false
+    obstacles.depth.subpixel_fractional_bits: 3
+    obstacles.depth.median_filter: "3x3"
+
+bev_processor:
+  ros__parameters:
+    obstacles.share_reference: true
+
+auto_obstacles:
+  ros__parameters:
+    # Depth ROI
+    obstacles.roi.x: 0.0
+    obstacles.roi.y: 0.0
+    obstacles.roi.width: 1.0
+    obstacles.roi.height: 1.0
+
+
+    obstacles.avoidance.deformation_only: true
+    obstacles.avoidance.centerline_fallback_enabled: true
+    obstacles.avoidance.obstacle_size_m: 0.13
+    
+    # 포인트 / 바닥 제거
+    obstacles.points.pixel_stride: 2
+    obstacles.points.min_depth_m: 0.1
+    obstacles.points.max_depth_m: 20.0
+    obstacles.ground.enabled: true
+    obstacles.ground.distance_m: 0.05
+    obstacles.ground.distance_per_meter: 0.01
+    obstacles.ground.max_distance_m: 0.12
+    obstacles.height.max_m: 0.50
+
+    # 스캔 / 군집
+    obstacles.range.min_m: 0.1
+    obstacles.range.max_m: 2.0
+    obstacles.scan.angle_min_deg: -70.0
+    obstacles.scan.angle_max_deg: 70.0
+    obstacles.scan.bins: 281
+    obstacles.scan.min_samples: 2
+    obstacles.scan.support_distance_m: 0.15
+    obstacles.cluster.tolerance_m: 0.15
+    obstacles.cluster.min_bins: 2
+    obstacles.cluster.max_gap_bins: 1
+    obstacles.cluster.min_height_m: 0.10
+    obstacles.max_age_sec: 0.25
+    obstacles.max_sync_sec: 0.04
+
+    # 회피 경로 프리뷰
+    obstacles.avoidance.enabled: true
+    obstacles.avoidance.max_fps: 80.0 # Same planning cap as auto_control/config/obstacles.yaml.
+    obstacles.avoidance.max_age_sec: 0.25
+    obstacles.avoidance.max_sync_sec: 0.06
+
+    # 차량 크기 / 여유 거리
+    obstacles.avoidance.vehicle_half_width_m: 0.15
+    obstacles.avoidance.vehicle_half_length_m: 0.25
+    obstacles.avoidance.safety_margin_m: 0.04
+    obstacles.avoidance.unknown_extent_m: 0.01
+
+    # 회피 후보 생성
+    obstacles.avoidance.sample_step_m: 0.02
+    obstacles.avoidance.max_offset_m: 0.55
+    obstacles.avoidance.offset_step_m: 0.05
+    obstacles.avoidance.transition_m: 0.45
+
+    # 곡률 / 권고 속도
+    obstacles.avoidance.max_curvature_per_m: 2.0
+    obstacles.avoidance.max_speed_mps: 1.00
+    obstacles.avoidance.lateral_acceleration_mps2: 0.4
+    obstacles.avoidance.deceleration_mps2: 0.5
+    obstacles.avoidance.clear_confirm_sec: 1.0
+
+line_detactor:
+  ros__parameters:
+    obstacles.overlay_enabled: true
+    obstacles.max_sync_sec: 0.06
+    obstacles.max_age_sec: 0.25

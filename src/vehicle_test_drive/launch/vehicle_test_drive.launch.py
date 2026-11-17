@@ -10,13 +10,13 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     vesc_port = LaunchConfiguration("vesc_port")
     vesc_config = PathJoinSubstitution(
-        [FindPackageShare("vehicle_config"), "config", "vesc_config.yaml"]
+        [FindPackageShare("vehicle_bringup"), "config", "vesc_config.yaml"]
     )
 
-    vesc_initialize_node = Node(
-        package="vesc_initializer",
-        executable="vesc_initialize_node",
-        name="vesc_initialize_node",
+    vesc_bridge_node = Node(
+        package="vesc_bridge",
+        executable="vesc_bridge_node",
+        name="vesc_bridge_node",
         output="screen",
         parameters=[
             vesc_config,
@@ -43,8 +43,8 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            DeclareLaunchArgument("vesc_port", default_value="/dev/ttyACM0"),
-            vesc_initialize_node,
+            DeclareLaunchArgument("vesc_port", default_value="/dev/ttyUSB0"),
+            vesc_bridge_node,
             test_drive_node,
             shutdown_when_test_finishes,
         ]

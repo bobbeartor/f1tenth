@@ -20,20 +20,19 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(CUDAToolkit REQUIRED)
-find_package(OpenCV 4 REQUIRED COMPONENTS core highgui imgproc)
+find_package(bev_handoff REQUIRED)
+find_package(rcl_interfaces REQUIRED)
+find_package(OpenCV 4 REQUIRED COMPONENTS core highgui imgcodecs imgproc)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(depthai 3 CONFIG QUIET)
-if(NOT depthai_FOUND)
-  message(FATAL_ERROR
-    "DepthAI C++ 3.x was not found. bev_processor performs an OAK stereo "
-    "ground-plane and IMU startup fusion and therefore "
-    "links directly against depthai::core."
-  )
-endif()
+# Import all DepthAI targets before the ament dependency exports.
+include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/DepthaiWorkspace.cmake")
 find_package(Threads REQUIRED)
+find_package(oak_startup REQUIRED)
+find_package(camera_driver REQUIRED)
 
 add_library(bev_geometry STATIC
   src/bev_geometry.cpp
@@ -46,44 +45,6 @@ target_include_directories(bev_geometry
     ${OpenCV_INCLUDE_DIRS}
 )
 target_link_libraries(bev_geometry PUBLIC ${OpenCV_LIBS})
-
-add_library(bev_ground_plane STATIC
-  src/ground_plane_estimator.cpp
-)
-set_target_properties(bev_ground_plane PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_include_directories(bev_ground_plane
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-    ${OpenCV_INCLUDE_DIRS}
-)
-target_link_libraries(bev_ground_plane PUBLIC ${OpenCV_LIBS})
-
-add_library(bev_attitude_fusion STATIC
-  src/attitude_fusion.cpp
-)
-set_target_properties(
-  bev_attitude_fusion PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_include_directories(bev_attitude_fusion
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-    ${OpenCV_INCLUDE_DIRS}
-)
-target_link_libraries(bev_attitude_fusion PUBLIC ${OpenCV_LIBS})
-
-add_library(bev_imu_attitude_tracker STATIC
-  src/imu_attitude_tracker.cpp
-)
-set_target_properties(
-  bev_imu_attitude_tracker PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_include_directories(bev_imu_attitude_tracker
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-    ${OpenCV_INCLUDE_DIRS}
-)
-target_link_libraries(bev_imu_attitude_tracker PUBLIC ${OpenCV_LIBS})
 
 add_library(bev_cuda STATIC
   src/cuda_bev_processor.cu
@@ -100,36 +61,25 @@ target_compile_options(bev_cuda PRIVATE
 )
 target_link_libraries(bev_cuda PUBLIC CUDA::cudart ${OpenCV_LIBS})
 
-add_library(bev_startup_measurement STATIC
-  src/oak_startup_measurement.cpp
-)
-set_target_properties(
-  bev_startup_measurement PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_include_directories(bev_startup_measurement
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-)
-target_link_libraries(
-  bev_startup_measurement
-  PUBLIC depthai::core bev_ground_plane bev_attitude_fusion)
-
 add_library(bev_processor_component SHARED
   src/bev_processor_node.cpp
 )
 target_include_directories(
   bev_processor_component PRIVATE ${OpenCV_INCLUDE_DIRS})
 ament_target_dependencies(bev_processor_component
+  bev_handoff
+  camera_driver
+  rcl_interfaces
   rclcpp
   rclcpp_components
+  geometry_msgs
   sensor_msgs
   std_msgs
 )
 target_link_libraries(bev_processor_component
   bev_geometry
   bev_cuda
-  bev_startup_measurement
-  bev_imu_attitude_tracker
+  oak_startup::measurement
   ${OpenCV_LIBS}
   Threads::Threads
 )
@@ -138,14 +88,11 @@ rclcpp_components_register_nodes(
   "bev_processor::BevProcessorNode"
 )
 
-# Overwrite a stale installed standalone binary with an explicit guard.
-# Supported execution always uses one of the two component launch files.
-add_executable(bev_processor_node
-  src/legacy_bev_processor_node.cpp
-)
-
 if(BUILD_TESTING)
   enable_testing()
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  add_test(NAME depthai_runtime_launch_test
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_depthai_runtime_launch.py)
   add_executable(bev_geometry_test test/bev_geometry_test.cpp)
   target_link_libraries(bev_geometry_test bev_geometry ${OpenCV_LIBS})
   add_test(NAME bev_geometry_test COMMAND bev_geometry_test)
@@ -154,45 +101,41 @@ if(BUILD_TESTING)
     ground_plane_estimator_test test/ground_plane_estimator_test.cpp)
   target_link_libraries(
     ground_plane_estimator_test
-    bev_ground_plane
+    oak_startup::measurement
     bev_geometry
     ${OpenCV_LIBS}
   )
   add_test(
     NAME ground_plane_estimator_test COMMAND ground_plane_estimator_test)
 
-  add_executable(attitude_fusion_test test/attitude_fusion_test.cpp)
+  add_executable(startup_attitude_test test/startup_attitude_test.cpp)
+  target_include_directories(startup_attitude_test PRIVATE include)
   target_link_libraries(
-    attitude_fusion_test bev_attitude_fusion ${OpenCV_LIBS})
-  add_test(NAME attitude_fusion_test COMMAND attitude_fusion_test)
-
-  add_executable(
-    imu_attitude_tracker_test test/imu_attitude_tracker_test.cpp)
-  target_link_libraries(
-    imu_attitude_tracker_test
-    bev_imu_attitude_tracker
-    bev_attitude_fusion
-    ${OpenCV_LIBS}
-  )
-  add_test(
-    NAME imu_attitude_tracker_test COMMAND imu_attitude_tracker_test)
+    startup_attitude_test oak_startup::measurement ${OpenCV_LIBS})
+  add_test(NAME startup_attitude_test COMMAND startup_attitude_test)
 endif()
 
+install(TARGETS bev_geometry EXPORT export_bev_geometry
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+)
+ament_export_targets(export_bev_geometry HAS_LIBRARY_TARGET)
+
 install(TARGETS
-  bev_geometry
-  bev_ground_plane
-  bev_attitude_fusion
-  bev_imu_attitude_tracker
-  bev_startup_measurement
   bev_processor_component
-  bev_processor_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 install(DIRECTORY include/ DESTINATION include)
-install(DIRECTORY config launch DESTINATION share/${PROJECT_NAME})
+install(
+  DIRECTORY config launch
+  DESTINATION share/${PROJECT_NAME}
+  PATTERN "__pycache__" EXCLUDE
+  PATTERN "*.pyc" EXCLUDE
+)
 
 ament_export_include_directories(include)
-ament_export_dependencies(OpenCV rclcpp_components)
+ament_export_dependencies(
+  bev_handoff camera_driver oak_startup OpenCV rclcpp_components rcl_interfaces geometry_msgs)
 ament_package()

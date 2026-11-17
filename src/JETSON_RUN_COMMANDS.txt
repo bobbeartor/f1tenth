@@ -22,8 +22,8 @@ ros2 topic echo /joy
 
 [2. VESC 통신 노드만 실행]
 
-ros2 run vesc_initializer vesc_initialize_node --ros-args \
-  --params-file "$(ros2 pkg prefix vehicle_config)/share/vehicle_config/config/vesc_config.yaml"
+ros2 run vesc_bridge vesc_bridge_node --ros-args \
+  --params-file "$(ros2 pkg prefix vehicle_bringup)/share/vehicle_bringup/config/vesc_config.yaml"
 
 VESC 연결 상태 확인용 별도 터미널:
 
@@ -32,11 +32,11 @@ source /opt/ros/humble/setup.bash
 source install/setup.bash
 ros2 topic echo /vesc/connected
 
-VESC가 /dev/ttyACM1에 연결된 경우:
+CH341T가 /dev/ttyUSB1에 연결된 경우:
 
-ros2 run vesc_initializer vesc_initialize_node --ros-args \
-  --params-file "$(ros2 pkg prefix vehicle_config)/share/vehicle_config/config/vesc_config.yaml" \
-  -p port:=/dev/ttyACM1
+ros2 run vesc_bridge vesc_bridge_node --ros-args \
+  --params-file "$(ros2 pkg prefix vehicle_bringup)/share/vehicle_bringup/config/vesc_config.yaml" \
+  -p port:=/dev/ttyUSB1
 
 주의: 이 명령은 VESC 통신 노드만 시작한다. 실제 주행 명령은 별도의
 /vesc/erpm 및 /vesc/servo_position publisher가 있어야 전달된다.
@@ -44,14 +44,14 @@ ros2 run vesc_initializer vesc_initialize_node --ros-args \
 
 [3. 조이스틱 수동 주행 전체 실행]
 
-ros2 launch vehicle_launcher manual_drive.launch.py
+ros2 launch vehicle_bringup manual_drive.launch.py
 
 이 launch에는 다음 노드가 모두 포함된다.
 
 - joy_node
 - joy_params_converter_node
 - actuator_commander_node
-- vesc_initialize_node
+- vesc_bridge_node
 
 따라서 [1] 조이스틱 노드나 [2] VESC 노드를 따로 실행하지 않는다.
 
@@ -60,9 +60,9 @@ ros2 launch vehicle_launcher manual_drive.launch.py
 
 ros2 launch vehicle_test_drive vehicle_test_drive.launch.py
 
-VESC가 /dev/ttyACM1에 연결된 경우:
+CH341T가 /dev/ttyUSB1에 연결된 경우:
 
-ros2 launch vehicle_test_drive vehicle_test_drive.launch.py vesc_port:=/dev/ttyACM1
+ros2 launch vehicle_test_drive vehicle_test_drive.launch.py vesc_port:=/dev/ttyUSB1
 
 테스트 주행 launch는 VESC 연결과 펌웨어 응답을 확인한 뒤 다음 순서로
 자동 실행한다.
@@ -73,7 +73,7 @@ ros2 launch vehicle_test_drive vehicle_test_drive.launch.py vesc_port:=/dev/ttyA
 4. ERPM 0 -> -5000
 5. ERPM 0 및 조향 위치 0.5로 복귀 후 종료
 
-테스트 주행 launch가 vesc_initialize_node를 직접 실행하므로 [2] VESC 노드,
+테스트 주행 launch가 vesc_bridge_node를 직접 실행하므로 [2] VESC 노드,
 [3] 수동 주행 launch와 동시에 실행하지 않는다.
 
 
@@ -81,7 +81,8 @@ ros2 launch vehicle_test_drive vehicle_test_drive.launch.py vesc_port:=/dev/ttyA
 
 camera_driver는 OAK 장치 내부 왜곡 보정을 사용하고
 1280x720 NV12를 수신한다. 카메라 단독 프리뷰를 켜면 표시할 때만 CPU에서
-BGR로 변환한다. 카메라 단독 실행에서는 OAK IMU를 시작하지 않는다.
+BGR로 변환한다. OAK IMU로 시작 pitch/roll 기준을 유지하며 실행 직후
+1초 폐기 + 4초 기준 측정 동안 차량과 카메라를 정지시켜야 한다.
 성능 측정을 위해 ROS 이미지 발행은 기본적으로 꺼져 있다.
 
 cd ~/Desktop/f1tenth_test0724/f1tenth_project_repo
@@ -101,16 +102,18 @@ ros2 launch camera_driver camera_driver.launch.py publish_enabled:=true
 
 src/camera_driver/config/camera_config.yaml
 
-  sensor_fps: 143.0         -> OAK 센서/출력 요청 FPS
+  sensor_fps: 110.0         -> OAK 센서/출력 요청 FPS
   width: 1280
   height: 720
   undistort_enabled: true   -> OAK 내부 캘리브레이션으로 왜곡 보정
   image_topic: /camera/image_rect
-  queue_size: 2
+  queue_size: 1
   queue_blocking: false
   publish_enabled: false
-  publish_fps: 143.0
-  preview_fps: 143.0
+  publish_fps: 120.0
+  preview_fps: 60.0
+  imu_stabilization_enabled: true
+  fixed_view_zoom: 1.25
 
 상태 로그의 capture 값이 실제 센서 수신 FPS다. preview 값은 모니터
 주사율과 OpenCV GUI 성능의 제한을 받으므로 capture보다 낮을 수 있다.
@@ -121,44 +124,68 @@ OpenCV 창을 사용하려면 Jetson 데스크톱 또는 X11 forwarding처럼
 DISPLAY/그래픽 화면을 사용할 수 있어야 한다.
 
 
-[6. NV12 카메라 + CUDA BEV 통합 실행]
-
-카메라와 BEV를 같은 컴포넌트 컨테이너에서 intra-process로 연결한다.
-카메라 원본 프리뷰는 끄고, GPU가 NV12를 바로 100x240 BGR BEV로
-변환한다.
-
-자동 측정 모드(OAK stereo 평면 높이와 IMU/Depth 융합 roll/pitch를
-시작 시 1회 측정):
-
-cd ~/Desktop/f1tenth_test0724/f1tenth_project_repo
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-ros2 launch bev_processor bev_processor_auto.launch.py
-
-수동 설정 모드(bev_config_manual.yaml의 직접 측정값 사용):
-
-ros2 launch bev_processor bev_processor_manual.launch.py
-
-BEV 프리뷰/토픽 설정은 선택한 bev_config_auto.yaml 또는
-bev_config_manual.yaml에서 변경한다. camera_height_estimator는 별도
-측정 도구이며 BEV 실행에 값을 전달하지 않는다.
-
-CUDA Toolkit 확인:
-
-nvcc --version
-
-
-[7. Jetson 빌드]
+[6. Jetson 빌드]
 
 cd ~/Desktop/f1tenth_test0724/f1tenth_project_repo
 
 source /opt/ros/humble/setup.bash
 colcon build --cmake-clean-cache --packages-select \
-  joy_initializer vehicle_config vehicle_launcher manual_control \
-  vesc_initializer vehicle_test_drive camera_driver \
+  joy_initializer vehicle_bringup manual_control auto_control \
+  vesc_bridge vehicle_test_drive camera_driver \
   camera_height_estimator bev_processor \
   --cmake-args -DCMAKE_BUILD_TYPE=Release
 source install/setup.bash
+
+
+[7. IMU 자세 + depth 높이 시작 측정과 BEV 실행]
+
+시작 측정과 camera_driver의 기존 안정화 기준 측정이 모두 끝날 때까지
+차량을 완전히 정지시키고 중앙 ROI에 장애물 없는 평평한 노면을 둔다.
+
+ros2 launch bev_processor bev_processor.launch.py
+
+곡선 형태를 더 부드럽게 유지하는 bicubic 보간으로 실행:
+
+ros2 launch bev_processor bev_processor.launch.py \
+  bev_interpolation:=bicubic
+
+이 launch는 다음 순서로 실행한다.
+
+1. IR dot projector 1.0, 1280x800 5-bit stereo, calibrated IMU로 시작 측정
+2. IMU roll/pitch와 depth 노면 inlier로 높이 확정
+3. 측정 파이프라인이 OAK를 반환한 뒤 camera_driver 시작
+4. 기존 1초 폐기 + 4초 초점 고정 자세 측정
+5. 안정화된 NV12를 고정 LUT로 `/camera/image_bev`에 발행
+
+GUI 없이 실행(BEV 단계 시간은 /perf/bev_stage 토픽으로 확인):
+
+ros2 launch bev_processor bev_processor.launch.py preview_enabled:=false
+
+
+[8. BEV 중앙선 기반 자율주행]
+
+수동주행 launch와 동시에 실행하지 않는다. 기본 실행은 원본 영상을 숨기고
+차선 인식 결과만 프리뷰하며, 중앙선과 VESC/ERPM이 준비되면 바로 출발한다.
+
+ros2 launch vehicle_bringup auto_drive.launch.py
+
+프리뷰를 완전히 끄고 실행:
+
+ros2 launch vehicle_bringup auto_drive.launch.py preview_enabled:=false
+
+바퀴를 띄운 상태에서 명령만 점검하려면 자동 출발을 끈다.
+
+ros2 launch vehicle_bringup auto_drive.launch.py \
+  preview_enabled:=false \
+  auto_enabled:=false
+
+
+[9. 원격 프리뷰 (SSH 실행, iPad/MacBook 브라우저)]
+
+기존 명령 끝에 remote_preview_enabled:=true를 붙인다. 브라우저: http://<jetson-ip>:8765
+설정 YAML: remote_preview_params_file:=<경로> (기본 auto_control/config/remote_preview.yaml)
+
+ros2 launch vehicle_bringup auto_drive.launch.py remote_preview_enabled:=true
 
 
 [안전 주의]

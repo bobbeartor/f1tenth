@@ -153,6 +153,74 @@ RemapLut generateRemap(
   return lut;
 }
 
+FusedRemapCoverage assessFusedRemapCoverage(
+  const RemapLut & lut,
+  const cv::Matx33d & source_to_stabilized_homography,
+  const int source_width,
+  const int source_height,
+  const int source_crop_top)
+{
+  if (
+    lut.map_x.empty() || lut.map_y.empty() || lut.valid_mask.empty() ||
+    lut.map_x.size() != lut.map_y.size() ||
+    lut.map_x.size() != lut.valid_mask.size() ||
+    lut.map_x.type() != CV_32FC1 || lut.map_y.type() != CV_32FC1 ||
+    lut.valid_mask.type() != CV_8UC1 ||
+    !cv::checkRange(cv::Mat(source_to_stabilized_homography)) ||
+    std::abs(cv::determinant(cv::Mat(source_to_stabilized_homography))) <
+    1.0e-9 ||
+    source_width <= 1 || source_height <= 1 ||
+    source_width % 2 != 0 || source_height % 2 != 0 ||
+    source_crop_top < 0 || source_crop_top >= source_height ||
+    source_crop_top % 2 != 0)
+  {
+    throw std::invalid_argument("invalid fused BEV remap geometry");
+  }
+
+  FusedRemapCoverage result;
+  const cv::Matx33d stabilized_to_source =
+    source_to_stabilized_homography.inv(cv::DECOMP_LU);
+  const int cropped_height = source_height - source_crop_top;
+  for (int row = 0; row < lut.map_x.rows; ++row) {
+    for (int column = 0; column < lut.map_x.cols; ++column) {
+      if (lut.valid_mask.at<std::uint8_t>(row, column) == 0U) {
+        continue;
+      }
+      ++result.valid_lut_pixels;
+      const cv::Vec3d source_homogeneous =
+        stabilized_to_source * cv::Vec3d(
+        static_cast<double>(lut.map_x.at<float>(row, column)),
+        static_cast<double>(lut.map_y.at<float>(row, column)),
+        1.0);
+      if (
+        !std::isfinite(source_homogeneous[0]) ||
+        !std::isfinite(source_homogeneous[1]) ||
+        !std::isfinite(source_homogeneous[2]) ||
+        std::abs(source_homogeneous[2]) < 1.0e-9)
+      {
+        continue;
+      }
+      const double source_x =
+        source_homogeneous[0] / source_homogeneous[2];
+      const double cropped_source_y =
+        source_homogeneous[1] / source_homogeneous[2] - source_crop_top;
+      if (
+        source_x >= 0.0 && source_x < source_width - 1.0 &&
+        cropped_source_y >= 0.0 &&
+        cropped_source_y < cropped_height - 1.0)
+      {
+        ++result.covered_pixels;
+      }
+    }
+  }
+  if (result.valid_lut_pixels > 0) {
+    result.coverage_ratio =
+      static_cast<double>(result.covered_pixels) /
+      static_cast<double>(result.valid_lut_pixels);
+  }
+  return result;
+}
+
 cv::Mat convertToBev(
   const cv::Mat & rectified_image,
   const RemapLut & lut)

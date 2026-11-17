@@ -3,20 +3,23 @@
 <package format="3">
   <name>joy_initializer</name>
   <version>0.0.0</version>
-  <description>Project wrapper around the ROS joy_node for AutoDrive.</description>
+  <description>Haptic-free SDL Bluetooth game-controller input node for AutoDrive.</description>
   <maintainer email="ohslo@example.com">ohslo</maintainer>
-  <license>TODO</license>
+  <license>BSD-3-Clause</license>
 
-  <buildtool_depend>ament_python</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <exec_depend>joy</exec_depend>
+  <depend>rclcpp</depend>
+  <depend>sdl2_vendor</depend>
+  <depend>sensor_msgs</depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
 
   <export>
-    <build_type>ament_python</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>
