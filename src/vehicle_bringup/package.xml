@@ -20,6 +20,7 @@
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>manual_control</exec_depend>
+  <exec_depend>multiclass_yolo</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>vehicle_dynamics_monitor</exec_depend>

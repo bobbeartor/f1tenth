@@ -87,3 +87,24 @@ head -n 1 ~/distance_dataset/stationary_001/samples.jsonl
 정합 확인 후 수동주행으로 거리/각도/조명을 바꾸어 추가 수집합니다.
 촬영 회차마다 `sequence`를 새로 지정하고, 최종 평가용 촬영은 학습에서 제외합니다.
 학습·RGB 전용 추론·평가는 `src/multiclass_yolo/README.md`를 따릅니다.
+
+## 5. 수동주행과 수집을 한 번에 실행
+
+기존에 받은 폴더에서 브랜치를 업데이트하고 수동주행 패키지도 빌드합니다.
+
+```bash
+cd ~/f1tenth-distance-ws
+git pull --ff-only
+source /opt/ros/humble/setup.bash
+colcon build --packages-up-to vehicle_bringup --cmake-args -DCMAKE_BUILD_TYPE=Release
+source install/setup.bash
+ros2 launch vehicle_bringup manual_drive_distance_collection.launch.py
+```
+
+기존 수동주행과 같은 컨트롤러 설정을 사용하고, 데이터는
+`~/distance_dataset/manual_<실행 시각>/`에 저장합니다. 기존 수동주행·자동주행과 OAK를 여는
+다른 노드는 종료한 뒤 실행하세요. 이 launch 하나가 수동주행과 YOLO+Stereo 수집을 함께 시작합니다.
+먼저 정지 상태에서 검출·거리·저장을 확인한 뒤 수동주행으로 수집합니다.
+촬영 시퀀스 이름은 매번 자동 생성되며 `sequence:=manual_track_001`로 직접 지정할 수도 있습니다.
+Q/ESC 또는 수집 노드 종료 시 이 launch 전체에 shutdown을 보냅니다.
+실제 Jetson/차량에서 통합 실행은 아직 검증되지 않았습니다.

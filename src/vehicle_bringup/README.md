@@ -391,3 +391,33 @@ Bluetooth controller transport.
 검출을 함께 실행한다. auto_control의 액추에이터 출력은 monitor_only로 차단하며 조작은
 수동으로 한다. 별도 manual_obstacle_view launch는 이 구성으로 대체했다.
 [실행 및 YAML 안내](../auto_control/AUTO_CONTROL_OBSTACLES.md).
+
+## 수동주행하면서 YOLO 거리 학습 데이터 수집
+
+```bash
+ros2 launch vehicle_bringup manual_drive_distance_collection.launch.py
+```
+
+기존 `manual_drive.launch.py`의 조이스틱·VESC 설정과 YOLO+Stereo 수집 노드를 함께 실행합니다.
+기본 namespace는 `autopilot03`, VESC 포트는 `/dev/ttyTHS1`, 컨트롤러 검색 이름은 `8BitDo`입니다.
+RT/LT/조향/RB 및 duty·제동 설정은 기존 수동주행 설정을 그대로 사용합니다.
+기존 수동주행·자동주행·camera_driver·BEV·YOLO 노드는 종료한 뒤 이 launch 하나로 시작하세요.
+이 launch는 자율주행 제어와 별도 카메라 노드를 실행하지 않습니다.
+
+촬영 폴더는 기본 `~/distance_dataset/manual_<시각>/`이며 매 실행마다 새 sequence를 만듭니다.
+프리뷰의 거리와 저장 파일을 정지 상태에서 확인한 뒤 수동주행으로 수집합니다.
+유효한 YOLO+Depth 객체만 PNG/JSONL에 저장하므로 검출이 없거나 거리 품질이 낮으면 이미지가 저장되지 않습니다.
+Q/ESC 또는 수집 노드 종료 시 함께 실행한 수동주행 세션에도 shutdown을 보냅니다.
+터미널의 Ctrl+C로도 전체 세션을 종료할 수 있습니다.
+
+```bash
+# 이름/경로/장치 설정 변경 예
+ros2 launch vehicle_bringup manual_drive_distance_collection.launch.py \
+  sequence:=manual_track_001 output_directory:=$HOME/distance_dataset \
+  vehicle_namespace:=autopilot03 vesc_port:=/dev/ttyTHS1 \
+  controller_name_contains:=8BitDo camera_fps:=30.0 preview:=true
+```
+
+기존 sequence 경로를 다시 쓰면 수동주행 시작 전 오류를 냅니다. `preview:=false`로 창 없이 실행할 수 있습니다.
+카메라는 수집 노드 하나만 엽니다. CAN/dynamics monitor는 이 launch에 포함하지 않습니다.
+수집 데이터의 거리 기준, 품질 필터와 학습·평가는 `multiclass_yolo/README.md`를 참고하세요.

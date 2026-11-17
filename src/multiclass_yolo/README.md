@@ -405,3 +405,12 @@ g++ -std=c++17 -Isrc/multiclass_yolo/include \
 주요 추가 파일은 `src/distance_node.cpp`, `include/multiclass_yolo/distance*.hpp`,
 `tools/distance_mlp.py`, `tools/evaluate_distance.py`, `config/distance.yaml`,
 `launch/distance.launch.py`와 관련 테스트입니다. 기존 파일 수정은 빌드/의존성 등록과 이 문서에 한정됩니다.
+
+수동주행과 수집을 함께 시작하려면 `vehicle_bringup`도 빌드한 뒤 다음을 실행합니다.
+
+```bash
+ros2 launch vehicle_bringup manual_drive_distance_collection.launch.py
+```
+
+기존 조이스틱/VESC 설정을 사용하며 자동 생성된 시퀀스로 `~/distance_dataset`에 저장합니다.
+자세한 인수와 종료 동작은 `vehicle_bringup/README.md`의 수동주행 수집 항목을 참고하세요.
