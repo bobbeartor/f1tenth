@@ -30,6 +30,8 @@ def _start(context):
         'mode':'rgb_compare' if compare in ['true','1'] else 'rgb_infer', 'distance_model':str(model),
         'backend':LaunchConfiguration('backend'),
         'preview':ParameterValue(LaunchConfiguration('preview'),value_type=bool),
+        'preview_scale':ParameterValue(LaunchConfiguration('preview_scale'),value_type=float),
+        'preview_window_scale':ParameterValue(LaunchConfiguration('preview_window_scale'),value_type=float),
         'fps':ParameterValue(LaunchConfiguration('fps'),value_type=float),
         'confidence_threshold':ParameterValue(LaunchConfiguration('confidence_threshold'),value_type=float),
         'nms_threshold':ParameterValue(LaunchConfiguration('nms_threshold'),value_type=float),
@@ -47,6 +49,7 @@ def _start(context):
 def generate_launch_description():
     defaults={
         'model':'lightgbm','distance_model':'','backend':'TENSORRT','preview':'true','fps':'30.0',
+        'preview_scale':'0.7','preview_window_scale':'0.7',
         'confidence_threshold':'0.4','nms_threshold':'0.65',
         'compare_stereo':'false','stereo_resolution':'400p','stereo_subpixel':'false','stereo_ir_dot':'0.5','sync_ms':'20.0',
         'engine_cache':str(Path.home()/'.cache/yolo_distance_runtime/holdout10.fp16.engine'),

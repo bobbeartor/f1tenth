@@ -70,6 +70,11 @@ class DistanceNode:public rclcpp::Node {
     int width=declare_parameter<int>("width",1280), height=declare_parameter<int>("height",800);
     double fps=declare_parameter<double>("fps",30), sync_ms=declare_parameter<double>("sync_ms",20);
     bool preview=declare_parameter<bool>("preview",true);
+    const double preview_scale=declare_parameter<double>("preview_scale",.7);
+    const double preview_window_scale=declare_parameter<double>("preview_window_scale",.7);
+    if(!std::isfinite(preview_scale+preview_window_scale) || preview_scale<=0 || preview_scale>2 ||
+      preview_window_scale<=0 || preview_window_scale>2)
+      throw std::invalid_argument("Preview scales must be finite values in (0, 2]");
     auto sequence=declare_parameter<std::string>("sequence","");
     auto directory=declare_parameter<std::string>("output_directory","distance_data");
     if(width<16 || height<16 || width>4096 || height>4096 || !std::isfinite(fps) || fps<=0 || fps>120 ||
@@ -146,9 +151,11 @@ class DistanceNode:public rclcpp::Node {
     std::deque<std::shared_ptr<dai::ImgFrame>> rgb_buffer,depth_buffer;
     const auto started=Clock::now(); std::size_t frames=0; std::string contract;
     const std::array<std::string,4> names{"con","truck","sedan","traffic_light"};
+    std::size_t preview_page=0;
     if(preview) {
       cv::namedWindow("YOLO distance",cv::WINDOW_NORMAL);
-      if(rgb_model)cv::resizeWindow("YOLO distance",1280,720);
+      if(rgb_model)cv::resizeWindow("YOLO distance",std::max(1,int(std::lround(1280*preview_window_scale))),
+        std::max(1,int(std::lround(720*preview_window_scale))));
     }
     while(rclcpp::ok() && pipeline.isRunning()) {
       rclcpp::spin_some(shared_from_this());
@@ -266,8 +273,11 @@ class DistanceNode:public rclcpp::Node {
       if(!metrics || (samples.is_open() && !samples)) throw std::runtime_error("Output write failed");
       if(preview) {
         cv::Mat display;
-        if(rgb_model) display=mc::liveDistancePreview(image,objects,rgb_model->algorithm(),stereo_enabled,
-          record["fps"].get<double>(),yolo_ms,mlp_ms);
+        if(rgb_model) {
+          preview_page=std::min(preview_page,mc::liveDistanceListPages(objects.size(),image.rows,preview_scale)-1);
+          display=mc::liveDistancePreview(image,objects,rgb_model->algorithm(),stereo_enabled,
+            record["fps"].get<double>(),yolo_ms,mlp_ms,preview_scale,preview_page);
+        }
         else {
           display=image;
           for(std::size_t i=0;i<detections.size();++i) {
@@ -279,6 +289,14 @@ class DistanceNode:public rclcpp::Node {
           }
         }
         cv::imshow("YOLO distance",display); int key=cv::waitKey(1);if(key==27 || key=='q') break;
+        if(rgb_model && (key=='n' || key=='N')) {
+          const auto pages=mc::liveDistanceListPages(objects.size(),image.rows,preview_scale);
+          preview_page=(preview_page+1)%pages;
+        }
+        if(rgb_model && (key=='p' || key=='P')) {
+          const auto pages=mc::liveDistanceListPages(objects.size(),image.rows,preview_scale);
+          preview_page=(preview_page+pages-1)%pages;
+        }
       }
     }
     pipeline.stop();
