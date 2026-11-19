@@ -1,0 +1,14 @@
+{
+  "mlp": {
+    "samples": 9979,
+    "valid": 9904,
+    "invalid": 75,
+    "max_cpp_python_difference_m": 9.5367431640625e-07
+  },
+  "lightgbm": {
+    "samples": 9979,
+    "valid": 9979,
+    "invalid": 0,
+    "max_cpp_python_difference_m": 0.0
+  }
+}

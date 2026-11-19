@@ -1,0 +1,14 @@
+{
+  "mlp": {
+    "file": "mlp_rgb.json",
+    "bytes": 60667,
+    "sha256": "6f9d5e0c33dfd67f75953a9aada3036c3f79a232ac5c5ea83db52d6c333f3d72",
+    "source_model_sha256": "bbbe53367d99211e223c80abb3aaf87e18d232f4bcc1f80a6dd90f1a54811e34"
+  },
+  "lightgbm": {
+    "file": "lightgbm_rgb.json",
+    "bytes": 277213,
+    "sha256": "232a840ba2d8aacd049a8c7a7c9b56e3d3e1dc5e18e9c4d9f825aecff0b6cf46",
+    "source_model_sha256": "35a42d53a7596f876a18503d5b2f5e302ca164a8a427c22f4eb962e7ccc6e5f9"
+  }
+}

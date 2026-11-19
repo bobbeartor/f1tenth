@@ -1,0 +1,10 @@
+yolo_distance:
+  ros__parameters:
+    mode: rgb_infer
+    backend: TENSORRT
+    width: 1280
+    height: 800
+    fps: 30.0
+    preview: true
+    confidence_threshold: 0.4
+    nms_threshold: 0.65

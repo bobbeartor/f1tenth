@@ -105,3 +105,12 @@ ros2 run yolo_distance_runtime yolo_distance_node --ros-args \
 실제 Jetson 컴파일/하드웨어 동작은 아직 검증되지 않았습니다.
 묶음 재생성은 `python3 deployment/make_distance_overlay.py`를 사용합니다.
 파일 목록과 무결성 해시는 `distance-overlay-files.txt`, `distance-overlay.sha256`에 있습니다.
+
+## Stereo 없이 수동주행 중 실시간 거리 확인
+
+최신 기능은 `rgb-distance-live.tar.gz`에 묶었습니다. 기존 BBox 비교용 Python 모델을
+C++로 내보낸 학습 모델과 RGB 전용 launch가 포함됩니다. YOLO 소스/가중치는 Jetson의 기존 것을 사용합니다.
+이 묶음을 적용한 뒤 **yolo_distance_runtime 하나만 다시 빌드**합니다.
+다운로드·모델 선택·수동주행·SSH 실행은 `src/yolo_distance_runtime/README.md`를 따르세요.
+`model:=lightgbm` 또는 `model:=mlp`로 실행하며 PyTorch/LightGBM의 Jetson 설치는 필요 없습니다.
+현재 개발 환경에서는 C++ 모델 수치 검증을 완료했지만 Jetson 전체 빌드/카메라 실시간 동작은 미검증입니다.

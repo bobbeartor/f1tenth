@@ -45,10 +45,23 @@ ament_target_dependencies(yolo_distance_node rclcpp std_msgs ament_index_cpp)
 target_link_libraries(yolo_distance_node multiclass_detector depthai::core
   point_cloud::point_cloud_depth_source Threads::Threads nlohmann_json::nlohmann_json)
 install(TARGETS yolo_distance_node DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY launch config DESTINATION share/${PROJECT_NAME}
+  PATTERN "__pycache__" EXCLUDE)
+install(FILES models/mlp_rgb.json models/lightgbm_rgb.json models/export_manifest.json
+  models/cpp_parity_report.json DESTINATION share/${PROJECT_NAME}/models)
+install(FILES README.md DESTINATION share/${PROJECT_NAME})
 # Reuse the model already on Jetson; the downloadable overlay contains no weights.
 install(FILES
   ${YOLO_SOURCE_DIR}/models/multiclass_yolox_tiny_512x320_holdout10.onnx
   ${YOLO_SOURCE_DIR}/models/multiclass_yolox_tiny_512x320_holdout10.labels.txt
   ${YOLO_SOURCE_DIR}/models/multiclass_yolox_tiny_512x320_holdout10.metadata.json
   DESTINATION share/${PROJECT_NAME}/models)
+if(BUILD_TESTING)
+  enable_testing()
+  add_executable(rgb_distance_probe test/rgb_distance_probe.cpp)
+  target_include_directories(rgb_distance_probe PRIVATE ${YOLO_SOURCE_DIR}/include)
+  target_link_libraries(rgb_distance_probe nlohmann_json::nlohmann_json)
+  add_test(NAME portable_mlp_load COMMAND rgb_distance_probe ${CMAKE_CURRENT_SOURCE_DIR}/models/mlp_rgb.json)
+  add_test(NAME portable_lightgbm_load COMMAND rgb_distance_probe ${CMAKE_CURRENT_SOURCE_DIR}/models/lightgbm_rgb.json)
+endif()
 ament_package()
