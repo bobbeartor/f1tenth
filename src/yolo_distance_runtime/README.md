@@ -1,4 +1,4 @@
-# RGB 전용 실시간 거리 확인
+# 실시간 거리 확인: RGB 전용 / Stereo 비교
 
 기존 OAK CAM_A RGB → 기존 YOLOX → 학습된 MLP/LightGBM → 거리(m)를 한 C++ 노드에서 실행합니다.
 `rgb_infer` 모드는 **CAM_B/C, StereoDepth, IR projector, Point Cloud를 생성/실행하지 않습니다.**
@@ -148,3 +148,65 @@ python3 src/multiclass_yolo/tools/export_rgb_distance_models.py \
 
 이는 fitted 모델 직렬화만 변환하며 새 학습은 하지 않습니다. exporter에는 LightGBM이 필요하지만
 Jetson C++ 런타임에는 필요하지 않습니다. 현재 exporter는 single-output identity-link GBDT 회귀만 지원합니다.
+
+## 실시간 모델 거리 + Stereo 거리 동시 비교
+
+같은 변경 묶음을 업데이트하고 yolo_distance_runtime만 다시 빌드한 뒤 실행합니다.
+
+```bash
+cd /home/autopilot03/Desktop/bjh/f1tenth_project_repo
+source /opt/ros/humble/setup.bash
+source install/yolo_distance_runtime/share/yolo_distance_runtime/package.bash
+ros2 launch yolo_distance_runtime stereo_compare.launch.py model:=lightgbm
+# MLP를 확인하려면 위 노드를 종료하고 model:=mlp로 실행
+```
+
+또는 기존 launch에 `compare_stereo:=true`를 전달합니다.
+
+```bash
+ros2 launch yolo_distance_runtime rgb_distance.launch.py model:=mlp compare_stereo:=true
+```
+
+이 모드는 `rgb_compare`이며 CAM_A RGB + CAM_B/C StereoDepth를 함께 실행합니다.
+모델 입력에는 여전히 BBox/Class만 사용하며 Stereo 값은 비교용 기준일 뿐 모델에 입력하지 않습니다.
+Point Cloud/BEV 계산은 하지 않습니다. 수동주행은 기존처럼 별도 터미널에서 실행합니다.
+RGB-only launch 기본값 `compare_stereo:=false`는 그대로이며 Stereo를 생성하지 않습니다.
+
+화면에는 모든 YOLO 박스를 그리고, 박스 번호에 대응하는 오른쪽 목록에 다음을 소수점 셋째 자리로 표시합니다.
+
+```text
+#1 con / conf 0.92
+P: 0.688 m | S: 0.553 m | D: +0.135
+```
+
+- P = 선택한 학습 모델의 추정 거리
+- S = 시간 동기화·RGB 정합·품질 검사를 통과한 Stereo 거리
+- D = P−S. 둘 다 유효할 때만 표시
+- Stereo N/A여도 YOLO 박스/모델 추정값은 유지하며, 모델 N/A여도 Stereo 값은 유지
+- 목록이 길면 사진 위 박스 번호/거리와 JSON 로그를 함께 확인
+
+JSON/ROS 객체에는 `distance_m`, `stereo_distance_m`, `prediction_minus_stereo_m`을 함께 저장합니다.
+`stereo_status=valid/unavailable/disabled`, `stereo_reason`, ROI/유효 픽셀 수·비율·분포 폭도 기록합니다.
+Stereo 무효 사유:
+
+- `no_synchronized_depth`: 허용 시간 차이 안의 Depth 프레임 없음
+- `empty_roi`, `too_few_valid_pixels`, `low_valid_pixel_ratio`: ROI/깊이 표본 부족
+- `unstable_depth_distribution`: P90−P10 분포 폭 기준 초과
+- `too_few_inliers`, `low_inlier_ratio`: MAD 제거 후 표본 부족
+- `disabled`: RGB-only로 실행한 정상 상태
+
+로그는 `~/distance_live_logs/rgb_<실행 시각>/rgb_compare_metrics_*.jsonl`에 저장됩니다.
+화면을 띄우지 않을 경우 `preview:=false`를 사용하고 `/yolo_distance/objects`를 확인합니다.
+
+비교용 Stereo 설정은 `stereo_resolution:=400p`, `stereo_subpixel:=false`, `stereo_ir_dot:=0.5`,
+`sync_ms:=20.0`이 기본입니다. 실험 시 이를 명시적으로 바꿀 수 있지만 가까운 거리의 유효 범위/FPS도 확인해야 합니다.
+이 기능에서도 전체 Jetson/카메라 실기기 실행은 미검증이며, 진단 필터·launch 선택·기존 모델 수치 검증을 수행했습니다.
+
+### 0.7m 이하 데이터 확인 결과
+
+현재 학습 시퀀스 manual_002_curated에는 0.7m 이하 65개(5826개 중 약 1.1%)가 있고 최소 Stereo는 0.542m입니다.
+검증 manual_001에는 28개, Test manual_003/004 정리본에는 각각 6개/10개가 있습니다.
+프로그램에는 0.7m 하한이 없습니다. portable 모델의 허용 범위는 0.2–10m입니다.
+학습 근거리 샘플의 현재 모델 예측 최솟값은 LightGBM 약 0.688m, MLP 약 0.536m였습니다.
+이는 해당 샘플에서의 관측값이며 모델의 이론적 하한이 아닙니다. 실차에서의 하한처럼 보이는 현상은
+모델 추정 특성과 근거리 표본 부족에 부합하지만, BBox/카메라 장착 변화 등은 P/S 실시간 비교로 따로 확인해야 합니다.

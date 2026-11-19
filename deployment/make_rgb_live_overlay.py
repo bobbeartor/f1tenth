@@ -13,6 +13,7 @@ def main():
         'src/multiclass_yolo/include/multiclass_yolo/distance.hpp',
         'src/multiclass_yolo/include/multiclass_yolo/distance_quality.hpp',
         'src/multiclass_yolo/include/multiclass_yolo/rgb_distance_model.hpp',
+        'src/multiclass_yolo/include/multiclass_yolo/distance_live_preview.hpp',
         'src/multiclass_yolo/tools/export_rgb_distance_models.py',
     ]
     names += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'src/yolo_distance_runtime').rglob('*'))

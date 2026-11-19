@@ -23,13 +23,21 @@ class RgbLaunchTest(unittest.TestCase):
 
     def test_rgb_only_model_selection_has_one_camera_node(self):
         for name in ['mlp','lightgbm']:
-            actions=self.start(dict(model=name,distance_model=''))
+            actions=self.start(dict(model=name,distance_model='',compare_stereo='false'))
             self.assertEqual(len(actions),1)
             node=actions[0];self.assertEqual(node['package'],'yolo_distance_runtime')
             settings=node['parameters'][1]
             self.assertEqual(settings['mode'],'rgb_infer')
             self.assertEqual(Path(settings['distance_model']).name,name+'_rgb.json')
             self.assertNotIn('stereo',settings)
+
+    def test_stereo_comparison_keeps_portable_model_and_selects_reference_mode(self):
+        for name in ['mlp','lightgbm']:
+            actions=self.start(dict(model=name,distance_model='',compare_stereo='true'))
+            self.assertEqual(actions[0]['parameters'][1]['mode'],'rgb_compare')
+            self.assertEqual(Path(actions[0]['parameters'][1]['distance_model']).name,name+'_rgb.json')
+        with self.assertRaisesRegex(RuntimeError,'compare_stereo'):
+            self.start(dict(model='mlp',distance_model='',compare_stereo='maybe'))
 
     def test_missing_model_and_wrong_algorithm_fail_before_camera_start(self):
         with self.assertRaisesRegex(RuntimeError,'must be'):

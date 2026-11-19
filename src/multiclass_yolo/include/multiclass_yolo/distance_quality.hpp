@@ -3,6 +3,7 @@
 #include <cmath>
 #include <optional>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace multiclass_yolo {
@@ -22,18 +23,34 @@ inline double median(std::vector<double> v) {
 struct DepthQuality {
   double core{.6}, min_m{.2}, max_m{10}, min_ratio{.25}, max_relative_spread{.15};
   int min_pixels{20};
-  std::optional<double> extract(const std::vector<double>& valid, int total) const {
-    if(total<=0 || int(valid.size())<min_pixels || double(valid.size())/total<min_ratio) return {};
+  struct Measurement {
+    std::optional<double> distance;
+    std::string reason;
+    int roi_pixels{0},valid_pixels{0},inlier_pixels{0};
+    double valid_ratio{0},relative_spread{0};
+  };
+  Measurement assess(const std::vector<double>& valid, int total) const {
+    Measurement out;out.roi_pixels=total;out.valid_pixels=static_cast<int>(valid.size());
+    if(total<=0) {out.reason="empty_roi";return out;}
+    out.valid_ratio=double(valid.size())/total;
+    if(int(valid.size())<min_pixels) {out.reason="too_few_valid_pixels";return out;}
+    if(out.valid_ratio<min_ratio) {out.reason="low_valid_pixel_ratio";return out;}
     const auto m=median(valid);
     std::vector<double> residual, clean;
     for(auto z:valid) residual.push_back(std::abs(z-m));
     const auto mad=median(residual);
     // Reject mixed/unstable depth before clipping, so a broad background is not hidden.
     auto sorted=valid; std::sort(sorted.begin(),sorted.end());
-    if((sorted[(sorted.size()-1)*9/10]-sorted[(sorted.size()-1)/10])/m>max_relative_spread) return {};
+    out.relative_spread=(sorted[(sorted.size()-1)*9/10]-sorted[(sorted.size()-1)/10])/m;
+    if(out.relative_spread>max_relative_spread) {out.reason="unstable_depth_distribution";return out;}
     for(auto z:valid) if(std::abs(z-m)<=std::max(.02,3*1.4826*mad)) clean.push_back(z);
-    if(int(clean.size())<min_pixels || double(clean.size())/total<min_ratio) return {};
-    return median(clean);
+    out.inlier_pixels=static_cast<int>(clean.size());
+    if(int(clean.size())<min_pixels) {out.reason="too_few_inliers";return out;}
+    if(double(clean.size())/total<min_ratio) {out.reason="low_inlier_ratio";return out;}
+    out.distance=median(clean);return out;
+  }
+  std::optional<double> extract(const std::vector<double>& valid, int total) const {
+    return assess(valid,total).distance;
   }
 };
 }

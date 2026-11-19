@@ -1,6 +1,7 @@
 #include "multiclass_yolo/yolox_detector.hpp"
 #include "multiclass_yolo/distance.hpp"
 #include "multiclass_yolo/rgb_distance_model.hpp"
+#include "multiclass_yolo/distance_live_preview.hpp"
 #include <point_cloud/depth_source.hpp>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -63,9 +64,9 @@ class DistanceNode:public rclcpp::Node {
   DistanceNode():Node("yolo_distance") {}
   void run() {
     auto mode=declare_parameter<std::string>("mode","collect");
-    if(mode!="collect" && mode!="infer" && mode!="evaluate" && mode!="rgb_infer")
-      throw std::invalid_argument("mode: collect/infer/evaluate/rgb_infer");
-    const bool stereo_enabled=mode=="collect" || mode=="evaluate";
+    if(mode!="collect" && mode!="infer" && mode!="evaluate" && mode!="rgb_infer" && mode!="rgb_compare")
+      throw std::invalid_argument("mode: collect/infer/evaluate/rgb_infer/rgb_compare");
+    const bool stereo_enabled=mode=="collect" || mode=="evaluate" || mode=="rgb_compare";
     int width=declare_parameter<int>("width",1280), height=declare_parameter<int>("height",800);
     double fps=declare_parameter<double>("fps",30), sync_ms=declare_parameter<double>("sync_ms",20);
     bool preview=declare_parameter<bool>("preview",true);
@@ -100,11 +101,11 @@ class DistanceNode:public rclcpp::Node {
     std::string distance_model_path;
     if(mode!="collect") {
       distance_model_path=declare_parameter<std::string>("distance_model","");
-      if(mode=="rgb_infer") rgb_model=std::make_unique<mc::RgbDistanceModel>(distance_model_path);
+      if(mode=="rgb_infer" || mode=="rgb_compare") rgb_model=std::make_unique<mc::RgbDistanceModel>(distance_model_path);
       else mlp=std::make_unique<mc::DistanceModel>(distance_model_path);
     }
-    if(rgb_model) RCLCPP_INFO(get_logger(),"RGB-only %s distance inference: StereoDepth, CAM_B/C and Point Cloud are disabled",
-      rgb_model->algorithm().c_str());
+    if(rgb_model) RCLCPP_INFO(get_logger(),"%s / %s distance inference; StereoDepth=%s; Point Cloud disabled",
+      stereo_enabled ? "RGB + Stereo comparison":"RGB-only",rgb_model->algorithm().c_str(),stereo_enabled ? "ON":"OFF");
     auto device=std::make_shared<dai::Device>(dai::UsbSpeed::SUPER);
     std::vector<int> sockets;
     for(const auto& c:device->getConnectedCameraFeatures()) {
@@ -123,6 +124,9 @@ class DistanceNode:public rclcpp::Node {
     auto rgbq=output->createOutputQueue(4,false);
     std::shared_ptr<dai::MessageQueue> depthq;
     point_cloud::Config config; config.fps=fps;
+    config.resolution=declare_parameter<std::string>("stereo_resolution","400p");
+    config.subpixel=declare_parameter<bool>("stereo_subpixel",false);
+    config.dot_intensity=declare_parameter<double>("stereo_ir_dot",.5);
     if(stereo_enabled) depthq=point_cloud::addStereoDepth(pipeline,config)->depth.createOutputQueue(8,false);
     pipeline.build(); pipeline.start();
     if(stereo_enabled && !device->setIrLaserDotProjectorIntensity(float(config.dot_intensity)))
@@ -142,6 +146,10 @@ class DistanceNode:public rclcpp::Node {
     std::deque<std::shared_ptr<dai::ImgFrame>> rgb_buffer,depth_buffer;
     const auto started=Clock::now(); std::size_t frames=0; std::string contract;
     const std::array<std::string,4> names{"con","truck","sedan","traffic_light"};
+    if(preview) {
+      cv::namedWindow("YOLO distance",cv::WINDOW_NORMAL);
+      if(rgb_model)cv::resizeWindow("YOLO distance",1280,720);
+    }
     while(rclcpp::ok() && pipeline.isRunning()) {
       rclcpp::spin_some(shared_from_this());
       while(auto d=depthq ? depthq->tryGet<dai::ImgFrame>():nullptr) {depth_buffer.push_back(d); if(depth_buffer.size()>16) depth_buffer.pop_front();}
@@ -181,6 +189,7 @@ class DistanceNode:public rclcpp::Node {
         metadata["distance_model"]=distance_model_path;
         metadata["distance_algorithm"]=rgb_model ? rgb_model->algorithm() : (mlp ? "legacy_mlp":"stereo");
         metadata["confidence_threshold"]=confidence; metadata["nms_threshold"]=nms;
+        metadata["stereo_resolution"]=config.resolution;metadata["stereo_subpixel"]=config.subpixel;
         std::ofstream meta(root/(mode+"_metadata.json")); meta<<metadata.dump(2);
       } else if(contract!=current_contract) throw std::runtime_error("Frame geometry changed");
       auto yolo_start=Clock::now(); auto detections=detector.detect(image).detections; double yolo_ms=elapsed(yolo_start);
@@ -198,13 +207,17 @@ class DistanceNode:public rclcpp::Node {
         }
       }
       double mlp_ms=elapsed(mlp_start);
-      cv::Mat aligned; if(depth) aligned=alignDepth(*rgb,*depth,calibration);
+      auto depth_alignment_start=Clock::now();
+      cv::Mat aligned; if(depth && !detections.empty()) aligned=alignDepth(*rgb,*depth,calibration);
+      const double depth_alignment_ms=elapsed(depth_alignment_start);
       mc::Json objects=mc::Json::array();
       const auto image_name="images/"+std::to_string(rgb->getSequenceNum())+".png";
       bool saved=false;
       for(std::size_t i=0;i<detections.size();++i) {
         const auto& d=detections[i]; auto b=d.box;
         std::optional<double> label;
+        mc::DepthQuality::Measurement measurement;
+        measurement.reason=stereo_enabled ? "no_synchronized_depth":"disabled";
         if(!aligned.empty()) {
           cv::Rect core(int(std::ceil(b.x+b.width*(1-quality.core)/2)),int(std::ceil(b.y+b.height*(1-quality.core)/2)),
             std::max(1,int(b.width*quality.core)),std::max(1,int(b.height*quality.core)));
@@ -213,16 +226,21 @@ class DistanceNode:public rclcpp::Node {
           for(int y=core.y;y<core.y+core.height;++y) for(int x=core.x;x<core.x+core.width;++x) {
             double z=aligned.at<double>(y,x); if(z>=quality.min_m && z<=quality.max_m) valid.push_back(z);
           }
-          label=quality.extract(valid,core.area());
+          measurement=quality.assess(valid,core.area());label=measurement.distance;
         }
         mc::Json obj={{"class_id",d.class_id},{"class",names.at(d.class_id)},{"confidence",d.score},
           {"bbox",{b.x,b.y,b.width,b.height}},{"distance_m",nullptr},{"stereo_distance_m",nullptr}};
         if(predictions[i]) obj["distance_m"]=*predictions[i];
         if(rgb_model) {
           obj["distance_source"]=rgb_model->algorithm(); obj["prediction_reason"]=prediction_reasons[i];
-          obj["stereo_status"]="disabled";
         }
         if(label) obj["stereo_distance_m"]=*label;
+        obj["stereo_status"]=label ? "valid":(stereo_enabled ? "unavailable":"disabled");
+        obj["stereo_reason"]=measurement.reason;
+        obj["stereo_roi_pixels"]=measurement.roi_pixels;obj["stereo_valid_pixels"]=measurement.valid_pixels;
+        obj["stereo_valid_ratio"]=measurement.valid_ratio;obj["stereo_relative_spread"]=measurement.relative_spread;
+        obj["prediction_minus_stereo_m"]=nullptr;
+        if(predictions[i] && label)obj["prediction_minus_stereo_m"]=*predictions[i]-*label;
         if(mode=="collect" && label) {
           if(!saved) {if(!cv::imwrite((root/image_name).string(),image)) throw std::runtime_error("Image write failed");saved=true;}
           auto row=obj; row["distance_m"]=*label;
@@ -240,26 +258,27 @@ class DistanceNode:public rclcpp::Node {
         {"fps",frames/(seconds(Clock::now())-seconds(started))},{"sync_ms",depth ? mc::Json(skew):mc::Json(nullptr)}};
       record["stereo_enabled"]=stereo_enabled;
       record["distance_model_ms"]=mlp_ms;
+      record["depth_alignment_ms"]=depth_alignment_ms;
       record["yolo_distance_ms"]=yolo_ms+mlp_ms;
       record["distance_algorithm"]=rgb_model ? rgb_model->algorithm() : (mlp ? "legacy_mlp":"stereo");
       std_msgs::msg::String message; message.data=record.dump();publisher->publish(message);
       metrics<<message.data<<'\n'; metrics.flush(); if(samples.is_open()) samples.flush();
       if(!metrics || (samples.is_open() && !samples)) throw std::runtime_error("Output write failed");
       if(preview) {
-        for(std::size_t i=0;i<detections.size();++i) {
-          const auto& d=detections[i]; auto value=mode=="collect" ? objects[i]["stereo_distance_m"]:objects[i]["distance_m"];
-          std::string text=names[d.class_id]+cv::format(" / %.2f / ",d.score)+
-            (value.is_null() ? "N/A":cv::format("%.2f m",value.get<double>()));
-          cv::rectangle(image,d.box,{0,255,0},2);
-          cv::putText(image,text,{int(d.box.x),std::max(15,int(d.box.y)-5)},cv::FONT_HERSHEY_SIMPLEX,.5,{0,255,0},1);
+        cv::Mat display;
+        if(rgb_model) display=mc::liveDistancePreview(image,objects,rgb_model->algorithm(),stereo_enabled,
+          record["fps"].get<double>(),yolo_ms,mlp_ms);
+        else {
+          display=image;
+          for(std::size_t i=0;i<detections.size();++i) {
+            const auto& d=detections[i]; auto value=mode=="collect" ? objects[i]["stereo_distance_m"]:objects[i]["distance_m"];
+            std::string text=names[d.class_id]+cv::format(" / %.2f / ",d.score)+
+              (value.is_null() ? "N/A":cv::format("%.2f m",value.get<double>()));
+            cv::rectangle(display,d.box,{0,255,0},2);
+            cv::putText(display,text,{int(d.box.x),std::max(15,int(d.box.y)-5)},cv::FONT_HERSHEY_SIMPLEX,.5,{0,255,0},1);
+          }
         }
-        if(rgb_model) {
-          const auto status=cv::format("RGB ONLY / %s | FPS %.1f | YOLO %.1f ms | Distance %.3f ms",
-            rgb_model->algorithm().c_str(),record["fps"].get<double>(),yolo_ms,mlp_ms);
-          cv::rectangle(image,{0,0,image.cols,30},{15,15,15},cv::FILLED);
-          cv::putText(image,status,{8,21},cv::FONT_HERSHEY_SIMPLEX,.55,{0,230,230},1,cv::LINE_AA);
-        }
-        cv::imshow("YOLO distance",image); int key=cv::waitKey(1);if(key==27 || key=='q') break;
+        cv::imshow("YOLO distance",display); int key=cv::waitKey(1);if(key==27 || key=='q') break;
       }
     }
     pipeline.stop();
